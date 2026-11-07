@@ -1,0 +1,10 @@
+node_modules
+.expo
+.gradlehome
+android/.gradle
+android/app/.cxx
+android/app/build
+android/build
+.env
+.env.*
+!.env.example

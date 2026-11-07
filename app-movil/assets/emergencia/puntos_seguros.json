@@ -1,0 +1,8 @@
+{
+  "fuente": "Puntos ficticios de Ica, solo para la demo.",
+  "puntos": [
+    { "nombre": "Parque de referencia", "lat": -14.07, "lng": -75.732 },
+    { "nombre": "Plaza de Armas de Ica", "lat": -14.064, "lng": -75.727 },
+    { "nombre": "Parque La Tinguiña", "lat": -14.034, "lng": -75.712 }
+  ]
+}

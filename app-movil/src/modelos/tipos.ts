@@ -1,0 +1,188 @@
+/**
+ * Modelo. Contratos de la app, en camelCase.
+ * Las lecturas públicas salen de las vistas servicios_publicos y pedidos_cercanos.
+ * La app no modela lecturas de servicios, vistos_buenos, perfiles ajenos ni auth.users.
+ */
+
+/** Fila cruda de la vista servicios_publicos. */
+export interface FilaServicioPublico {
+  id: string;
+  nombre: string | null;
+  nombre_negocio: string | null;
+  oficio: string;
+  descripcion: string | null;
+  precio_desde: number | string | null;
+  hora_apertura: string | null;
+  hora_cierre: string | null;
+  abierto_ahora: boolean | null;
+  zona_id: string;
+  zona_nombre: string;
+  lat: number | string | null;
+  lng: number | string | null;
+  direccion: string | null;
+  contacto: string | null;
+  disponible_emergencia: boolean;
+  vistos_buenos_total: number | string;
+  vistos_buenos_300m: number | string;
+  votos_trato_amable: number | string;
+  votos_buen_precio: number | string;
+  votos_confiable: number | string;
+  votos_viene_domicilio: number | string;
+  comentario_destacado: string | null;
+  comentario_autor: string | null;
+  comentario_fecha: string | null;
+  es_mio: boolean;
+  creado_en: string;
+}
+
+/** Servicio tal como lo muestra la vista. */
+export interface ServicioPublico {
+  id: string;
+  /** Nombre del negocio o del autor. */
+  nombre: string;
+  oficio: string;
+  descripcion: string;
+  precioDesde?: number;
+  horaApertura?: string;
+  horaCierre?: string;
+  abiertoAhora: boolean;
+  zona: string;
+  zonaId: string;
+  lat?: number;
+  lng?: number;
+  vistoBuenos300m: number;
+  vistoBuenoTotal: number;
+  votosTratoAmable: number;
+  votosBuenPrecio: number;
+  votosConfiable: number;
+  votosVieneDomicilio: number;
+  comentarioDestacado?: string;
+  comentarioAutor?: string;
+  esMio: boolean;
+  /** Presente solo si el autor permitió mostrar el contacto. */
+  contacto?: string;
+  /** Presente solo si el autor permitió mostrar la dirección. */
+  direccion?: string;
+}
+
+/** Fila cruda de la vista pedidos_cercanos. */
+export interface FilaPedidoCercano {
+  id: string;
+  nombre_corto: string | null;
+  categoria: CategoriaPedido;
+  descripcion: string | null;
+  zona_id: string;
+  creado_en: string;
+  expira_en: string;
+  minutos_antiguedad: number | string;
+  es_mio: boolean;
+  ya_ofreci: boolean;
+}
+
+export type CategoriaPedido = "arreglos" | "compras" | "transporte" | "salud";
+
+/** Pedido tal como lo muestra la vista. */
+export interface PedidoCercano {
+  id: string;
+  nombreCorto: string;
+  categoria: CategoriaPedido;
+  descripcion: string;
+  antiguedad: string;
+  esMio: boolean;
+  yaOfreci: boolean;
+}
+
+/** Datos para publicar un servicio. La descripción admite 140 caracteres y no lleva enlaces. */
+export interface CrearServicioDTO {
+  nombreNegocio?: string;
+  oficio: Oficio;
+  descripcion?: string;
+  precioDesde?: number;
+  horaApertura?: string;
+  horaCierre?: string;
+  direccion?: string;
+  mostrarDireccion: boolean;
+  contacto?: string;
+  mostrarTelefono: boolean;
+  lat?: number;
+  lng?: number;
+  disponibleEmergencia: boolean;
+}
+
+/** Datos para publicar un pedido. La descripción admite 140 caracteres y no lleva enlaces. */
+export interface CrearPedidoDTO {
+  categoria: CategoriaPedido;
+  descripcion: string;
+  zonaId: string;
+}
+
+export const OFICIOS = [
+  "cafeteria",
+  "bodega",
+  "panaderia",
+  "restaurante",
+  "mercado",
+  "farmacia",
+  "gasfitero",
+  "electricista",
+  "carpintero",
+  "albanil",
+  "pintor",
+  "cerrajero",
+  "costurera",
+  "zapatero",
+  "peluqueria",
+  "lavanderia",
+  "mecanico",
+  "tecnico_celulares",
+  "jardinero",
+  "mototaxi",
+  "cuidado_personas",
+  "clases_particulares",
+  "otro",
+] as const;
+
+export type Oficio = (typeof OFICIOS)[number];
+
+export type MotivoReporte = "estafa" | "datos_falsos" | "ofensivo" | "no_existe" | "otro";
+
+export interface ZonaPublica {
+  id: string;
+  nombre: string;
+  distrito: string;
+}
+
+export type MotivoVistoBueno =
+  | "trato_amable"
+  | "buen_precio"
+  | "confiable"
+  | "viene_domicilio";
+
+/** Datos para registrar un visto bueno. El comentario admite 140 caracteres y no lleva enlaces. */
+export interface DarVistoBuenoDTO {
+  servicioId: string;
+  motivo: MotivoVistoBueno;
+  comentario?: string;
+  mostrarComentario: boolean;
+}
+
+/**
+ * Copia local del vecino. La cuenta puede seguir anónima:
+ * celular y zona se completan solo si la persona quiere.
+ */
+export interface PerfilLocal {
+  nombre?: string;
+  zonaId?: string;
+  celular?: string;
+}
+
+export interface ContactoEmergencia {
+  nombre: string;
+  telefono: string;
+}
+
+/** Ficha guardada solo en el teléfono. */
+export interface FichaEmergencia {
+  contactos: ContactoEmergencia[];
+  mensaje: string;
+}

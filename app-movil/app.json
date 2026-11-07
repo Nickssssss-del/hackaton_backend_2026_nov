@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Proyecto Barrio",
+    "slug": "proyecto-barrio",
+    "scheme": "proyectobarrio",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "plugins": [
+      "expo-router",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "El barrio usa tu ubicación para los minutos a pie y la emergencia."
+        }
+      ],
+      [
+        "expo-contacts",
+        {
+          "contactsPermission": "El barrio usa tus contactos solo para avisar en una emergencia."
+        }
+      ],
+      "expo-dev-client",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "El barrio usa el micrófono para escribir lo que dices.",
+          "speechRecognitionPermission": "El barrio usa el reconocimiento de voz en español."
+        }
+      ]
+    ],
+    "android": {
+      "package": "com.melllfer.proyectobarrio"
+    }
+  }
+}
