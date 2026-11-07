@@ -42,15 +42,14 @@ export function useVoz(alReconocer?: (texto: string) => void) {
       }
       setTeclado(false);
       setEscuchando(true);
-      ExpoSpeechRecognitionModule.start({ lang: "es-PE", interimResults: true });
-    } catch {
       try {
-        setEscuchando(true);
-        ExpoSpeechRecognitionModule.start({ lang: "es-419", interimResults: true });
+        ExpoSpeechRecognitionModule.start({ lang: "es-PE", interimResults: true });
       } catch {
-        setEscuchando(false);
-        setTeclado(true);
+        ExpoSpeechRecognitionModule.start({ lang: "es-419", interimResults: true });
       }
+    } catch {
+      setEscuchando(false);
+      setTeclado(true);
     }
   };
 

@@ -58,7 +58,7 @@ export function usePedirFavor() {
     pedidos: consulta.data ?? [],
     cargando: consulta.isLoading,
     enviando: publicar.isPending || ayudar.isPending,
-    error: error ?? (consulta.error ? mensajeDeError(consulta.error) : null),
+    error: error ?? (consulta.error ? mensajeDeError(consulta.error, "general") : null),
     contacto,
     enviar: publicar.mutate,
     ayudar: ayudar.mutate,
@@ -69,5 +69,5 @@ function mensajeDe(causa: unknown): string {
   if (causa instanceof Error && !causa.message.includes("_") && causa.message.length < 90) {
     return causa.message;
   }
-  return mensajeDeError(causa);
+  return mensajeDeError(causa, "general");
 }

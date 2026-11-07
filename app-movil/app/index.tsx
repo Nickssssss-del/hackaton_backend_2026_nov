@@ -6,9 +6,9 @@ import { useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useServicios } from "../src/controladores/useServicios";
 import { useVoz } from "../src/controladores/useVoz";
-import { distanciaMetros, minutosAPie } from "../src/modelos/distancia";
+import { distanciaMetros, minutosAPie } from "../src/modelos/geo";
 import { OFICIOS } from "../src/modelos/tipos";
-import { BotonVoz } from "../src/vistas/BotonVoz";
+import { BotonVoz } from "../src/vistas/componentes/BotonVoz";
 import { TarjetaServicio } from "../src/vistas/TarjetaServicio";
 
 export default function PantallaInicio() {

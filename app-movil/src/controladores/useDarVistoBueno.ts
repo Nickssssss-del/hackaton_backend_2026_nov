@@ -34,7 +34,7 @@ export function useDarVistoBueno() {
       setListo(false);
       setError(causa instanceof Error && !causa.message.includes("_") && causa.message.length < 80
         ? causa.message
-        : mensajeDeError(causa));
+        : mensajeDeError(causa, "voto"));
     },
   });
 

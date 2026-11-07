@@ -1,16 +1,30 @@
 /**
  * Vista. Distribuye las pantallas. La sesión anónima arranca al abrir la app.
  */
-import { Stack } from "expo-router";
+import { SplashScreen, Stack } from "expo-router";
 import { ProveedorConsulta } from "../src/controladores/ProveedorConsulta";
-import { useRegistro } from "../src/controladores/useRegistro";
+import { useSesion } from "../src/controladores/useSesion";
+import { TemaProveedor } from "../src/vistas/tema/TemaProveedor";
+import { useFonts } from "expo-font";
+import { AtkinsonHyperlegible_400Regular, AtkinsonHyperlegible_700Bold } from "@expo-google-fonts/atkinson-hyperlegible";
+import { useEffect } from "react";
 
 export default function DisenoRaiz() {
-  useRegistro();
+  useSesion();
+  const [fuentesCargadas] = useFonts({
+    AtkinsonHyperlegible_400Regular,
+    AtkinsonHyperlegible_700Bold,
+  });
 
+  useEffect(() => {
+    if (fuentesCargadas) void SplashScreen.hideAsync();
+  }, [fuentesCargadas]);
+
+  if (!fuentesCargadas) return null;
   return (
-    <ProveedorConsulta>
-      <Stack>
+    <TemaProveedor>
+      <ProveedorConsulta>
+        <Stack>
         <Stack.Screen name="index" options={{ title: "Vecinos" }} />
         <Stack.Screen name="servicio/[id]" options={{ title: "Servicio" }} />
         <Stack.Screen name="publicar" options={{ title: "Publicar servicio" }} />
@@ -18,7 +32,8 @@ export default function DisenoRaiz() {
         <Stack.Screen name="emergencia" options={{ title: "Emergencia" }} />
         <Stack.Screen name="registro" options={{ title: "Tu cuenta" }} />
         <Stack.Screen name="mis-datos" options={{ title: "Mis datos" }} />
-      </Stack>
-    </ProveedorConsulta>
+        </Stack>
+      </ProveedorConsulta>
+    </TemaProveedor>
   );
 }

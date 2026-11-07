@@ -53,5 +53,5 @@ function mensajeSimple(causa: unknown): string {
   if (causa instanceof Error && !causa.message.includes("_") && causa.message.length < 90) {
     return causa.message;
   }
-  return mensajeDeError(causa);
+  return mensajeDeError(causa, "general");
 }

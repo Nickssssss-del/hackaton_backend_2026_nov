@@ -18,9 +18,12 @@ const MENSAJES: Record<string, string> = {
 const CODIGOS = Object.keys(MENSAJES);
 const ENLACE = /https?:\/\/|www\./i;
 
-export function mensajeDeError(causa: unknown): string {
+export function mensajeDeError(causa: unknown, contexto: "voto" | "reporte" | "general"): string {
   const texto = extraerTexto(causa);
-  if (texto.includes("23505")) return MENSAJES.VOTO_REPETIDO;
+  if (texto.includes("23505")) {
+    if (contexto === "voto") return MENSAJES.VOTO_REPETIDO;
+    if (contexto === "reporte") return "Ya reportaste este servicio.";
+  }
   const codigo = CODIGOS.find((item) => texto.includes(item));
   if (codigo) return MENSAJES[codigo];
   console.error(causa);

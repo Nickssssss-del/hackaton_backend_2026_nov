@@ -5,30 +5,36 @@
 import { Contact, ContactField, requestPermissionsAsync } from "expo-contacts";
 import * as Location from "expo-location";
 import * as SMS from "expo-sms";
-import * as Speech from "expo-speech";
 import { useCallback, useEffect, useState } from "react";
-import { distanciaMetros, minutosAPie, rumbo } from "../modelos/distancia";
+import { distanciaMetros, minutosAPie, rumbo } from "../modelos/geo";
 import {
   guardarEmergencia,
   leerEmergencia,
   pasosEmergencia,
   puntosSeguros,
-} from "../modelos/emergenciaBase";
+} from "../modelos/local/emergenciaBase";
+import { leerCacheGrupos } from "../modelos/local/cacheGrupos";
 import type { FichaEmergencia } from "../modelos/tipos";
 import { mensajeDeError, revisarTexto } from "./errores";
+import { useEscuchar } from "./useEscuchar";
 
 export function useEmergencia() {
   const [ficha, setFicha] = useState<FichaEmergencia | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [punto, setPunto] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [grupos, setGrupos] = useState<
+    Array<Awaited<ReturnType<typeof leerCacheGrupos>>["grupos"][number] & { minutos?: number }>
+  >([]);
+  const voz = useEscuchar();
 
   const recargar = useCallback(async () => {
     try {
       setFicha(await leerEmergencia());
+      setGrupos((await leerCacheGrupos()).grupos);
       setError(null);
     } catch (causa) {
-      setError(mensajeDeError(causa));
+      setError(mensajeDeError(causa, "general"));
     }
   }, []);
 
@@ -47,7 +53,7 @@ export function useEmergencia() {
       setFicha(siguiente);
       setError(null);
     } catch (causa) {
-      setError(mensajeDeError(causa));
+      setError(mensajeDeError(causa, "general"));
     }
   };
 
@@ -76,7 +82,7 @@ export function useEmergencia() {
         contactos: [...actual.contactos, { nombre: detalles.fullName || "Contacto", telefono }],
       });
     } catch (causa) {
-      setError(mensajeDeError(causa));
+      setError(mensajeDeError(causa, "general"));
     }
   };
 
@@ -121,7 +127,7 @@ export function useEmergencia() {
   };
 
   const escuchar = () => {
-    Speech.speak(pasosEmergencia.join(". "), { language: "es-PE" });
+    void voz.escuchar(pasosEmergencia.join(". "));
   };
 
   const hayPeligro = async () => {
@@ -143,5 +149,5 @@ export function useEmergencia() {
     setAviso(null);
   };
 
-  return { ficha, aviso, punto, error, guardar, avisar, escuchar, hayPeligro, elegirContacto, quitarContacto };
+  return { ficha, aviso, punto, error: error ?? voz.aviso, grupos, guardar, avisar, escuchar, hayPeligro, elegirContacto, quitarContacto };
 }

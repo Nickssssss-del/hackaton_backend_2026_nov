@@ -26,7 +26,8 @@
           "microphonePermission": "El barrio usa el micrófono para escribir lo que dices.",
           "speechRecognitionPermission": "El barrio usa el reconocimiento de voz en español."
         }
-      ]
+      ],
+      "expo-font"
     ],
     "android": {
       "package": "com.melllfer.proyectobarrio"

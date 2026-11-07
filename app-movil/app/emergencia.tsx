@@ -4,12 +4,11 @@
 import { useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";
 import { useEmergencia } from "../src/controladores/useEmergencia";
-import { useGruposCercanos } from "../src/controladores/useGruposCercanos";
-import { BotonEmergencia } from "../src/vistas/BotonEmergencia";
+import { BotonEmergencia } from "../src/vistas/componentes/BotonEmergencia";
 
 export default function PantallaEmergencia() {
   const emergencia = useEmergencia();
-  const grupos = useGruposCercanos();
+  const grupos = emergencia.grupos;
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
   const [mensaje, setMensaje] = useState("");

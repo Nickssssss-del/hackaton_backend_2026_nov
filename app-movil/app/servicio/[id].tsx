@@ -7,7 +7,7 @@ import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput } from "rea
 import { useDarVistoBueno } from "../../src/controladores/useDarVistoBueno";
 import { exigirInternet } from "../../src/controladores/red";
 import { useServicios } from "../../src/controladores/useServicios";
-import { distanciaMetros, minutosAPie } from "../../src/modelos/distancia";
+import { distanciaMetros, minutosAPie } from "../../src/modelos/geo";
 import { reportarServicio } from "../../src/modelos/serviciosRepositorio";
 import type { MotivoReporte, MotivoVistoBueno } from "../../src/modelos/tipos";
 import { mensajeDeError } from "../../src/controladores/errores";
@@ -99,7 +99,7 @@ export default function PantallaServicio() {
                 await reportarServicio(servicio.id, motivo);
                 setReporte("Recibimos tu reporte.");
               } catch (causa) {
-                setReporte(mensajeDeError(causa));
+                setReporte(mensajeDeError(causa, "reporte"));
               }
             })();
           }}

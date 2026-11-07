@@ -1,6 +1,6 @@
 /**
  * Vista. Recibe la acción del controlador.
- * No importa el cliente de Supabase.
+ * No importa clientes remotos.
  */
 import { Pressable, StyleSheet, Text } from "react-native";
 
@@ -13,7 +13,8 @@ export function BotonEmergencia({ onPulsar }: Props) {
     <Pressable
       accessibilityRole="button"
       accessibilityLabel="Emergencia"
-      onPress={onPulsar}
+      onLongPress={onPulsar}
+      delayLongPress={2000}
       style={estilos.boton}
     >
       <Text style={estilos.texto}>Emergencia</Text>
@@ -27,12 +28,12 @@ const estilos = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#8c2f2f",
+    backgroundColor: "#D91023",
     paddingHorizontal: 18,
   },
   texto: {
     color: "#ffffff",
-    fontSize: 17,
+    fontSize: 18,
     fontWeight: "700",
   },
 });

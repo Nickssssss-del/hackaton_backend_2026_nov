@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";
 import { useRegistro } from "../src/controladores/useRegistro";
 import { useVoz } from "../src/controladores/useVoz";
-import { BotonVoz } from "../src/vistas/BotonVoz";
+import { BotonVoz } from "../src/vistas/componentes/BotonVoz";
 
 export default function PantallaRegistro() {
   const registro = useRegistro();

@@ -6,7 +6,7 @@ import { ActivityIndicator, Linking, Pressable, ScrollView, StyleSheet, Text, Te
 import { usePedirFavor } from "../src/controladores/usePedirFavor";
 import { useVoz } from "../src/controladores/useVoz";
 import type { CategoriaPedido } from "../src/modelos/tipos";
-import { BotonVoz } from "../src/vistas/BotonVoz";
+import { BotonVoz } from "../src/vistas/componentes/BotonVoz";
 
 const CATEGORIAS: CategoriaPedido[] = ["arreglos", "compras", "transporte", "salud"];
 

@@ -9,16 +9,17 @@ import type {
   MotivoReporte,
   ServicioPublico,
 } from "./tipos";
-import { supabase } from "./supabase";
+import { obtenerSupabase } from "./supabase";
+import { redondear3 } from "./geo";
 
 export async function listarServiciosPublicos(): Promise<ServicioPublico[]> {
-  const { data, error } = await supabase.from("servicios_publicos").select("*");
+  const { data, error } = await obtenerSupabase().from("servicios_publicos").select("*");
   if (error) throw error;
   return (data ?? []).map((fila) => mapearServicio(fila as FilaServicioPublico));
 }
 
 export async function crearServicio(dto: CrearServicioDTO): Promise<void> {
-  const { error } = await supabase.from("servicios").insert({
+  const { error } = await obtenerSupabase().from("servicios").insert({
     nombre_negocio: dto.nombreNegocio ?? null,
     oficio: dto.oficio,
     descripcion: dto.descripcion ?? null,
@@ -29,15 +30,15 @@ export async function crearServicio(dto: CrearServicioDTO): Promise<void> {
     mostrar_direccion: dto.mostrarDireccion,
     contacto: dto.contacto ?? null,
     mostrar_telefono: dto.mostrarTelefono,
-    lat: dto.lat ?? null,
-    lng: dto.lng ?? null,
+    lat: dto.lat === undefined ? null : redondear3(dto.lat),
+    lng: dto.lng === undefined ? null : redondear3(dto.lng),
     disponible_emergencia: dto.disponibleEmergencia,
   });
   if (error) throw error;
 }
 
 export async function darVistoBueno(dto: DarVistoBuenoDTO): Promise<void> {
-  const { error } = await supabase.from("vistos_buenos").insert({
+  const { error } = await obtenerSupabase().from("vistos_buenos").insert({
     servicio_id: dto.servicioId,
     motivo: dto.motivo,
     comentario: dto.comentario ?? null,
@@ -47,12 +48,38 @@ export async function darVistoBueno(dto: DarVistoBuenoDTO): Promise<void> {
 }
 
 export async function reportarServicio(servicioId: string, motivo: MotivoReporte): Promise<void> {
-  const { error } = await supabase.from("reportes").insert({
+  const { error } = await obtenerSupabase().from("reportes").insert({
     servicio_id: servicioId,
     motivo,
   });
   if (error) throw error;
 }
+
+export async function actualizarServicio(id: string, dto: Partial<CrearServicioDTO>): Promise<void> {
+  const { error } = await obtenerSupabase().from("servicios").update({
+    nombre_negocio: dto.nombreNegocio,
+    oficio: dto.oficio,
+    descripcion: dto.descripcion,
+    precio_desde: dto.precioDesde,
+    hora_apertura: dto.horaApertura,
+    hora_cierre: dto.horaCierre,
+    direccion: dto.direccion,
+    mostrar_direccion: dto.mostrarDireccion,
+    contacto: dto.contacto,
+    mostrar_telefono: dto.mostrarTelefono,
+    lat: dto.lat === undefined ? undefined : redondear3(dto.lat),
+    lng: dto.lng === undefined ? undefined : redondear3(dto.lng),
+    disponible_emergencia: dto.disponibleEmergencia,
+  }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function eliminarServicio(id: string): Promise<void> {
+  const { error } = await obtenerSupabase().from("servicios").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// TODO Fase 4: usar reportesRepositorio.
 
 function mapearServicio(fila: FilaServicioPublico): ServicioPublico {
   const comentario = textoOpcional(fila.comentario_destacado);

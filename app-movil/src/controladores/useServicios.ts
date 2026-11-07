@@ -43,7 +43,7 @@ export function useServicios() {
     servicios,
     todos: consulta.data ?? [],
     cargando: consulta.isLoading,
-    error: consulta.error ? mensajeDeError(consulta.error) : null,
+    error: consulta.error ? mensajeDeError(consulta.error, "general") : null,
     recargar: () => consulta.refetch(),
     soloAbiertos,
     setSoloAbiertos,

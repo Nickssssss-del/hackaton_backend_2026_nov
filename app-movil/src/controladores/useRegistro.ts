@@ -3,7 +3,7 @@
  * El celular de 9 dígitos completa el perfil. Proteger la cuenta queda fuera del MVP.
  */
 import { useEffect, useState } from "react";
-import { guardarPerfilLocal, leerPerfilLocal } from "../modelos/perfilLocal";
+import { guardarPerfilLocal, leerPerfilLocal } from "../modelos/local/perfil";
 import { borrarMisDatos, guardarPerfilNube, listarZonas } from "../modelos/perfilRepositorio";
 import { asegurarSesionAnonima } from "../modelos/supabase";
 import type { PerfilLocal, ZonaPublica } from "../modelos/tipos";
@@ -26,7 +26,7 @@ export function useRegistro() {
         setPerfil(guardado);
         setZonas(lista);
       } catch (causa) {
-        if (activo) setError(mensajeDeError(causa));
+        if (activo) setError(mensajeDeError(causa, "general"));
       } finally {
         if (activo) setListo(true);
       }
@@ -49,7 +49,7 @@ export function useRegistro() {
       await guardarPerfilLocal(siguiente);
       setPerfil(siguiente);
     } catch (causa) {
-      setError(mensajeDeError(causa));
+      setError(mensajeDeError(causa, "general"));
     } finally {
       setEnviando(false);
     }
@@ -63,7 +63,7 @@ export function useRegistro() {
       await guardarPerfilLocal({});
       setPerfil(null);
     } catch (causa) {
-      setError(mensajeDeError(causa));
+      setError(mensajeDeError(causa, "general"));
     } finally {
       setEnviando(false);
     }

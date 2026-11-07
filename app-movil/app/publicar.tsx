@@ -7,7 +7,7 @@ import { usePublicarServicio } from "../src/controladores/usePublicarServicio";
 import { useVoz } from "../src/controladores/useVoz";
 import type { CrearServicioDTO, Oficio } from "../src/modelos/tipos";
 import { OFICIOS } from "../src/modelos/tipos";
-import { BotonVoz } from "../src/vistas/BotonVoz";
+import { BotonVoz } from "../src/vistas/componentes/BotonVoz";
 
 export default function PantallaPublicar() {
   const publicar = usePublicarServicio();

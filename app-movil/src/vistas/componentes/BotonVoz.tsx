@@ -1,5 +1,5 @@
 /**
- * Vista. Círculo de 150 px. No llama a Supabase.
+ * Vista. Círculo de 150 px. No llama a servicios remotos.
  */
 import { Pressable, StyleSheet, Text } from "react-native";
 
@@ -28,11 +28,11 @@ const estilos = StyleSheet.create({
     borderRadius: 75,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#1f4b3a",
+    backgroundColor: "#1A6B3C",
     padding: 12,
   },
   activo: {
-    backgroundColor: "#1f7a4d",
+    backgroundColor: "#1A6B3C",
   },
   texto: {
     color: "#ffffff",

@@ -8,7 +8,7 @@ import type {
   FilaPedidoCercano,
   PedidoCercano,
 } from "./tipos";
-import { supabase } from "./supabase";
+import { obtenerSupabase } from "./supabase";
 
 const CATEGORIAS: readonly CategoriaPedido[] = [
   "arreglos",
@@ -18,13 +18,13 @@ const CATEGORIAS: readonly CategoriaPedido[] = [
 ];
 
 export async function listarPedidosCercanos(): Promise<PedidoCercano[]> {
-  const { data, error } = await supabase.from("pedidos_cercanos").select("*");
+  const { data, error } = await obtenerSupabase().from("pedidos_cercanos").select("*");
   if (error) throw error;
   return (data ?? []).map((fila) => mapearPedido(fila as FilaPedidoCercano));
 }
 
 export async function crearPedido(dto: CrearPedidoDTO): Promise<void> {
-  const { error } = await supabase.from("pedidos_ayuda").insert({
+  const { error } = await obtenerSupabase().from("pedidos_ayuda").insert({
     categoria: dto.categoria,
     descripcion: dto.descripcion,
   });
@@ -32,7 +32,7 @@ export async function crearPedido(dto: CrearPedidoDTO): Promise<void> {
 }
 
 export async function yoAyudo(pedidoId: string): Promise<{ nombre: string; celular: string }> {
-  const { data, error } = await supabase.rpc("yo_ayudo", { p_pedido_id: pedidoId });
+  const { data, error } = await obtenerSupabase().rpc("yo_ayudo", { p_pedido_id: pedidoId });
   if (error) throw error;
   const fila = Array.isArray(data) ? data[0] : data;
   const registro = (fila ?? {}) as { nombre?: string; celular?: string };
@@ -40,6 +40,18 @@ export async function yoAyudo(pedidoId: string): Promise<{ nombre: string; celul
     nombre: registro.nombre ?? "",
     celular: registro.celular ?? "",
   };
+}
+
+export async function actualizarPedido(
+  id: string,
+  descripcion: string,
+  estado: "abierto" | "atendido" | "cancelado",
+): Promise<void> {
+  const { error } = await obtenerSupabase()
+    .from("pedidos_ayuda")
+    .update({ descripcion, estado })
+    .eq("id", id);
+  if (error) throw error;
 }
 
 function mapearPedido(fila: FilaPedidoCercano): PedidoCercano {
