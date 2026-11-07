@@ -3,7 +3,7 @@
 Tres carpetas, sin servidor propio.
 
 - `app-movil/`: app Expo (React Native, TypeScript) en MVC. Lee las vistas públicas y escribe con la clave publicable.
-- `panel-web/`: React, Vite y Tailwind. Lista los grupos de apoyo públicos. La revisión de reportes se hace en el panel de Supabase.
+- `panel-web/`: React, Vite y Tailwind. El admin entra con correo y contraseña de Supabase Auth y la base confirma el permiso con `es_admin()`. Revisa los servicios ocultos con sus reportes y verifica grupos de apoyo. El admin se da de alta a mano en la tabla `admins`.
 - `backend/`: SQL, pruebas de RLS, reglas y documentos.
 
 ## Base
