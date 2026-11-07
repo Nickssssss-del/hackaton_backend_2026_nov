@@ -114,7 +114,7 @@ const estilos = StyleSheet.create({
   },
   etiquetaTexto: {
     color: "#FFFFFF",
-    fontSize: 12,
+    fontSize: 18,
     fontWeight: "700",
   },
   oficio: {

@@ -27,7 +27,7 @@ export default function RegistroFicha() {
   };
   return (
     <View style={estilos.pagina}>
-      <BarraRegistro pregunta={4} texto="Completa tu ficha" escuchar={() => void voz.escuchar("Completa tu ficha")} />
+      <BarraRegistro pregunta={4} texto="Completa tu ficha" escuchar={() => void voz.escuchar("Completa tu ficha", true)} />
       {OPCIONES.map((opcion) => (
         <Pressable key={opcion} onPress={() => opcion === "Ninguna" ? setSeleccionadas([]) : alternar(opcion)} style={estilos.casilla}>
           <Text style={estilos.texto}>{seleccionadas.includes(opcion) ? "☑" : "☐"} {opcion}</Text>

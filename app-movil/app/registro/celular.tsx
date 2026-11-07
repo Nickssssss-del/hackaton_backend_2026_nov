@@ -19,7 +19,7 @@ export default function RegistroCelular() {
   };
   return (
     <View style={estilos.pagina}>
-      <BarraRegistro pregunta={2} texto="¿Cuál es tu celular?" escuchar={() => void escuchar.escuchar("Escribe tu celular de 9 dígitos")} />
+      <BarraRegistro pregunta={2} texto="¿Cuál es tu celular?" escuchar={() => void escuchar.escuchar("Escribe tu celular de 9 dígitos", true)} />
       <Text style={estilos.ayuda}>Escribe exactamente 9 dígitos y empieza en 9.</Text>
       <CampoTexto
         autoFocus

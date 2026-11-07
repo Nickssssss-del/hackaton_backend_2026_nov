@@ -21,11 +21,11 @@ export default function Tutorial() {
   };
   return (
     <View style={estilos.pagina}>
-      <Encabezado onVolver={() => router.replace("/inicio")} escuchar={() => void voz.escuchar(PASOS[paso])} />
+      <Encabezado onVolver={() => router.replace("/inicio")} escuchar={() => void voz.escuchar(PASOS[paso], true)} />
       <Text style={estilos.titulo}>Bienvenida</Text>
       <Text style={estilos.paso}>Paso {paso + 1} de 3</Text>
       <Text style={estilos.texto}>{PASOS[paso]}</Text>
-      <Boton onPress={() => void voz.escuchar(PASOS[paso])}>Escuchar</Boton>
+      <Boton onPress={() => void voz.escuchar(PASOS[paso], true)}>Escuchar</Boton>
       {paso < 2 ? <Boton onPress={() => setPaso(paso + 1)}>Siguiente</Boton> : <Boton onPress={() => void terminar()}>Continuar</Boton>}
       <Boton variante="secundario" onPress={() => void terminar()}>Saltar</Boton>
     </View>

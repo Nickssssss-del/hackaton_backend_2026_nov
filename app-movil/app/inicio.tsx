@@ -31,8 +31,8 @@ export default function Inicio() {
       {!completo || omitido ? <Aviso tipo="amarillo">Completa tus datos para que tu familia reciba tus avisos</Aviso> : null}
       {!completo || omitido ? <Boton variante="secundario" onPress={() => router.push("/registro/nombre")}>Completar mis datos</Boton> : null}
       <View style={estilos.fila}>
-        <Boton variante="secundario" onPress={() => void voz.escuchar("Tamaño de letra aumentado")}>A+ Letra</Boton>
-        <Boton variante="secundario" onPress={() => void voz.escuchar("Hola, " + nombre)}>Escuchar</Boton>
+        <Boton variante="secundario" onPress={() => void voz.escuchar("Tamaño de letra aumentado", true)}>A+ Letra</Boton>
+        <Boton variante="secundario" onPress={() => void voz.escuchar("Hola, " + nombre, true)}>Escuchar</Boton>
       </View>
       <Boton onPress={() => router.push("/buscar")}>Buscar servicios</Boton>
       <Boton onPress={() => router.push("/mis-servicios")}>Mis servicios</Boton>

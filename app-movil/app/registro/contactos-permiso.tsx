@@ -13,7 +13,7 @@ export default function RegistroContactosPermiso() {
   };
   return (
     <View style={estilos.pagina}>
-      <BarraRegistro pregunta={4} texto="¿A quién avisamos si te pasa algo?" escuchar={() => void voz.escuchar("¿A quién avisamos si te pasa algo?")} />
+      <BarraRegistro pregunta={4} texto="¿A quién avisamos si te pasa algo?" escuchar={() => void voz.escuchar("¿A quién avisamos si te pasa algo?", true)} />
       <Text style={estilos.texto}>Puedes elegir dos personas de tu agenda. Si no das permiso, escribirás sus números.</Text>
       <Boton onPress={() => void pedir()}>Dar permiso a contactos</Boton>
       <Boton variante="secundario" onPress={() => router.push("/registro/contactos?manual=1")}>Escribir los números</Boton>

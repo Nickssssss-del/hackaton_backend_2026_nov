@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, Text } from "react-native";
+import { Pressable, StyleSheet, Text, ViewStyle } from "react-native";
 import { useTema } from "../tema/useTema";
 
 type Props = {
@@ -6,9 +6,10 @@ type Props = {
   variante?: "accion" | "confirmar" | "secundario" | "peligro";
   onPress: () => void;
   disabled?: boolean;
+  style?: ViewStyle;
 };
 
-export function Boton({ children, variante = "accion", onPress, disabled }: Props) {
+export function Boton({ children, variante = "accion", onPress, disabled, style }: Props) {
   const { tema } = useTema();
   const fondo = {
     accion: tema.colores.accion,
@@ -17,7 +18,7 @@ export function Boton({ children, variante = "accion", onPress, disabled }: Prop
     peligro: tema.colores.peligro,
   }[variante];
   return (
-    <Pressable disabled={disabled} onPress={onPress} style={[estilos.boton, { backgroundColor: fondo }]}>
+    <Pressable disabled={disabled} onPress={onPress} style={[estilos.boton, { backgroundColor: fondo }, style]}>
       <Text style={[estilos.texto, { color: variante === "secundario" ? tema.colores.texto : "#FFFFFF" }]}>
         {children}
       </Text>

@@ -7,19 +7,14 @@
  * - Sin zona en el perfil: "Elige tu barrio para ver los pedidos" con botón al registro
  * - Acceso a "Mis pedidos"
  */
-import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { router } from "expo-router";
-import { listarPedidosCercanos } from "../../src/modelos/pedidosRepositorio";
 import { usePerfil } from "../../src/controladores/usePerfil";
 import { useConexion } from "../../src/controladores/useConexion";
+import { usePedidosCercanos } from "../../src/controladores/usePedidosCercanos";
 import { Encabezado } from "../../src/vistas/componentes/Encabezado";
 import { Aviso } from "../../src/vistas/componentes/Aviso";
-import { Boton } from "../../src/vistas/componentes/Boton";
 import { useTema } from "../../src/vistas/tema/useTema";
-import { useQuery } from "@tanstack/react-query";
-import { mensajeDeError } from "../../src/controladores/errores";
-import { asegurarSesionAnonima } from "../../src/modelos/supabase";
 
 const ICONOS_CATEGORIA: Record<string, string> = {
   arreglos: "🔧",
@@ -37,28 +32,7 @@ export default function PantallaAyuda() {
   const tamano = (base: number) => Math.max(18, Math.round(base * tema.escalaLetra));
   const { perfil } = usePerfil();
   const conexion = useConexion();
-
-  const consulta = useQuery({
-    queryKey: ["pedidos-cercanos"],
-    queryFn: async () => {
-      await asegurarSesionAnonima();
-      return listarPedidosCercanos();
-    },
-    enabled: !!perfil?.zonaId,
-    gcTime: 1000 * 60 * 60 * 24,
-    staleTime: 1000 * 60 * 2,
-    retry: 1,
-  });
-
-  // Cuando no hay internet, react-query devuelve la copia persistida (dataUpdatedAt indica cuándo se guardó)
-  const esCopia = conexion !== "conectado" && consulta.data && consulta.data.length > 0;
-  const copiaFecha = esCopia && consulta.dataUpdatedAt
-    ? new Date(consulta.dataUpdatedAt).toLocaleString("es-PE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
-    : null;
-
-  const pedidos = consulta.data ?? [];
-  const cargando = consulta.isLoading;
-  const error = consulta.error ? mensajeDeError(consulta.error, "general") : null;
+  const { pedidos, cargando, error, esCopia, copiaFecha } = usePedidosCercanos();
 
   const onVolver = () => router.back();
   const irAPedir = () => router.push("/ayuda/pedir");

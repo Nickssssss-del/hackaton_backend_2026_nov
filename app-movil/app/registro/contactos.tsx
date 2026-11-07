@@ -41,7 +41,7 @@ export default function RegistroContactos() {
   const filtrados = agenda.filter((contacto) => (contacto.name ?? "").toLowerCase().includes(busqueda.toLowerCase()));
   return (
     <ScrollView contentContainerStyle={estilos.pagina}>
-      <BarraRegistro pregunta={4} texto="Elige dos personas de confianza" escuchar={() => void voz.escuchar("Elige dos personas de confianza")} />
+      <BarraRegistro pregunta={4} texto="Elige dos personas de confianza" escuchar={() => void voz.escuchar("Elige dos personas de confianza", true)} />
       {!manual ? <TextInput value={busqueda} onChangeText={setBusqueda} placeholder="Buscar en tus contactos" style={estilos.campo} /> : null}
       {!manual ? filtrados.slice(0, 20).map((contacto) => {
         const telefono = contacto.phoneNumbers?.[0]?.number;

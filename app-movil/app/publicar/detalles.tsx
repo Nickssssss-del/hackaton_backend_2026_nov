@@ -226,7 +226,7 @@ export default function PantallaDetalles() {
 const estilos = StyleSheet.create({
   pagina: { gap: 14, padding: 16, paddingBottom: 32 },
   seccionTitulo: { fontWeight: "700" },
-  campo: { minHeight: 48, borderRadius: 8, paddingHorizontal: 12 },
+  campo: { minHeight: 52, borderRadius: 8, paddingHorizontal: 12 },
   filaDescripcion: { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   label: { fontWeight: "600" },
   contador: { fontWeight: "500" },
@@ -234,7 +234,7 @@ const estilos = StyleSheet.create({
   botonVoz: { alignItems: "center", paddingVertical: 8 },
   botonVozTexto: { fontWeight: "600", textDecorationLine: "underline" },
   filaHorario: { flexDirection: "row", gap: 10 },
-  botonHora: { flex: 1, minHeight: 48, borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 12 },
+  botonHora: { flex: 1, minHeight: 52, borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 12 },
   botonHoraTexto: { fontWeight: "500" },
   avisoHora: { marginTop: 4 },
   filaPermiso: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 8 },
@@ -246,8 +246,8 @@ const estilos = StyleSheet.create({
   modalContenido: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: 16, gap: 12, maxHeight: "70%" },
   modalTitulo: { fontWeight: "700", textAlign: "center" },
   modalLista: { gap: 4, maxHeight: 300 },
-  modalItem: { minHeight: 44, borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 },
+  modalItem: { minHeight: 52, borderRadius: 8, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 },
   modalItemTexto: { fontWeight: "500" },
-  botonModalCerrar: { minHeight: 48, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 8 },
+  botonModalCerrar: { minHeight: 52, borderRadius: 12, alignItems: "center", justifyContent: "center", marginTop: 8 },
   botonModalCerrarTexto: { fontWeight: "700" },
 });

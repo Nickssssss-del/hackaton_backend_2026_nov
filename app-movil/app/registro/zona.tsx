@@ -15,7 +15,7 @@ export default function RegistroZona() {
   };
   return (
     <ScrollView contentContainerStyle={estilos.pagina}>
-      <BarraRegistro pregunta={3} texto={`¿Vives en ${registro.perfil?.zonaId || "tu barrio"}?`} escuchar={() => void voz.escuchar("Elige la zona donde vives")} />
+      <BarraRegistro pregunta={3} texto={`¿Vives en ${registro.perfil?.zonaId || "tu barrio"}?`} escuchar={() => void voz.escuchar("Elige la zona donde vives", true)} />
       {zona.zonas.map((item) => (
         <Pressable key={item.id} onPress={() => void elegir(item.id)} style={estilos.opcion}>
           <Text style={estilos.texto}>{item.nombre} ({item.distrito})</Text>

@@ -105,7 +105,7 @@ const estilos = StyleSheet.create({
   oficio: { fontWeight: "500" },
   descripcion: { lineHeight: 24 },
   botones: { flexDirection: "row", gap: 10, marginTop: 8 },
-  botonSecundario: { flex: 1, minHeight: 48, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 },
+  botonSecundario: { flex: 1, minHeight: 52, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 16 },
   botonSecundarioTexto: { fontWeight: "700" },
   botonOfrecer: { minHeight: 52, borderRadius: 12, alignItems: "center", justifyContent: "center", paddingHorizontal: 18, width: "100%" },
   botonOfrecerTexto: { fontWeight: "700" },

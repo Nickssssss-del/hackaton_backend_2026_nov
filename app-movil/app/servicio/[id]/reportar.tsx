@@ -155,7 +155,7 @@ const estilos = StyleSheet.create({
   motivoIcono: {},
   motivoEtiqueta: { flex: 1, fontWeight: "500" },
   avisoSinInternet: { backgroundColor: "#FFF1C2", borderRadius: 8, padding: 12, marginTop: 16 },
-  avisoSinInternetTexto: { fontSize: 16, fontWeight: "500", color: "#3D2E00", textAlign: "center" },
+  avisoSinInternetTexto: { fontSize: 18, fontWeight: "500", color: "#3D2E00", textAlign: "center" },
   botonesFinales: { flexDirection: "row", gap: 12, marginTop: 24 },
   botonCancelar: { flex: 1, minHeight: 56, borderRadius: 14, alignItems: "center", justifyContent: "center" },
   botonCancelarTexto: { fontWeight: "700" },

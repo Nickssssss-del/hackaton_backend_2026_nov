@@ -67,7 +67,7 @@ export default function PantallaServicio() {
     .join(". ");
 
   const escucharleerDetalle = useCallback(() => {
-    escuchar(textoParaEscuchar);
+    escuchar(textoParaEscuchar, true);
   }, [escuchar, textoParaEscuchar]);
 
   const onVolver = useCallback(() => {
@@ -311,7 +311,7 @@ const estilos = StyleSheet.create({
   descripcion: { lineHeight: 26 },
   filaHorario: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8 },
   horarioTexto: { fontWeight: "500" },
-  estadoAbierto: { minHeight: 32, paddingHorizontal: 12, borderRadius: 16, justifyContent: "center" },
+  estadoAbierto: { minHeight: 52, paddingHorizontal: 12, borderRadius: 16, justifyContent: "center" },
   estadoAbiertoTexto: { fontWeight: "700", textAlign: "center" },
   direccion: { fontWeight: "500" },
   distancia: { fontWeight: "700" },

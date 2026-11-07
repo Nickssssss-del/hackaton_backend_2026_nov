@@ -20,7 +20,7 @@ export default function Ubicacion() {
   const texto = "Con tu ubicación la app te muestra lo más cerca";
   return (
     <View style={estilos.pagina}>
-      <Encabezado onVolver={() => router.replace("/inicio")} escuchar={() => void voz.escuchar(texto)} />
+      <Encabezado onVolver={() => router.replace("/inicio")} escuchar={() => void voz.escuchar(texto, true)} />
       <Text style={estilos.titulo}>{texto}</Text>
       <Boton disabled={ubicacion.cargando} onPress={() => void pedir()}>Permitir ubicación</Boton>
     </View>

@@ -15,7 +15,7 @@ export default function ZonaBienvenida() {
   };
   return (
     <ScrollView contentContainerStyle={estilos.pagina}>
-      <Encabezado onVolver={() => router.replace("/bienvenida/ubicacion-ajustes")} escuchar={() => void voz.escuchar("Elige tu barrio")} />
+      <Encabezado onVolver={() => router.replace("/bienvenida/ubicacion-ajustes")} escuchar={() => void voz.escuchar("Elige tu barrio", true)} />
       <Text style={estilos.titulo}>Elige tu barrio</Text>
       {zona.zonas.map((item) => (
         <Pressable key={item.id} onPress={() => void elegir(item.id)} style={estilos.opcion}>

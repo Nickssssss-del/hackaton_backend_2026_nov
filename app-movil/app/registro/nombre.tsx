@@ -23,7 +23,7 @@ export default function RegistroNombre() {
   };
   return (
     <View style={estilos.pagina}>
-      <BarraRegistro pregunta={1} texto="¿Cómo te llamas?" escuchar={() => void escuchar.escuchar("¿Cómo te llamas?")} />
+      <BarraRegistro pregunta={1} texto="¿Cómo te llamas?" escuchar={() => void escuchar.escuchar("¿Cómo te llamas?", true)} />
       <BotonVoz escuchando={voz.escuchando} onPulsar={() => void voz.alternar()} />
       {voz.teclado ? <CampoTexto autoFocus value={nombre} onChangeText={setNombre} placeholder="Escribe tu nombre" maxLength={60} /> : null}
       {nombre ? <Text style={estilos.escuchado}>Te escuchamos: {nombre}</Text> : null}

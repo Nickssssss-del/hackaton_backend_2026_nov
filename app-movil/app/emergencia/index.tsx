@@ -50,7 +50,7 @@ export default function EmergenciaInicio() {
       <BotonEmergencia onPulsar={() => void ayuda()} />
       <Text style={[estilos.subtitulo, { color: tema.colores.textoSecundario }]}>{TEXTOS.ayudaSubtitulo}</Text>
       <Boton onPress={() => void ayuda()} variante="peligro">{TEXTOS.ayuda}</Boton>
-      <Boton onPress={() => void voz.escuchar(instrucciones)}>{TEXTOS.escuchar}</Boton>
+      <Boton onPress={() => void voz.escuchar(instrucciones, true)}>{TEXTOS.escuchar}</Boton>
       <View style={estilos.fila}>
         <Boton onPress={() => voz.silenciar()} variante="secundario">Silenciar</Boton>
         <Boton onPress={() => void voz.repetir(instrucciones)} variante="secundario">Repetir</Boton>
