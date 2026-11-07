@@ -20,3 +20,9 @@ export async function guardarConsentimiento(consentimiento: Consentimiento): Pro
   const ficha = await leerFicha();
   await guardarFicha({ ...ficha, consentimiento });
 }
+
+/** Detecta si la ficha indica "cuesta caminar" (insensible a mayúsculas). */
+export function fichaCuestaCaminar(ficha: FichaEmergencia | null | undefined): boolean {
+  if (!ficha?.mensaje) return false;
+  return /cuesta caminar/i.test(ficha.mensaje);
+}

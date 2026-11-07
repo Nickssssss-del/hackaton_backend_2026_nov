@@ -1,16 +1,18 @@
 /**
- * Controlador. Exige internet y perfil completo antes de votar.
+ * Controlador. Visto Bueno: mutación simple; el componente debe envolver la llamada en exigirEscritura().
+ * Valida localmente votosHechos antes de llamar a la base.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { perfilEstaCompleto } from "../modelos/perfilRepositorio";
 import { darVistoBueno } from "../modelos/serviciosRepositorio";
 import type { DarVistoBuenoDTO } from "../modelos/tipos";
 import { mensajeDeError, revisarTexto } from "./errores";
-import { exigirInternet } from "./red";
+import { obtenerVistosHechos, guardarVistosHechos } from "../modelos/local/votosHechos";
+import { useZona } from "./useZona";
 
 export function useDarVistoBueno() {
   const cliente = useQueryClient();
+  const { zonaId } = useZona();
   const [error, setError] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
 
@@ -21,20 +23,27 @@ export function useDarVistoBueno() {
         const invalido = revisarTexto(comentario, false);
         if (invalido) throw new Error(invalido);
       }
-      await exigirInternet();
-      if (!(await perfilEstaCompleto())) throw new Error("PERFIL_INCOMPLETO");
+      // Validar localmente si ya votó
+      const vistos = await obtenerVistosHechos();
+      if (vistos.includes(dto.servicioId)) {
+        throw new Error("VOTO_REPETIDO");
+      }
       await darVistoBueno({ ...dto, comentario });
     },
-    onSuccess: async () => {
+    onSuccess: async (_data, dto) => {
       setListo(true);
       setError(null);
-      await cliente.invalidateQueries({ queryKey: ["servicios-publicos"] });
+      // Guardar en votosHechos local
+      const vistos = await obtenerVistosHechos();
+      if (!vistos.includes(dto.servicioId)) {
+        await guardarVistosHechos([...vistos, dto.servicioId]);
+      }
+      // Invalidar caché de servicios con la zona correcta
+      await cliente.invalidateQueries({ queryKey: ["servicios", zonaId ?? "todas"] });
     },
     onError: (causa) => {
       setListo(false);
-      setError(causa instanceof Error && !causa.message.includes("_") && causa.message.length < 80
-        ? causa.message
-        : mensajeDeError(causa, "voto"));
+      setError(mensajeDeError(causa, "voto"));
     },
   });
 
@@ -42,6 +51,6 @@ export function useDarVistoBueno() {
     enviando: mutacion.isPending,
     error,
     listo,
-    enviar: (dto: DarVistoBuenoDTO) => mutacion.mutate(dto),
+    enviar: mutacion.mutateAsync, // Promise para que el componente pueda await
   };
 }

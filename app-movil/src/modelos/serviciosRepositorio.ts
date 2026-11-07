@@ -12,8 +12,12 @@ import type {
 import { obtenerSupabase } from "./supabase";
 import { redondear3 } from "./geo";
 
-export async function listarServiciosPublicos(): Promise<ServicioPublico[]> {
-  const { data, error } = await obtenerSupabase().from("servicios_publicos").select("*");
+export async function listarServiciosPublicos(zonaId?: string): Promise<ServicioPublico[]> {
+  let query = obtenerSupabase().from("servicios_publicos").select("*");
+  if (zonaId) {
+    query = query.eq("zona_id", zonaId);
+  }
+  const { data, error } = await query;
   if (error) throw error;
   return (data ?? []).map((fila) => mapearServicio(fila as FilaServicioPublico));
 }
