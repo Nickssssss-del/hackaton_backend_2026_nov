@@ -160,6 +160,11 @@ export default function PantallaBuscar() {
         </Pressable>
       )}
 
+      {/* Acceso a Mis servicios */}
+      <Pressable onPress={() => router.push("/mis-servicios")} style={[estilos.botonOfrecer, { backgroundColor: tema.colores.superficie, borderWidth: 1, borderColor: tema.colores.textoSecundario, marginTop: 8 }]}>
+        <Text style={[estilos.botonOfrecerTexto, { fontSize: tamano(18), color: tema.colores.texto }]}>Mis servicios</Text>
+      </Pressable>
+
       {/* BotonEmergencia compacto abajo */}
       <BotonEmergencia onPulsar={() => router.push("/emergencia")} />
     </ScrollView>

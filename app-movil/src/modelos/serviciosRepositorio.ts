@@ -91,6 +91,7 @@ function mapearServicio(fila: FilaServicioPublico): ServicioPublico {
   return {
     id: texto(fila.id),
     nombre: texto(fila.nombre),
+    nombreNegocio: textoOpcional(fila.nombre_negocio),
     oficio: texto(fila.oficio),
     descripcion: texto(fila.descripcion),
     precioDesde: numeroOpcional(fila.precio_desde),
@@ -109,6 +110,7 @@ function mapearServicio(fila: FilaServicioPublico): ServicioPublico {
     votosVieneDomicilio: numero(fila.votos_viene_domicilio),
     comentarioDestacado: comentario && autor ? `${comentario} — ${autor}` : comentario,
     comentarioAutor: autor,
+    disponibleEmergencia: Boolean(fila.disponible_emergencia),
     contacto: textoOpcional(fila.contacto),
     direccion: textoOpcional(fila.direccion),
     esMio: Boolean(fila.es_mio),

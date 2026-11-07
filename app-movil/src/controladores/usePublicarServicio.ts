@@ -1,57 +1,79 @@
 /**
- * Controlador. Publica un servicio con la ubicación del teléfono.
+ * Controlador. Publica un servicio en 3 toques con exigirEscritura.
+ * Contacto = celular del perfil; lat/lng = última ubicación con redondear3 o null.
  */
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as Location from "expo-location";
 import { useState } from "react";
-import { perfilEstaCompleto } from "../modelos/perfilRepositorio";
+import { exigirEscritura } from "./guarda";
 import { crearServicio } from "../modelos/serviciosRepositorio";
 import type { CrearServicioDTO } from "../modelos/tipos";
 import { mensajeDeError, revisarTexto } from "./errores";
-import { exigirInternet } from "./red";
+import { leerUltimaUbicacion } from "../modelos/local/ultimaUbicacion";
+import { redondear3 } from "../modelos/geo";
+import { perfilCompleto, usePerfil } from "./usePerfil";
+import { useConexion } from "./useConexion";
 
 export function usePublicarServicio() {
   const cliente = useQueryClient();
+  const { perfil } = usePerfil();
+  const conexion = useConexion();
   const [error, setError] = useState<string | null>(null);
   const [listo, setListo] = useState(false);
 
   const mutacion = useMutation({
     mutationFn: async (dto: CrearServicioDTO) => {
+      // Validaciones locales
       if (dto.descripcion) {
         const invalido = revisarTexto(dto.descripcion, false);
         if (invalido) throw new Error(invalido);
       }
-      if (dto.contacto && !/^9\d{8}$/.test(dto.contacto)) {
-        throw new Error("El celular son 9 dígitos y empieza en 9.");
+      if (dto.nombreNegocio) {
+        const invalido = revisarTexto(dto.nombreNegocio, false);
+        if (invalido) throw new Error(invalido);
       }
-      await exigirInternet();
-      if (!(await perfilEstaCompleto())) throw new Error("PERFIL_INCOMPLETO");
+      if (dto.direccion) {
+        const invalido = revisarTexto(dto.direccion, false);
+        if (invalido) throw new Error(invalido);
+      }
+
+      // Leer última ubicación guardada
       let lat = dto.lat;
       let lng = dto.lng;
       if (lat === undefined || lng === undefined) {
-        const permiso = await Location.requestForegroundPermissionsAsync();
-        if (permiso.granted) {
-          const punto = await Location.getCurrentPositionAsync({});
-          lat = Number(punto.coords.latitude.toFixed(3));
-          lng = Number(punto.coords.longitude.toFixed(3));
+        const ultima = await leerUltimaUbicacion();
+        if (ultima) {
+          lat = redondear3(ultima.lat);
+          lng = redondear3(ultima.lng);
         }
       }
-      await crearServicio({ ...dto, lat, lng });
+
+      // exigirEscritura: perfil completo + internet real + sesión + escritura
+      const ok = await exigirEscritura({
+        perfil,
+        internetReal: conexion === "conectado",
+        irAlRegistro: () => {},
+        avisar: (mensaje) => { throw new Error(mensaje); },
+        ejecutar: async () => {
+          await crearServicio({
+            ...dto,
+            lat,
+            lng,
+            contacto: perfil?.celular ?? undefined,
+          });
+        },
+      });
+
+      if (!ok) {
+        throw new Error("No se pudo publicar");
+      }
     },
     onSuccess: async () => {
       setListo(true);
       setError(null);
-      await cliente.invalidateQueries({ queryKey: ["servicios-publicos"] });
+      await cliente.invalidateQueries({ queryKey: ["servicios"] });
     },
-    onError: (causa) => setError(mensajeSimple(causa)),
+    onError: (causa) => setError(mensajeDeError(causa, "general")),
   });
 
   return { enviando: mutacion.isPending, error, listo, publicar: mutacion.mutate };
-}
-
-function mensajeSimple(causa: unknown): string {
-  if (causa instanceof Error && !causa.message.includes("_") && causa.message.length < 90) {
-    return causa.message;
-  }
-  return mensajeDeError(causa, "general");
 }

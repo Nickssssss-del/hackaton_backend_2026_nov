@@ -1,16 +1,18 @@
 /**
  * Vista. Detalle: horario, contacto, cómo llegar, Visto Bueno y Reportar.
  * La votación y el reporte se hacen en pantallas separadas (visto-bueno.tsx, reportar.tsx).
+ * Si es_mio: botones Editar y Borrar funcionales.
  */
 import { useLocalSearchParams } from "expo-router";
 import { useCallback, useState } from "react";
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useServicios } from "../../../src/controladores/useServicios";
 import { distanciaMetros, minutosAPie } from "../../../src/modelos/geo";
 import { useEscuchar } from "../../../src/controladores/useEscuchar";
 import { Encabezado } from "../../../src/vistas/componentes/Encabezado";
 import { useTema } from "../../../src/vistas/tema/useTema";
 import { router } from "expo-router";
+import { useMisServicios } from "../../../src/controladores/useMisServicios";
 
 export default function PantallaServicio() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -18,6 +20,7 @@ export default function PantallaServicio() {
   const tamano = (base: number) => Math.max(18, Math.round(base * tema.escalaLetra));
 
   const servicios = useServicios();
+  const misServicios = useMisServicios();
   const { escuchar, silenciar } = useEscuchar();
 
   const servicio = servicios.todos.find((item) => item.id === id);
@@ -183,16 +186,32 @@ export default function PantallaServicio() {
         </Pressable>
       </View>
 
-      {/* Si es mío: botones desactivados "Editar" y "Borrar" */}
+      {/* Si es mío: botones Editar y Borrar funcionales */}
       {servicio.esMio ? (
         <View style={estilos.botonesPropios}>
-          <Pressable disabled style={[estilos.botonSecundario, { backgroundColor: tema.colores.superficie, opacity: 0.5 }]}>
-            <Text style={[estilos.botonSecundarioTexto, { fontSize: tamano(18), color: tema.colores.textoSecundario }]}>Editar</Text>
+          <Pressable
+            disabled={misServicios.editarEnviando}
+            onPress={() => router.push(`/publicar/detalles?id=${servicio.id}`)}
+            style={[estilos.botonSecundario, { backgroundColor: tema.colores.superficie, borderWidth: 1, borderColor: tema.colores.textoSecundario }]}
+          >
+            <Text style={[estilos.botonSecundarioTexto, { fontSize: tamano(18), color: tema.colores.texto }]}>Editar</Text>
           </Pressable>
-          <Pressable disabled style={[estilos.botonSecundario, { backgroundColor: tema.colores.superficie, opacity: 0.5 }]}>
-            <Text style={[estilos.botonSecundarioTexto, { fontSize: tamano(18), color: tema.colores.textoSecundario }]}>Borrar</Text>
+          <Pressable
+            disabled={misServicios.borrarEnviando}
+            onPress={() => {
+              Alert.alert(
+                "Borrar servicio",
+                "¿Seguro que quieres borrar este servicio? No se puede deshacer.",
+                [
+                  { text: "No", style: "cancel" },
+                  { text: "Sí, borrar", style: "destructive", onPress: () => misServicios.borrar(servicio.id) },
+                ]
+              );
+            }}
+            style={[estilos.botonSecundario, { backgroundColor: tema.colores.peligro }]}
+          >
+            <Text style={[estilos.botonSecundarioTexto, { fontSize: tamano(18), color: "#FFFFFF" }]}>Borrar</Text>
           </Pressable>
-          <Text style={[estilos.fase5, { fontSize: tamano(14), color: tema.colores.textoSecundario }]}>// Fase 5</Text>
         </View>
       ) : (
         <>

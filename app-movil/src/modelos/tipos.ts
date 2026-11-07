@@ -40,6 +40,8 @@ export interface ServicioPublico {
   id: string;
   /** Nombre del negocio o del autor. */
   nombre: string;
+  /** Nombre del negocio (si el autor lo proporcionó). */
+  nombreNegocio?: string;
   oficio: string;
   descripcion: string;
   precioDesde?: number;
@@ -59,6 +61,8 @@ export interface ServicioPublico {
   comentarioDestacado?: string;
   comentarioAutor?: string;
   esMio: boolean;
+  /** Disponible en emergencias. */
+  disponibleEmergencia?: boolean;
   /** Presente solo si el autor permitió mostrar el contacto. */
   contacto?: string;
   /** Presente solo si el autor permitió mostrar la dirección. */
@@ -113,7 +117,7 @@ export interface CrearServicioDTO {
 export interface CrearPedidoDTO {
   categoria: CategoriaPedido;
   descripcion: string;
-  zonaId: string;
+  zonaId?: string;
 }
 
 export const OFICIOS = [

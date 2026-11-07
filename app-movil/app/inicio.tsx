@@ -35,7 +35,8 @@ export default function Inicio() {
         <Boton variante="secundario" onPress={() => void voz.escuchar("Hola, " + nombre)}>Escuchar</Boton>
       </View>
       <Boton onPress={() => router.push("/buscar")}>Buscar servicios</Boton>
-      <Boton onPress={() => router.push("/pedir")}>Ayuda entre vecinos</Boton>
+      <Boton onPress={() => router.push("/mis-servicios")}>Mis servicios</Boton>
+      <Boton onPress={() => router.push("/ayuda")}>Ayuda entre vecinos</Boton>
       <Boton onPress={() => router.push("/mis-datos")}>Mis datos</Boton>
       <BotonEmergencia onPulsar={() => router.push("/emergencia")} />
     </View>

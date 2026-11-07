@@ -82,3 +82,13 @@ function categoria(valor: unknown): CategoriaPedido {
   }
   return "arreglos";
 }
+
+/** Cuenta cuántos vecinos ofrecieron ayuda para un pedido (política ayudas_leer permite al autor). */
+export async function contarAyudasOfrecidas(pedidoId: string): Promise<number> {
+  const { count, error } = await obtenerSupabase()
+    .from("ayudas_ofrecidas")
+    .select("id", { count: "exact", head: true })
+    .eq("pedido_id", pedidoId);
+  if (error) throw error;
+  return count ?? 0;
+}
