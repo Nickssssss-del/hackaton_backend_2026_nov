@@ -219,6 +219,13 @@ export interface ContactoEmergencia {
   telefono: string;
 }
 
+export interface ContactoLocal {
+  nombre: string;
+  telefono: string;
+  relacion: string;
+  orden: number;
+}
+
 /** Ficha guardada solo en el teléfono. */
 export interface FichaEmergencia {
   contactos: ContactoEmergencia[];
