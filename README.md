@@ -8,7 +8,7 @@ Tres carpetas, sin servidor propio.
 
 ## Base
 
-En el SQL Editor, en este orden: `01_tablas.sql`, `02_vistas.sql`, `03_politicas.sql`, `04_datos_prueba.sql`, `05_verificaciones.sql`. El `06_mantenimiento.sql` no forma parte de ese orden.
+En el SQL Editor, en este orden: `01_tablas.sql`, `02_funciones.sql`, `03_politicas.sql`, `04_datos_prueba.sql`, `05_verificaciones.sql`. El `06_mantenimiento.sql` no forma parte de ese orden.
 
 Copia `backend/.env.example` a `backend/.env` y pon la URL y la clave publicable. Nunca la clave secret.
 
