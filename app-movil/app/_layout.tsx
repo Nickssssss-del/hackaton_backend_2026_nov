@@ -30,7 +30,10 @@ export default function DisenoRaiz() {
         <Stack.Screen name="publicar" options={{ title: "Publicar servicio" }} />
         <Stack.Screen name="pedir" options={{ title: "Pedir un favor" }} />
         <Stack.Screen name="emergencia" options={{ title: "Emergencia" }} />
-        <Stack.Screen name="registro" options={{ title: "Tu cuenta" }} />
+        <Stack.Screen name="registro" options={{ title: "Tu cuenta", headerShown: false }} />
+        <Stack.Screen name="bienvenida" options={{ headerShown: false }} />
+        <Stack.Screen name="inicio" options={{ headerShown: false }} />
+        <Stack.Screen name="buscar" options={{ title: "Buscar servicios" }} />
         <Stack.Screen name="mis-datos" options={{ title: "Mis datos" }} />
         </Stack>
       </ProveedorConsulta>

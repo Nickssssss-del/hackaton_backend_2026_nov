@@ -5,12 +5,10 @@ import { useLocalSearchParams } from "expo-router";
 import { useState } from "react";
 import { Linking, Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";
 import { useDarVistoBueno } from "../../src/controladores/useDarVistoBueno";
-import { exigirInternet } from "../../src/controladores/red";
+import { useReportarServicio } from "../../src/controladores/useReportarServicio";
 import { useServicios } from "../../src/controladores/useServicios";
 import { distanciaMetros, minutosAPie } from "../../src/modelos/geo";
-import { reportarServicio } from "../../src/modelos/serviciosRepositorio";
 import type { MotivoReporte, MotivoVistoBueno } from "../../src/modelos/tipos";
-import { mensajeDeError } from "../../src/controladores/errores";
 
 const MOTIVOS: { id: MotivoVistoBueno; etiqueta: string }[] = [
   { id: "trato_amable", etiqueta: "Trato amable" },
@@ -25,6 +23,7 @@ export default function PantallaServicio() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const servicios = useServicios();
   const visto = useDarVistoBueno();
+  const reportar = useReportarServicio();
   const servicio = servicios.todos.find((item) => item.id === id);
   const [comentario, setComentario] = useState("");
   const [mostrar, setMostrar] = useState(false);
@@ -93,15 +92,9 @@ export default function PantallaServicio() {
         <Pressable
           key={motivo}
           onPress={() => {
-            void (async () => {
-              try {
-                await exigirInternet();
-                await reportarServicio(servicio.id, motivo);
-                setReporte("Recibimos tu reporte.");
-              } catch (causa) {
-                setReporte(mensajeDeError(causa, "reporte"));
-              }
-            })();
+            void reportar(servicio.id, motivo).then((resultado) => {
+              setReporte(resultado.mensaje ?? resultado.error);
+            });
           }}
         >
           <Text>{motivo}</Text>

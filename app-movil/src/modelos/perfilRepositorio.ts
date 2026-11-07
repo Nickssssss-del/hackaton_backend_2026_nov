@@ -3,7 +3,8 @@
  */
 import type { PerfilLocal, ZonaPublica } from "./tipos";
 import { borrarMisDatos, obtenerSupabase } from "./supabase";
-import { redondear3 } from "./geo";
+import { asignarZona, redondear3 } from "./geo";
+import { listarZonasPublicas } from "./zonasRepositorio";
 
 export async function listarZonas(): Promise<ZonaPublica[]> {
   const { data, error } = await obtenerSupabase()
@@ -22,13 +23,25 @@ export async function guardarPerfilNube(perfil: PerfilLocal): Promise<void> {
 
   const nombre = perfil.nombre?.trim() ?? "";
   const celular = perfil.celular?.trim() ?? "";
+  const zonas = await listarZonasPublicas();
+  const zonasConGeometria = zonas.filter(
+    (zona): zona is ZonaPublica & { latCentro: number; lngCentro: number; radioM: number } =>
+      typeof zona.latCentro === "number" &&
+      typeof zona.lngCentro === "number" &&
+      typeof zona.radioM === "number",
+  );
+  const zonaCalculada =
+    typeof perfil.lat === "number" && typeof perfil.lng === "number"
+      ? asignarZona(perfil.lat, perfil.lng, zonasConGeometria)
+      : null;
+  const coordenadasValidas = zonaCalculada === perfil.zonaId;
   const { error } = await obtenerSupabase().from("perfiles").upsert({
     id,
     nombre: nombre.length >= 2 ? nombre : null,
     celular: /^9\d{8}$/.test(celular) ? celular : null,
     zona_id: perfil.zonaId || null,
-    lat: perfil.lat === undefined ? null : redondear3(perfil.lat),
-    lng: perfil.lng === undefined ? null : redondear3(perfil.lng),
+    lat: coordenadasValidas && perfil.lat !== undefined ? redondear3(perfil.lat) : null,
+    lng: coordenadasValidas && perfil.lng !== undefined ? redondear3(perfil.lng) : null,
   });
   if (error) throw error;
 }

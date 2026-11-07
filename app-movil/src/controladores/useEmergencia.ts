@@ -12,7 +12,8 @@ import {
   leerContactosLocales,
 } from "../modelos/local/contactos";
 import { leerCacheGrupos } from "../modelos/local/cacheGrupos";
-import { leerEmergencia, guardarEmergencia } from "../modelos/local/emergenciaBase";
+import { guardarEmergencia, leerEmergencia } from "../modelos/local/emergenciaBase";
+import { leerFicha } from "../modelos/local/ficha";
 import { leerPerfilLocal } from "../modelos/local/perfil";
 import { guardarUltimaUbicacion, leerUltimaUbicacion } from "../modelos/local/ultimaUbicacion";
 import {
@@ -48,6 +49,12 @@ function telefonosDe(contactos: ContactoLocal[], brigada: GrupoApoyoPublico | nu
   return [...contactos.map((contacto) => contacto.telefono), brigada?.contacto ?? ""].filter(Boolean);
 }
 
+async function leerFichaConRespaldo(): Promise<FichaEmergencia> {
+  const ficha = await leerFicha();
+  if (ficha.mensaje.trim() || ficha.contactos.length > 0 || ficha.consentimiento) return ficha;
+  return leerEmergencia();
+}
+
 export function useEmergencia() {
   const estadoConexion = useConexion();
   const [ficha, setFicha] = useState<FichaEmergencia | null>(null);
@@ -69,8 +76,8 @@ export function useEmergencia() {
   const puntosSeguros = puntosIncluidos.puntos;
 
   const cargarDatos = useCallback(async () => {
-    const [fichaLocal, contactosLocales, cache, perfil, ultima] = await Promise.all([
-      leerEmergencia(),
+    const fichaLocal = await leerFichaConRespaldo();
+    const [contactosLocales, cache, perfil, ultima] = await Promise.all([
       leerContactosLocales(),
       leerCacheGrupos(),
       leerPerfilLocal(),
@@ -150,7 +157,7 @@ export function useEmergencia() {
   const necesitoAyuda = useCallback(async (): Promise<ResultadoAyuda> => {
     const actuales = contactos.length > 0 ? contactos : await leerContactosLocales();
     if (actuales.length === 0) return { estado: "pedir_numero" };
-    const actual = ficha ?? (await leerEmergencia());
+    const actual = ficha ?? (await leerFichaConRespaldo());
     const coordenada = await asegurarUbicacion();
     const texto = armarMensajeEmergencia({
       nombre: (await leerPerfilLocal())?.nombre,

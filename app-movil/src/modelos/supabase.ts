@@ -39,6 +39,10 @@ export async function asegurarSesionAnonima(): Promise<void> {
   if (creada.error) throw creada.error;
 }
 
+export function tieneConfiguracionSupabase(): boolean {
+  return Boolean(process.env.EXPO_PUBLIC_SUPABASE_URL && process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY);
+}
+
 /** Borra el perfil propio y, en cascada, lo que publicó. */
 export async function borrarMisDatos(): Promise<void> {
   const { error } = await obtenerSupabase().rpc("borrar_mis_datos");

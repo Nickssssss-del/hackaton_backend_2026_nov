@@ -2,6 +2,11 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const PREFIJO = "barrio.";
 
+export const CLAVES_LOCALES = {
+  tutorialVisto: "tutorial_visto",
+  registroOmitido: "registro_omitido",
+} as const;
+
 export async function leerJson<T>(clave: string, valorPorDefecto: T): Promise<T> {
   try {
     const crudo = await AsyncStorage.getItem(`${PREFIJO}${clave}`);
