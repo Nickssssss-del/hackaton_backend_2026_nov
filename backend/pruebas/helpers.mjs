@@ -102,3 +102,62 @@ export function mensaje(error) {
   if (!error) return "";
   return [error.code, error.message, error.details, error.hint].filter(Boolean).join(" ");
 }
+
+/** false si están todas; si no, el texto para test({ skip }). */
+export function motivoDeSkip(nombres) {
+  const faltan = nombres.filter((nombre) => !(process.env[nombre] ?? "").trim());
+  if (faltan.length === 0) return false;
+  return `Faltan ${faltan.join(", ")}.`;
+}
+
+export async function entrarConCelular({ nombre, zonaId, lat, lng, indice = 0 }) {
+  const lista = process.env.CELULARES_PRUEBA.split(/[,;\s]+/)
+    .map((item) => item.trim())
+    .filter(Boolean);
+  const crudo = lista[indice] ?? lista[0];
+  const digitos = crudo.replace(/\D/g, "");
+  const celular = digitos.startsWith("51") && digitos.length > 9 ? digitos.slice(2) : digitos;
+  const phone = crudo.startsWith("+")
+    ? crudo
+    : `+${digitos.startsWith("51") ? digitos : `51${digitos}`}`;
+  const sb = clienteNuevo();
+  const ingreso = await sb.auth.verifyOtp({
+    phone,
+    token: process.env.OTP_PRUEBA.trim(),
+    type: "sms",
+  });
+  if (ingreso.error) throw ingreso.error;
+  const id = ingreso.data.user.id;
+  const existe = await sb.from("perfiles").select("id").eq("id", id).maybeSingle();
+  if (existe.error) throw existe.error;
+  const fila = { nombre, celular, zona_id: zonaId, lat, lng };
+  const perfil = existe.data
+    ? await sb.from("perfiles").update(fila).eq("id", id)
+    : await sb.from("perfiles").insert({ id, ...fila });
+  if (perfil.error) throw perfil.error;
+  const sync = await sb.rpc("sincronizar_verificacion");
+  if (sync.error) throw sync.error;
+  if (sync.data !== true) throw new Error("El celular de prueba no quedó verificado.");
+  return { sb, id, celular };
+}
+
+export async function entrarAdmin() {
+  const sb = clienteNuevo();
+  const ingreso = await sb.auth.signInWithPassword({
+    email: process.env.ADMIN_EMAIL.trim(),
+    password: process.env.ADMIN_PASSWORD.trim(),
+  });
+  if (ingreso.error) throw ingreso.error;
+  return { sb, id: ingreso.data.user.id };
+}
+
+export function clienteServiceRole() {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY.trim();
+  return createClient(url, key, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+}
