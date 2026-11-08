@@ -8,17 +8,31 @@
   Opciones:
     -SoloServidor   No compila: solo abre el servidor (cuando la app ya está instalada).
     -Limpiar        Ejecuta "gradlew clean" antes de compilar (no usa prebuild).
+    -RutaCorta      Compila desde V:\app-movil (subst V: = carpeta del repositorio) para evitar el límite de 260 caracteres.
+                    Para quitar la unidad V: después:  subst V: /D
 
   Todo lo que aparece en pantalla se guarda en:
     app-movil\node_modules\.vecinos-tmp\log-android.txt   (git lo ignora)
 #>
 param(
   [switch]$SoloServidor,
-  [switch]$Limpiar
+  [switch]$Limpiar,
+  [switch]$RutaCorta
 )
 
 $ErrorActionPreference = "Continue"
 $app = Split-Path -Parent $PSScriptRoot
+if ($RutaCorta) {
+  # V: apunta a la carpeta del repositorio y se compila desde V:\app-movil (evita el límite de 260
+  # caracteres de Windows). No se usa la raíz V:\ porque el autolinking de Expo falla en la raíz de una unidad.
+  $repo = Split-Path -Parent $app
+  $hoja = Split-Path -Leaf $app
+  subst V: /D 2>$null | Out-Null
+  subst V: $repo | Out-Null
+  if (-not (Test-Path "V:\$hoja\app\alta\index.tsx")) { Write-Host "No se pudo crear la unidad V:. ¿Está ocupada por otro disco?" -ForegroundColor Red; exit 1 }
+  $app = "V:\$hoja"
+  Write-Host "Usando ruta corta: $app  (V: = $repo)"
+}
 Set-Location $app
 $carpetaLog = Join-Path $app "node_modules\.vecinos-tmp"
 New-Item -ItemType Directory -Force $carpetaLog | Out-Null
@@ -103,7 +117,7 @@ Bien "ANDROID_HOME = $sdk"
 
 # ---------------------------------------------------------------- 5. Dispositivo
 Paso "5. Teléfono o emulador"
-adb start-server | Out-Null
+adb start-server 2>&1 | Out-Host
 function Dispositivos { (adb devices) | Select-Object -Skip 1 | Where-Object { $_ -match "\S+\s+(device|unauthorized|offline)$" } }
 $lista = @(Dispositivos)
 if ($lista | Where-Object { $_ -match "unauthorized" }) {
@@ -126,14 +140,14 @@ if (-not ($lista | Where-Object { $_ -match "\sdevice$" })) {
   while ("$(adb shell getprop sys.boot_completed 2>$null)".Trim() -ne "1" -and $espera -lt 240) { Start-Sleep 3; $espera += 3 }
   if ($espera -ge 240) { Mal "El emulador no terminó de arrancar en 4 minutos. Ábrelo desde Android Studio y vuelve a ejecutar."; Terminar 1 }
 }
-adb devices
+adb devices 2>&1 | Out-Host
 Bien "Dispositivo listo"
 adb reverse tcp:8081 tcp:8081 | Out-Null
 
 # ---------------------------------------------------------------- 6. Dependencias y código
 Paso "6. Dependencias y revisión de TypeScript"
-if (-not (Test-Path ".\node_modules\expo")) { npm install; if ($LASTEXITCODE -ne 0) { Mal "npm install falló."; Terminar 1 } }
-npx tsc --noEmit
+if (-not (Test-Path ".\node_modules\expo")) { npm install 2>&1 | Out-Host; if ($LASTEXITCODE -ne 0) { Mal "npm install falló."; Terminar 1 } }
+npx tsc --noEmit 2>&1 | Out-Host
 if ($LASTEXITCODE -ne 0) { Mal "TypeScript encontró errores (ver arriba)."; Terminar 1 }
 Bien "TypeScript sin errores"
 
@@ -141,20 +155,24 @@ Bien "TypeScript sin errores"
 if ($SoloServidor) {
   Paso "7. Servidor (la app ya está instalada). Abre 'Proyecto Barrio' en el dispositivo."
   Write-Host "  Para detener: Ctrl + C"
-  npx expo start --dev-client
+  npx expo start --dev-client 2>&1 | Out-Host
   Terminar 0
 }
 if ($Limpiar) {
   Paso "7a. Limpieza de Android (gradlew clean)"
-  Push-Location android; .\gradlew.bat clean; Pop-Location
+  Push-Location android; .\gradlew.bat clean 2>&1 | Out-Host; Pop-Location
 }
 Paso "7. Compilar, instalar y abrir (la primera vez: 10-30 minutos)"
 Write-Host "  Al terminar, la app 'Proyecto Barrio' se abre sola. Deja esta ventana abierta: es el servidor."
 Write-Host "  Para detener: Ctrl + C"
-npx expo run:android
+# "| Out-Host" hace que la salida de Gradle quede también en el registro.
+npx expo run:android 2>&1 | Out-Host
 $codigo = $LASTEXITCODE
 if ($codigo -ne 0) {
   Mal "La compilación falló. El detalle quedó en: $log"
   Mal "Avísale a Claude: puede leer ese archivo directamente."
+  if ((Get-Content $log -Raw) -match "longer than|260|path too long|Filename longer|ninja: error|CMake") {
+    Mal "Parece un problema de rutas largas. Prueba:  powershell -ExecutionPolicy Bypass -File .\scripts\correr-android.ps1 -RutaCorta"
+  }
 }
 Terminar $codigo
