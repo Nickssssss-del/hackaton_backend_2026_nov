@@ -14,7 +14,7 @@
 -- Códigos de error nuevos (para errores.ts):
 --   CELULAR_NO_VERIFICADO      Ofrecer ayuda o ver datos de una emergencia sin celular verificado
 --   BLOQUEADO                  Usuario bloqueado por un admin por abuso
---   EMERGENCIA_TERMINADA       La emergencia se cerró o venció (también en la página W1)
+--   EMERGENCIA_TERMINADA       La emergencia se cerró o venció (también en https://kuna-voy.netlify.app)
 --   MAXIMO_DOS_CONTACTOS       Más de 2 enlaces por emergencia
 --   PUBLICACION_NO_DISPONIBLE  Marcar Voy o comentar una publicación oculta o borrada
 -- (Comentar un negocio oculto usa SERVICIO_NO_DISPONIBLE, que ya existía.)
@@ -149,8 +149,9 @@ create table if not exists public.eslabones (
 );
 
 -- ---------------------------------------------------------------------
--- enlaces: token aleatorio de la página W1 "Voy en camino". Solo para
--- los 2 contactos. Deja de funcionar al cerrar o vencer la emergencia.
+-- enlaces: token aleatorio de la página "Voy en camino", publicada en
+-- https://kuna-voy.netlify.app. Solo para los 2 contactos. Deja de
+-- funcionar al cerrar o vencer la emergencia.
 -- ---------------------------------------------------------------------
 create table if not exists public.enlaces (
   id               uuid primary key default gen_random_uuid(),
@@ -930,8 +931,9 @@ end;
 $$;
 
 -- ---------------------------------------------------------------------
--- Página W1 (Edge Function voy-en-camino). Se llaman con el token; el
--- contacto no tiene cuenta, por eso están abiertas a anon.
+-- Página "Voy en camino", publicada en https://kuna-voy.netlify.app.
+-- No es una Edge Function. Se llaman con el token; el contacto no
+-- tiene cuenta, por eso están abiertas a anon.
 -- ---------------------------------------------------------------------
 create or replace function public.enlace_ver(p_token text)
 returns table (nombre text, direccion text, lat numeric, lng numeric, va_en_camino boolean)
@@ -1183,7 +1185,8 @@ create policy eslabones_editar on public.eslabones for update to authenticated
   with check (public.es_mi_emergencia(emergencia_id));
 
 -- enlaces: la persona los crea y lee (necesita el token para el SMS).
--- El contacto entra solo por enlace_ver / enlace_voy con el token.
+-- El contacto entra desde https://kuna-voy.netlify.app, solo con
+-- enlace_ver / enlace_voy y el token.
 drop policy if exists enlaces_leer  on public.enlaces;
 drop policy if exists enlaces_crear on public.enlaces;
 create policy enlaces_leer  on public.enlaces for select to authenticated
