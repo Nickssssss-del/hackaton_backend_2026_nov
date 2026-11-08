@@ -34,12 +34,13 @@ export function useServiciosOcultos() {
     void cargar();
   }, [cargar]);
 
-  const ejecutar = async (id: string, accion: (id: string) => Promise<void>, hecho: string, fallo: string) => {
+  /** La acción devuelve el aviso a mostrar si salió bien. */
+  const ejecutar = async (id: string, accion: (id: string) => Promise<string>, fallo: string) => {
     setEnCurso(id);
     setError(null);
     setAviso(null);
     try {
-      await accion(id);
+      const hecho = await accion(id);
       setServicios((lista) => lista.filter((servicio) => servicio.id !== id));
       setAviso(hecho);
     } catch (causa) {
@@ -50,10 +51,26 @@ export function useServiciosOcultos() {
   };
 
   const mostrar = (id: string) =>
-    ejecutar(id, volverAMostrar, "El servicio vuelve a verse en la app.", "No se pudo volver a mostrar el servicio.");
+    ejecutar(
+      id,
+      async (servicio) => {
+        await volverAMostrar(servicio);
+        return "El servicio vuelve a verse en la app.";
+      },
+      "No se pudo volver a mostrar el servicio.",
+    );
 
   const borrar = (id: string) =>
-    ejecutar(id, borrarServicio, "Servicio borrado junto con sus reportes y vistos buenos.", "No se pudo borrar el servicio.");
+    ejecutar(
+      id,
+      async (servicio) => {
+        const { fotoSinBorrar } = await borrarServicio(servicio);
+        return fotoSinBorrar
+          ? "Servicio borrado, pero su foto no se pudo borrar. Quítala desde Storage (bucket fotos)."
+          : "Servicio borrado junto con sus reportes y vistos buenos.";
+      },
+      "No se pudo borrar el servicio.",
+    );
 
   return { servicios, cargando, error, aviso, enCurso, recargar: cargar, mostrar, borrar };
 }

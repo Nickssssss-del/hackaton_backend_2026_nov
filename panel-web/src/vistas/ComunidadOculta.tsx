@@ -174,6 +174,7 @@ export function ComunidadOculta() {
                 revisadoEn={p.revisado_en}
               >
                 {p.mensaje ? <p className="mt-2">{p.mensaje}</p> : null}
+                {p.lugar ? <p className="mt-1 text-sm text-stone-700">Lugar: {p.lugar}</p> : null}
                 {p.foto_url ? (
                   <img
                     src={p.foto_url}

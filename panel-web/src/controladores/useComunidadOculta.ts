@@ -74,8 +74,14 @@ export function useComunidadOculta() {
   };
 
   const borrar = async (tabla: TablaComunidad, id: string) => {
-    if (await ejecutar(id, () => borrarContenido(tabla, id), "Borrado junto con sus reportes.", "No se pudo borrar.")) {
+    let fotoSinBorrar = false;
+    const accion = async () => {
+      ({ fotoSinBorrar } = await borrarContenido(tabla, id));
+    };
+    if (await ejecutar(id, accion, "Borrado junto con sus reportes.", "No se pudo borrar.")) {
       quitar(tabla, id);
+      // La fila ya se borró; solo se avisa que la foto quedó en Storage.
+      if (fotoSinBorrar) setAviso("Borrado junto con sus reportes, pero su foto no se pudo borrar. Quítala desde Storage (bucket fotos).");
     }
   };
 

@@ -54,9 +54,19 @@ export async function volverAMostrar(id: string): Promise<void> {
   exigirFilas(data);
 }
 
-/** Borra el servicio. Sus reportes y vistos buenos se borran en cascada. */
-export async function borrarServicio(id: string): Promise<void> {
-  const { data, error } = await cliente().from("servicios").delete().eq("id", id).select("id");
+/**
+ * Borra el servicio. Sus reportes y vistos buenos se borran en cascada.
+ * Si tenía foto, la borra del bucket fotos (política fotos_borrar con es_admin()).
+ * fotoSinBorrar: la fila se borró, pero la foto no se pudo borrar.
+ */
+export async function borrarServicio(id: string): Promise<{ fotoSinBorrar: boolean }> {
+  const sb = cliente();
+  const { data, error } = await sb.from("servicios").delete().eq("id", id).select("id, foto_path");
   if (error) throw error;
   exigirFilas(data);
+  const ruta = (data[0] as { foto_path: string | null }).foto_path;
+  if (!ruta) return { fotoSinBorrar: false };
+  // Con RLS, un borrado sin permiso no da error: devuelve una lista vacía.
+  const { data: borradas, error: errorFoto } = await sb.storage.from("fotos").remove([ruta]);
+  return { fotoSinBorrar: !!errorFoto || !borradas || borradas.length === 0 };
 }
