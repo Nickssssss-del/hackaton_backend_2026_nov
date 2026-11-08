@@ -23,7 +23,9 @@ import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { CampoConVoz } from "../../src/vistas/componentes/CampoConVoz";
 import { IndicadorPasos } from "../../src/vistas/componentes/IndicadorPasos";
 import { Mensaje } from "../../src/vistas/componentes/Mensaje";
+import { MapaOSM } from "../../src/vistas/componentes/MapaOSM";
 import { Pantalla } from "../../src/vistas/componentes/Pantalla";
+import { Texto } from "../../src/vistas/componentes/Texto";
 
 const VACIA: DireccionLocal = { calle: "", numero: "", referencia: "" };
 
@@ -34,6 +36,8 @@ export default function TuDireccion() {
   const [direccion, setDireccion] = useState<DireccionLocal>(VACIA);
   const [ubicando, setUbicando] = useState(false);
   const [avisoGps, setAvisoGps] = useState<{ tono: "info" | "aviso"; texto: string } | null>(null);
+  // Punto guardado por el GPS (solo en el teléfono): se muestra en el mapa para confirmar «¿Vives aquí?».
+  const [casa, setCasa] = useState<{ lat: number; lng: number } | null>(null);
 
   const usarUbicacionActual = async () => {
     setAvisoGps(null);
@@ -48,6 +52,7 @@ export default function TuDireccion() {
       return;
     }
     setDireccion((d) => ({ ...d, calle: r.calle || d.calle, numero: r.numero || d.numero }));
+    void leerPerfil().then((p) => setCasa(p.lat !== undefined && p.lng !== undefined ? { lat: p.lat, lng: p.lng } : null));
     setAvisoGps({ tono: "info", texto: "Ubicación actualizada. Revisa la calle y el número, y toca Guardar." });
   };
 
@@ -55,6 +60,7 @@ export default function TuDireccion() {
     let activo = true;
     void leerPerfil().then((perfil) => {
       if (!activo) return;
+      if (perfil.lat !== undefined && perfil.lng !== undefined) setCasa({ lat: perfil.lat, lng: perfil.lng });
       const guardada = perfil.direccion ?? VACIA;
       setDireccion({
         calle: params.calle || guardada.calle,
@@ -121,6 +127,19 @@ export default function TuDireccion() {
         </BotonPrincipal>
       ) : null}
       {avisoGps ? <Mensaje tono={avisoGps.tono}>{avisoGps.texto}</Mensaje> : null}
+      {casa && (params.desdeGps || editando) ? (
+        <>
+          <MapaOSM
+            puntos={[{ ...casa, tipo: "ayuda" }]}
+            descripcion="Mapa con el punto de tu casa, según el GPS del teléfono."
+          />
+          <Texto variante="ayuda">
+            {editando
+              ? "Este es el punto de tu casa. Si no es, toca «Usar mi ubicación actual» estando en casa."
+              : "Este es el punto donde estás. Si no es tu casa, escribe la dirección y sigue."}
+          </Texto>
+        </>
+      ) : null}
       <CampoConVoz
         etiqueta="Calle o avenida"
         ayuda="Av. Los Maestros"

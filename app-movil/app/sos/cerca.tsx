@@ -9,6 +9,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, View } from "react-native";
 import { llamar } from "../../src/controladores/llamadas";
+import { TEXTO_FUENTE } from "../../src/controladores/ubicacionRapida";
 import { useLugaresCercanos } from "../../src/controladores/useLugaresCercanos";
 import { minutosAPie } from "../../src/modelos/geo";
 import { distanciaLegible, ETIQUETA_TIPO, type LugarCercano, type TipoLugar } from "../../src/modelos/lugaresAyuda";
@@ -102,24 +103,38 @@ export default function AyudaCerca() {
       </View>
 
       {vistaMapa ? (
-        <MapaOSM
-          puntos={
-            posicion
-              ? [
-                  { tipo: "yo", lat: posicion.lat, lng: posicion.lng, etiqueta: "Tú" },
-                  ...cercanos.map((l) => ({
-                    tipo: "vecino" as const,
-                    lat: l.lat,
-                    lng: l.lng,
-                    etiqueta: l.nombre,
-                    color: colorIcono(ESTILO[l.tipo].color, tema.oscuro).icono,
-                  })),
-                ]
-              : []
-          }
-          anilloM={radio}
-          descripcion={`Mapa con ${cercanos.length} lugares de ayuda a ${km} kilómetros de ti.`}
-        />
+        <>
+          <MapaOSM
+            puntos={
+              posicion
+                ? [
+                    { tipo: "yo", lat: posicion.lat, lng: posicion.lng, etiqueta: "Tú" },
+                    ...cercanos.map((l) => ({
+                      tipo: "vecino" as const,
+                      lat: l.lat,
+                      lng: l.lng,
+                      etiqueta: l.nombre,
+                      color: colorIcono(ESTILO[l.tipo].color, tema.oscuro).icono,
+                    })),
+                  ]
+                : []
+            }
+            anilloM={radio}
+            descripcion={`Mapa con ${cercanos.length} lugares de ayuda a ${km} kilómetros de ti.`}
+          />
+          {posicion ? (
+            <>
+              <Texto variante="ayuda" color={c.textoSecundario}>{`${TEXTO_FUENTE[posicion.fuente]}${cargando ? " · buscando GPS…" : ""}`}</Texto>
+              <BotonPrincipal
+                variante="secundario"
+                icono="map-search-outline"
+                onPress={() => void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${posicion.lat},${posicion.lng}`)}
+              >
+                Abrir en el mapa del teléfono
+              </BotonPrincipal>
+            </>
+          ) : null}
+        </>
       ) : (
       <View
         onLayout={(e) => setAncho(Math.min(e.nativeEvent.layout.width, 360))}
@@ -186,7 +201,7 @@ export default function AyudaCerca() {
       {!cargando && origen !== "ninguno" && cercanos.length === 0 ? (
         <Mensaje tono="info">{`No hay lugares registrados a ${km} km. Prueba con 2 km o llama al 106, 105 o 116.`}</Mensaje>
       ) : null}
-      {posicion?.fuente === "casa" ? <Mensaje tono="info">Uso la ubicación de tu casa: no hubo señal de GPS.</Mensaje> : null}
+      {posicion?.fuente === "casa" && !cargando ? <Mensaje tono="info">Uso la ubicación de tu casa: no hubo señal de GPS.</Mensaje> : null}
 
       {cercanos.map((l) => (
         <TarjetaLugar key={l.id} lugar={l} />

@@ -49,7 +49,8 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
 
   const vista = useMemo(() => {
     if (!ancho || puntos.length === 0) return null;
-    const z = zoomParaVer(puntos, anilloM ?? 0, ancho, alto);
+    // Un solo punto sin anillo: zoom 17 (se ven calles y manzanas alrededor, no solo un techo).
+    const z = Math.min(zoomParaVer(puntos, anilloM ?? 0, ancho, alto), puntos.length === 1 && !anilloM ? 17 : 18);
     const px = puntos.map((p) => aPixel(p, z));
     const centro = {
       x: (Math.min(...px.map((p) => p.x)) + Math.max(...px.map((p) => p.x))) / 2,

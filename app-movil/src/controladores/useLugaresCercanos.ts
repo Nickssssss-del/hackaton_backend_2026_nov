@@ -1,40 +1,18 @@
 /**
  * Controlador. «Radar» de ayuda: lugares de salud, bomberos y policía a 1 o 2 km de la persona.
- * Posición: GPS actual (si hay permiso y señal en 8 s); si no, la última guardada o la de su casa.
+ * Posición en dos tiempos (ubicacionRapida.ts): al instante la ya conocida (sistema, guardada o casa),
+ * y luego el GPS (hasta 10 s). Si el GPS la mueve más de 150 m, se vuelven a buscar los lugares.
  * Lugares: OpenStreetMap con copia en el teléfono (lugaresRepositorio.ts).
  */
-import * as Location from "expo-location";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { dentroDelRadio, RADIO_MAXIMO_M, saludConTelefono, type LugarAyuda } from "../modelos/lugaresAyuda";
 import { leerCopiaLugares, obtenerLugares, type OrigenLugares } from "../modelos/lugaresRepositorio";
 import { leerPerfilLocal } from "../modelos/local/perfil";
-import { guardarUltimaUbicacion, leerUltimaUbicacion } from "../modelos/local/ultimaUbicacion";
+import { leerUltimaUbicacion } from "../modelos/local/ultimaUbicacion";
+import { distanciaMetros } from "../modelos/geo";
+import { ubicacionConocida, ubicacionGps, type Ubicacion } from "./ubicacionRapida";
 
-type Posicion = { lat: number; lng: number; fuente: "gps" | "guardada" | "casa" };
-
-async function posicionActual(): Promise<Posicion | null> {
-  try {
-    const permiso = await Location.requestForegroundPermissionsAsync();
-    if (permiso.granted) {
-      const p = await Promise.race([
-        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-        new Promise<null>((r) => setTimeout(() => r(null), 8000)),
-      ]);
-      if (p) {
-        const { latitude: lat, longitude: lng } = p.coords;
-        await guardarUltimaUbicacion({ lat, lng, fecha: new Date().toISOString() });
-        return { lat, lng, fuente: "gps" };
-      }
-    }
-  } catch {
-    // sigue con lo guardado
-  }
-  const ultima = await leerUltimaUbicacion();
-  if (ultima) return { lat: ultima.lat, lng: ultima.lng, fuente: "guardada" };
-  const perfil = await leerPerfilLocal();
-  if (perfil?.lat !== undefined && perfil?.lng !== undefined) return { lat: perfil.lat, lng: perfil.lng, fuente: "casa" };
-  return null;
-}
+type Posicion = Ubicacion;
 
 export function useLugaresCercanos(radio: number) {
   const [posicion, setPosicion] = useState<Posicion | null>(null);
@@ -44,19 +22,32 @@ export function useLugaresCercanos(radio: number) {
   const [cargando, setCargando] = useState(true);
   const [sinUbicacion, setSinUbicacion] = useState(false);
 
+  const buscar = useCallback(async (p: Posicion, forzar: boolean) => {
+    const r = await obtenerLugares(p.lat, p.lng, forzar);
+    setLugares(r.copia?.lugares ?? []);
+    setFecha(r.copia?.fecha ?? null);
+    setOrigen(r.origen);
+  }, []);
+
   const cargar = useCallback(async (forzar = false) => {
     setCargando(true);
-    const p = await posicionActual();
-    setPosicion(p);
-    setSinUbicacion(!p);
-    if (p) {
-      const r = await obtenerLugares(p.lat, p.lng, forzar);
-      setLugares(r.copia?.lugares ?? []);
-      setFecha(r.copia?.fecha ?? null);
-      setOrigen(r.origen);
+    const conocida = await ubicacionConocida();
+    if (conocida) {
+      setPosicion(conocida);
+      setSinUbicacion(false);
+      await buscar(conocida, forzar);
+    }
+    const gps = await ubicacionGps(10000);
+    if (gps) {
+      setPosicion(gps);
+      setSinUbicacion(false);
+      if (!conocida || distanciaMetros(conocida.lat, conocida.lng, gps.lat, gps.lng) > 150) await buscar(gps, forzar && !conocida);
+    } else if (!conocida) {
+      setPosicion(null);
+      setSinUbicacion(true);
     }
     setCargando(false);
-  }, []);
+  }, [buscar]);
 
   useEffect(() => {
     void cargar();
