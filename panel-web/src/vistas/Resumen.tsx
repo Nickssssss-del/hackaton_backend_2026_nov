@@ -4,12 +4,17 @@
 import { useResumen } from "../controladores/useResumen";
 import type { ResumenDia } from "../modelos/resumen";
 import { Cargando } from "./Cargando";
+import { GraficaLineas } from "./GraficaLineas";
 import { Mensajes } from "./Mensajes";
 import { TiempoUsoResumen } from "./TiempoUsoResumen";
 
 const HOY = new Intl.DateTimeFormat("es-PE", { dateStyle: "long", timeZone: "America/Lima" });
 
-const FILAS: { clave: keyof ResumenDia; titulo: string; detalle: string }[] = [
+type ClaveTotal = {
+  [Clave in keyof ResumenDia]: ResumenDia[Clave] extends number ? Clave : never;
+}[keyof ResumenDia];
+
+const FILAS: { clave: ClaveTotal; titulo: string; detalle: string }[] = [
   { clave: "negociosVisibles", titulo: "Negocios visibles", detalle: "No ocultos y visibles para los vecinos." },
   { clave: "pedidosAbiertos", titulo: "Pedidos abiertos", detalle: "Estado abierto y sin vencer." },
   { clave: "emergenciasReales", titulo: "Emergencias reales", detalle: "Creadas hoy, sin las de práctica." },
@@ -45,6 +50,19 @@ export function Resumen() {
             </div>
           ))}
         </dl>
+      ) : null}
+
+      {resumen ? (
+        <div className="mt-6 grid grid-cols-1 gap-3 lg:grid-cols-2">
+          <div className="rounded-2xl border border-stone-200 bg-white p-4">
+            <h3 className="text-lg font-semibold text-stone-900">Emergencias reales, últimos 7 días</h3>
+            <GraficaLineas titulo="Emergencias reales, últimos 7 días" datos={resumen.emergenciasPorDia} />
+          </div>
+          <div className="rounded-2xl border border-stone-200 bg-white p-4">
+            <h3 className="text-lg font-semibold text-stone-900">Reportes pendientes por tipo</h3>
+            <GraficaLineas titulo="Reportes pendientes por tipo" datos={resumen.reportesPorTipo} />
+          </div>
+        </div>
       ) : null}
 
       <div className="mt-8">

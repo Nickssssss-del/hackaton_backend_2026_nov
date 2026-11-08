@@ -3,8 +3,9 @@
  * No muestra nombre, dirección, mapa ni coordenadas. De cada vecino, solo su id.
  */
 import { useEmergenciasCerradas } from "../controladores/useEmergenciasCerradas";
-import type { VecinoCerrado } from "../modelos/emergenciasCerradas";
-import { fecha, idCorto } from "./etiquetas";
+import type { EmergenciaCerrada, VecinoCerrado } from "../modelos/emergenciasCerradas";
+import { descargarCsv } from "../utilidades/descargarCsv";
+import { fecha, hora, idCorto } from "./etiquetas";
 import { Cargando } from "./Cargando";
 import { Mensajes } from "./Mensajes";
 
@@ -35,18 +36,50 @@ function ListaVecinos({ vecinos, conFecha }: { vecinos: VecinoCerrado[]; conFech
   );
 }
 
+function filasCsv(emergencias: EmergenciaCerrada[]): (string | number)[][] {
+  return emergencias.map((emergencia) => [
+    fecha(emergencia.creado_en),
+    fecha(emergencia.cerrada_en),
+    emergencia.practica ? "Sí" : "No",
+    emergencia.fueron,
+    emergencia.vieronDatos
+      .map((vecino) => (vecino.vio_datos_en ? hora(vecino.vio_datos_en) : ""))
+      .filter((horaVista) => horaVista !== "")
+      .join(" · "),
+    emergencia.reportados.length > 0 ? "Sí" : "No",
+  ]);
+}
+
 export function EmergenciasCerradas() {
   const { emergencias, cargando, error, recargar } = useEmergenciasCerradas();
   const listo = !cargando && !error;
 
+  const descargar = () => {
+    descargarCsv("kuna-emergencias-cerradas", ["Inicio", "Cierre", "Práctica", "Vecinos que fueron", "Vio los datos", "Reportado"], filasCsv(emergencias));
+  };
+
   return (
     <section aria-labelledby="titulo-emergencias-cerradas">
-      <h2 id="titulo-emergencias-cerradas" className="text-3xl font-bold text-stone-900">
-        Emergencias cerradas
-      </h2>
-      <p className="mt-1 text-base text-stone-600">
-        Últimos 7 días. Solo lectura. El identificador sirve para buscar a la persona en Bloqueos.
-      </p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h2 id="titulo-emergencias-cerradas" className="text-3xl font-bold text-stone-900">
+            Emergencias cerradas
+          </h2>
+          <p className="mt-1 text-base text-stone-600">
+            Últimos 7 días. Solo lectura. El identificador sirve para buscar a la persona en Bloqueos.
+          </p>
+        </div>
+        {emergencias.length > 0 ? (
+          <button
+            type="button"
+            disabled={cargando}
+            onClick={descargar}
+            className="rounded-full bg-[#1F4E9C] px-4 py-2 text-base font-medium text-white hover:bg-[#163a74] disabled:bg-stone-300 disabled:text-stone-700"
+          >
+            Descargar (Excel)
+          </button>
+        ) : null}
+      </div>
 
       {cargando ? <Cargando /> : null}
       <Mensajes cargando={false} error={error} aviso={null} onRecargar={() => void recargar()} />
