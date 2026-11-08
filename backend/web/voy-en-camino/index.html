@@ -5,48 +5,183 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
   <meta name="referrer" content="no-referrer">
-  <meta name="color-scheme" content="light">
-  <title>Voy en camino</title>
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#F5F4EF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121417" media="(prefers-color-scheme: dark)">
+  <title>Voy en camino · Kuna</title>
   <style>
-    html { font-size: 137.5%; } /* 22 px de base */
+    /* Colores de la app (app-movil/src/vistas/tema/tokens.ts). */
+    :root {
+      --fondo: #F5F4EF;
+      --tarjeta: #FFFFFF;
+      --texto: #1B1B1B;
+      --texto-2: #4A4A4A;
+      --borde: #D9D9D9;
+      --accion: #1F4E9C;
+      --accion-texto: #1F4E9C;
+      --confirmado: #196B3B;
+      --confirmado-suave: #E3F0E6;
+      --confirmado-texto: #196B3B;
+      --peligro: #D91023;
+      --aviso: #FFF1C2;
+      --aviso-texto: #3D2E00;
+      --aviso-borde: #DCA838;
+      --sobre-color: #FFFFFF;
+      --foco: #1F4E9C;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --fondo: #121417;
+        --tarjeta: #1E2228;
+        --texto: #F4F4F4;
+        --texto-2: #C4C7CC;
+        --borde: #3A3F47;
+        --accion-texto: #8FB3EC;
+        --confirmado-suave: #17301F;
+        --confirmado-texto: #9BDCAE;
+        --aviso: #3B3114;
+        --aviso-texto: #FFE9A8;
+        --foco: #8FB3EC;
+      }
+    }
+
+    html { font-size: 125%; } /* 20 px de base, como la letra mínima de la app */
+    * { box-sizing: border-box; }
     body {
       margin: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
       font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
-      line-height: 1.4;
-      color: #111;
-      background: #fff;
+      line-height: 1.45;
+      color: var(--texto);
+      background: var(--fondo);
     }
-    main { max-width: 32rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
-    h1 { font-size: 1.6rem; line-height: 1.2; margin: 0.5rem 0 1rem; } /* unos 35 px */
-    body[data-estado="gracias"] h1 { color: #14532d; }
-    p { margin: 0 0 1.25rem; }
-    .direccion { font-size: 1.1rem; }
-    .boton {
-      display: flex; align-items: center; justify-content: center;
-      box-sizing: border-box; width: 100%; min-height: 3rem; /* 66 px */
+    main, .marca, .pie { width: 100%; max-width: 30rem; margin: 0 auto; padding-inline: 1rem; }
+
+    /* Marca */
+    .marca { display: flex; align-items: center; gap: 0.5rem; padding-top: 1.25rem; padding-bottom: 1rem; }
+    .logo {
+      width: 1.6rem; height: 2rem; flex: none;
+      background: var(--accion-texto);
+      /* El png es la figura blanca sobre transparente: se usa como máscara, igual que en el panel. */
+      -webkit-mask: url("kuna.png") center / auto 150% no-repeat;
+      mask: url("kuna.png") center / auto 150% no-repeat;
+    }
+    .nombre-marca { font-size: 1.3rem; font-weight: 800; letter-spacing: 0.01em; color: var(--accion-texto); }
+
+    /* Banda de emergencia (solo en «ayuda») */
+    .banda {
+      display: flex; align-items: center; gap: 0.6rem;
       margin: 0 0 1rem; padding: 0.75rem 1rem;
-      border-radius: 0.6rem; border: 3px solid #000;
+      border-radius: 0.9rem;
+      background: var(--peligro); color: var(--sobre-color);
+      font-weight: 700;
+    }
+    .banda svg { width: 1.4rem; height: 1.4rem; flex: none; }
+
+    /* Tarjeta de estado */
+    .tarjeta {
+      padding: 1.5rem 1.25rem;
+      border-radius: 1.1rem;
+      background: var(--tarjeta);
+      border: 1px solid var(--borde);
+    }
+    .icono { display: none; width: 3.5rem; height: 3.5rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.75rem; line-height: 1.2; margin: 0; font-weight: 800; }
+    .detalle { margin: 0.75rem 0 0; color: var(--texto-2); }
+    .direccion {
+      margin: 1.25rem 0 0; padding: 0.9rem 1rem;
+      border-radius: 0.8rem;
+      background: var(--fondo);
+      border-left: 0.35rem solid var(--peligro);
+    }
+    .direccion-etiqueta { display: block; font-size: 0.85rem; font-weight: 700; color: var(--texto-2); }
+    .direccion-texto { display: block; margin-top: 0.15rem; font-size: 1.2rem; font-weight: 700; overflow-wrap: anywhere; }
+
+    /* Botones: a todo el ancho, 56 px o más */
+    .acciones { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1.25rem; }
+    .boton {
+      display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      width: 100%; min-height: 3.25rem; /* 65 px */
+      padding: 0.75rem 1rem;
+      border-radius: 0.9rem; border: 2px solid transparent;
       font: inherit; font-weight: 700; text-align: center; text-decoration: none;
       cursor: pointer;
     }
-    .principal { background: #000; color: #fff; font-size: 1.3rem; min-height: 3.6rem; }
-    .secundario { background: #fff; color: #000; }
-    .boton:disabled { opacity: 0.6; cursor: wait; }
-    .boton:focus-visible { outline: 4px solid #1d4ed8; outline-offset: 3px; }
+    .boton:focus-visible { outline: 4px solid var(--foco); outline-offset: 3px; }
+    .boton:disabled { opacity: 0.7; cursor: wait; }
+    .voy { min-height: 4rem; font-size: 1.35rem; background: var(--confirmado); color: var(--sobre-color); }
+    .secundario { background: transparent; border-color: var(--accion-texto); color: var(--accion-texto); }
+    .reintentar { background: var(--accion); color: var(--sobre-color); }
+
+    .pie { margin-top: auto; padding-top: 2rem; padding-bottom: 1.25rem; font-size: 0.8rem; color: var(--texto-2); text-align: center; }
+
+    /* Estados */
+    body[data-estado="cargando"] .icono--cargando { display: block; }
+    .icono--cargando {
+      width: 2.5rem; height: 2.5rem;
+      border-radius: 50%;
+      border: 0.3rem solid var(--borde);
+      border-top-color: var(--accion-texto);
+      animation: girar 0.9s linear infinite;
+    }
+    @keyframes girar { to { transform: rotate(360deg); } }
+    @media (prefers-reduced-motion: reduce) { .icono--cargando { animation: none; } }
+
+    body[data-estado="gracias"] .tarjeta { background: var(--confirmado-suave); border-color: var(--confirmado); }
+    body[data-estado="gracias"] h1 { color: var(--confirmado-texto); }
+    body[data-estado="gracias"] .icono--gracias { display: block; color: var(--confirmado-texto); }
+    body[data-estado="gracias"] .direccion { background: var(--tarjeta); border-left-color: var(--confirmado); }
+
+    body[data-estado="terminada"] .tarjeta { text-align: center; }
+    body[data-estado="terminada"] .icono--terminada { display: block; margin-inline: auto; color: var(--texto-2); }
+
+    body[data-estado="sin_conexion"] .tarjeta,
+    body[data-estado="error"] .tarjeta { background: var(--aviso); border-color: var(--aviso-borde); color: var(--aviso-texto); }
+    body[data-estado="sin_conexion"] .detalle,
+    body[data-estado="error"] .detalle { color: var(--aviso-texto); }
+    body[data-estado="sin_conexion"] .icono--aviso,
+    body[data-estado="error"] .icono--aviso { display: block; color: var(--aviso-texto); }
+
     [hidden] { display: none !important; }
   </style>
 </head>
 <body data-estado="cargando">
+  <header class="marca">
+    <span class="logo" aria-hidden="true"></span>
+    <span class="nombre-marca">Kuna</span>
+  </header>
+
   <main>
-    <div aria-live="polite">
+    <p id="banda" class="banda" hidden>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 21h20L12 3z"/><path d="M12 10v5"/><path d="M12 18h.01"/></svg>
+      Pidió ayuda desde la app Kuna
+    </p>
+
+    <section class="tarjeta" aria-live="polite">
+      <span class="icono icono--cargando" aria-hidden="true"></span>
+      <svg class="icono icono--gracias" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m7.5 12.5 3 3 6-6.5"/></svg>
+      <svg class="icono icono--terminada" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8L12 21.2l8.8-8.8a5.5 5.5 0 0 0 0-7.8z"/></svg>
+      <svg class="icono icono--aviso" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M12 7v6"/><path d="M12 16.5h.01"/></svg>
+
       <h1 id="titulo">Cargando…</h1>
+      <p id="detalle" class="detalle" hidden></p>
+      <p id="direccion" class="direccion" hidden>
+        <span class="direccion-etiqueta">Dirección</span>
+        <span id="direccion-texto" class="direccion-texto"></span>
+      </p>
+    </section>
+
+    <div class="acciones">
+      <button id="voy" class="boton voy" type="button" hidden>Voy en camino</button>
+      <a id="mapa" class="boton secundario" target="_blank" rel="noopener noreferrer" hidden>Ver en el mapa</a>
+      <button id="reintentar" class="boton reintentar" type="button" hidden>Intentar otra vez</button>
     </div>
-    <p id="direccion" class="direccion" hidden></p>
-    <a id="mapa" class="boton secundario" target="_blank" rel="noopener noreferrer" hidden>Ver en el mapa</a>
-    <button id="voy" class="boton principal" type="button" hidden>Voy en camino</button>
-    <button id="reintentar" class="boton secundario" type="button" hidden>Intentar otra vez</button>
     <noscript><p>Para usar esta página, activa JavaScript en tu navegador.</p></noscript>
   </main>
+
+  <footer class="pie">Kuna · Tu barrio, más cerca</footer>
 
   <script type="module">
     import { estadoDesdeError, estadoDesdeVer, estadoTrasVoy, leerToken, llamarRpc, TEXTOS } from "./logica.js";
@@ -56,12 +191,24 @@
     let config = null;
     let estado = null;
 
+    // Texto de apoyo de cada estado (solo de la vista; los títulos vienen de logica.js).
+    const DETALLE = {
+      ayuda: "Avisa que vas, para que sepa que alguien está por llegar.",
+      gracias: "Ve con cuidado.",
+      terminada: "Gracias por estar atento o atenta.",
+      sin_conexion: "Cuando vuelva la señal, toca «Intentar otra vez».",
+      error: "Si sigue igual, llama directamente a quien te escribió.",
+    };
+
     // Nombre y dirección los escribe la persona en la app: siempre textContent, nunca innerHTML.
     function pintar(nuevo) {
       estado = nuevo;
       document.body.dataset.estado = nuevo.tipo;
+      $("banda").hidden = nuevo.tipo !== "ayuda";
       $("titulo").textContent = nuevo.titulo;
-      $("direccion").textContent = nuevo.direccion ?? "";
+      $("detalle").textContent = DETALLE[nuevo.tipo] ?? "";
+      $("detalle").hidden = !DETALLE[nuevo.tipo];
+      $("direccion-texto").textContent = nuevo.direccion ?? "";
       $("direccion").hidden = !nuevo.direccion;
       if (nuevo.mapa) $("mapa").href = nuevo.mapa;
       $("mapa").hidden = !nuevo.mapa || nuevo.tipo === "terminada";
