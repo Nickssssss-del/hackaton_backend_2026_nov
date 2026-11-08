@@ -59,7 +59,7 @@ La IA solo ve estas 6 herramientas. Antes de responder, la función valida el no
 
 - **Sin internet:** la app no llama a la función. Muestra «Necesito internet» y los botones de siempre: Servicios, Pastillas y Ayuda. Así es como lo describe la sección 16 del informe.
 - **No entiende:** la función responde `200` con `funcion: null`, `texto: "No te entendí. ¿Qué necesitas?"` y los botones Servicios, Pastillas y Ayuda.
-- **La IA falla o tarda más de 8 s:** la misma respuesta de «no entiende», con `texto: "No pude responder ahora. Elige una opción."`.
+- **La IA falla:** si la principal lanza error (HTTP no OK, más de 5 s o red) y hay respaldo configurado, se reintenta una vez con el respaldo (tope de 8 s). Si no hay respaldo, o el respaldo también falla, se responde lo mismo que en «no entiende», con `texto: "No pude responder ahora. Elige una opción."`. Si la principal responde bien pero no elige herramienta, eso es «no entiende» y **no** se usa el respaldo.
 - **`buscar_servicio` sin ubicación ni `zona_id`:** la misma forma, con `texto: "¿En qué barrio estás?"` y los botones de siempre, sin buscar.
 - **`buscar_servicio` sin resultados:** `servicios: []`, `texto: "No encontré … en tu barrio."` y los botones de siempre (Servicios, Pastillas y Ayuda), para que la persona no quede sin salida.
 
@@ -92,6 +92,14 @@ La IA es cualquier API **compatible con OpenAI**, llamada con `fetch` y sin SDK.
 
 Cambiar de modelo o de proveedor es cambiar estos secretos, sin tocar código ni sacar una APK nueva.
 
+**IA de respaldo (opcional).** Se configura con 3 secretos más, todos obligatorios y sin valores por defecto. Si falta alguno, no hay respaldo.
+
+- `IA_RESPALDO_API_KEY`: la clave del proveedor de respaldo.
+- `IA_RESPALDO_MODELO`: el modelo.
+- `IA_RESPALDO_URL`: el endpoint compatible con OpenAI, por ejemplo el de Gemini de la sección siguiente.
+
+El respaldo se usa una sola vez y solo si la principal lanza error. La principal tiene 5 s y el respaldo 8 s, así que la respuesta no pasa de unos 13 s. En ese caso el log registra solo `IA principal falló: <código>, usando respaldo`, por ejemplo `IA_HTTP_429` o `TimeoutError`, sin el texto, la ubicación ni las claves.
+
 ## Cambiar de proveedor
 
 Para pasar a **Gemini** por su endpoint compatible con OpenAI:
@@ -108,13 +116,15 @@ Confirmado en la documentación oficial de Google: https://aistudio.google.com/d
 - **Modelo:** el ejemplo oficial usa `gemini-3.8-flash`.
 - **Advertencia de la página:** el soporte de las librerías de OpenAI «todavía está en beta».
 
-**Sin verificar:** si Gemini acepta todas las palabras de los esquemas que envía `llamarIA()` (por ejemplo `enum` y `maxLength`; `pattern` y `format` ya se quitan). Hay que probar una llamada real antes de la demo. Si el proveedor rechaza la petición, la función responde «No pude responder ahora».
+**Esquemas que se envían:** `llamarIA()` quita `pattern`, `format` y `maxLength`, porque Gemini rechazaba las herramientas con ellos, y omite `parameters` en las herramientas sin propiedades (`ver_mi_horario`). La referencia oficial marca `FunctionDeclaration.parameters` como opcional (https://aistudio.google.com/api-reference/caching). La validación real sigue en `herramientas.ts`, sin cambios.
+
+**Sin verificar:** una llamada real a Gemini y a Groq con estos esquemas, por ejemplo con `enum`. Hay que probarla antes de la demo. Si el proveedor rechaza la petición, la función responde «No pude responder ahora».
 
 ## Estructura y comandos
 
 ```
 backend/supabase/functions/preguntale/index.ts        → entrada: búsqueda real en servicios_publicos y Deno.serve
-backend/supabase/functions/preguntale/ia.ts           → llamarIA(): único punto del proveedor (API compatible con OpenAI por fetch; Groq por defecto)
+backend/supabase/functions/preguntale/ia.ts           → llamarIA(): único punto del proveedor (API compatible con OpenAI por fetch; Groq por defecto); llamarIAConRespaldo(): principal y, si falla, respaldo
 backend/supabase/functions/preguntale/handler.ts      → handler sin red: valida, arma la respuesta, ordena y recorta servicios
 backend/supabase/functions/preguntale/herramientas.ts → las 6 definiciones y la validación de argumentos
 backend/supabase/functions/preguntale/*_test.ts       → pruebas Deno sin red (fetch, la IA y la búsqueda son dobles inyectados)
@@ -149,3 +159,4 @@ backend/supabase/functions/preguntale/deno.json       → configuración de Deno
 4. **Regla 1:** se corrige en la rama `luana/reglas-modulo2`, no en esta.
 5. **Proveedor de IA:** Groq, con `fetch` a `https://api.groq.com/openai/v1/chat/completions`, `tools` en formato OpenAI y `tool_choice: "auto"`. Queda detrás de una sola función, `llamarIA()` en `ia.ts`. Si `arguments` no es JSON válido, cuenta como «no entiende».
 6. **Zona:** la entrada acepta `zona_id`. Sin ubicación, `buscar_servicio` filtra por zona; sin ubicación ni zona, pregunta el barrio.
+7. **IA de respaldo:** opcional, con `IA_RESPALDO_API_KEY`, `IA_RESPALDO_MODELO` e `IA_RESPALDO_URL`. Un solo reintento si la principal lanza error, nunca si responde sin elegir herramienta. La principal baja a 5 s para que principal y respaldo no pasen de unos 13 s.

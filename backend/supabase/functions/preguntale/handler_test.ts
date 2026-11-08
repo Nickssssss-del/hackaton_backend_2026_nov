@@ -191,3 +191,25 @@ Deno.test("pedir_ayuda devuelve confirmar", async () => {
   assertEquals(cuerpo.confirmar, true);
   assertEquals(cuerpo.texto, "¿Lo guardo? Pedir ayuda: Necesito pan.");
 });
+
+Deno.test("si la IA falla, el log muestra solo el código seguro, sin el texto ni la URL", async () => {
+  const registros: unknown[][] = [];
+  const original = console.error;
+  console.error = (...args: unknown[]) => registros.push(args);
+  try {
+    await crearHandler(deps({ llamarIA: () => Promise.reject(new Error("IA_HTTP_400")) }))(
+      pedido({ texto: "busca un gasfitero en Calle Lima 245" }),
+    );
+    await crearHandler(deps({
+      llamarIA: () => Promise.reject(new TypeError("error sending request for url (https://api.groq.com/x)")),
+    }))(pedido({ texto: "busca un gasfitero en Calle Lima 245" }));
+  } finally {
+    console.error = original;
+  }
+  assertEquals(registros, [
+    ["preguntale: IA_NO_DISPONIBLE", "IA_HTTP_400"],
+    ["preguntale: IA_NO_DISPONIBLE", "TypeError"],
+  ]);
+  const todo = JSON.stringify(registros);
+  assert(!todo.includes("Calle Lima") && !todo.includes("api.groq.com"), todo);
+});
