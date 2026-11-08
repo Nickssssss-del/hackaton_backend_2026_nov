@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light">
+  <title>Voy en camino</title>
+  <style>
+    html { font-size: 137.5%; } /* 22 px de base */
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+      line-height: 1.4;
+      color: #111;
+      background: #fff;
+    }
+    main { max-width: 32rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+    h1 { font-size: 1.6rem; line-height: 1.2; margin: 0.5rem 0 1rem; } /* unos 35 px */
+    body[data-estado="gracias"] h1 { color: #14532d; }
+    p { margin: 0 0 1.25rem; }
+    .direccion { font-size: 1.1rem; }
+    .boton {
+      display: flex; align-items: center; justify-content: center;
+      box-sizing: border-box; width: 100%; min-height: 3rem; /* 66 px */
+      margin: 0 0 1rem; padding: 0.75rem 1rem;
+      border-radius: 0.6rem; border: 3px solid #000;
+      font: inherit; font-weight: 700; text-align: center; text-decoration: none;
+      cursor: pointer;
+    }
+    .principal { background: #000; color: #fff; font-size: 1.3rem; min-height: 3.6rem; }
+    .secundario { background: #fff; color: #000; }
+    .boton:disabled { opacity: 0.6; cursor: wait; }
+    .boton:focus-visible { outline: 4px solid #1d4ed8; outline-offset: 3px; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body data-estado="cargando">
+  <main>
+    <div aria-live="polite">
+      <h1 id="titulo">Cargando…</h1>
+    </div>
+    <p id="direccion" class="direccion" hidden></p>
+    <a id="mapa" class="boton secundario" target="_blank" rel="noopener noreferrer" hidden>Ver en el mapa</a>
+    <button id="voy" class="boton principal" type="button" hidden>Voy en camino</button>
+    <button id="reintentar" class="boton secundario" type="button" hidden>Intentar otra vez</button>
+    <noscript><p>Para usar esta página, activa JavaScript en tu navegador.</p></noscript>
+  </main>
+
+  <script type="module">
+    import { estadoDesdeError, estadoDesdeVer, estadoTrasVoy, leerToken, llamarRpc, TEXTOS } from "./logica.js";
+
+    const $ = (id) => document.getElementById(id);
+    const token = leerToken(location.search);
+    let config = null;
+    let estado = null;
+
+    // Nombre y dirección los escribe la persona en la app: siempre textContent, nunca innerHTML.
+    function pintar(nuevo) {
+      estado = nuevo;
+      document.body.dataset.estado = nuevo.tipo;
+      $("titulo").textContent = nuevo.titulo;
+      $("direccion").textContent = nuevo.direccion ?? "";
+      $("direccion").hidden = !nuevo.direccion;
+      if (nuevo.mapa) $("mapa").href = nuevo.mapa;
+      $("mapa").hidden = !nuevo.mapa || nuevo.tipo === "terminada";
+      $("voy").hidden = nuevo.tipo !== "ayuda";
+      $("voy").disabled = false;
+      $("voy").textContent = "Voy en camino";
+      $("reintentar").hidden = nuevo.tipo !== "sin_conexion" && nuevo.tipo !== "error";
+    }
+
+    async function cargarConfig() {
+      try {
+        config ??= await import("./config.js");
+        return true;
+      } catch {
+        console.error("Falta config.js: copia config.example.js como config.js y complétalo.");
+        pintar({ tipo: "error", titulo: TEXTOS.error });
+        return false;
+      }
+    }
+
+    async function cargar() {
+      if (!token) return pintar({ tipo: "terminada", titulo: TEXTOS.terminada });
+      pintar({ tipo: "cargando", titulo: "Cargando…" });
+      if (!(await cargarConfig())) return;
+      try {
+        pintar(estadoDesdeVer(await llamarRpc(config, "enlace_ver", token)));
+      } catch (error) {
+        pintar(estadoDesdeError(error));
+      }
+    }
+
+    $("voy").addEventListener("click", async () => {
+      $("voy").disabled = true;
+      $("voy").textContent = "Enviando…";
+      try {
+        await llamarRpc(config, "enlace_voy", token);
+        pintar(estadoTrasVoy(estado));
+      } catch (error) {
+        pintar(estadoDesdeError(error));
+      }
+    });
+
+    $("reintentar").addEventListener("click", cargar);
+
+    cargar();
+  </script>
+</body>
+</html>
