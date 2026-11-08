@@ -4,8 +4,9 @@
  * - Nombre con voz o teclado.
  * - Agregar foto: tomarla o elegirla (expo-image-picker), comprimida, y subirla al bucket `fotos`
  *   (<zona>/<usuario>/<archivo>). Si la foto falla, el negocio se publica igual y se avisa.
- * - «Mis vecinos pueden verlo» es servicios.visible_vecinos (script 07). En No el negocio se guarda
- *   pero solo lo ve su dueño; se puede activar después en Mis servicios.
+ * - «Mis vecinos pueden verlo» (servicios.visible_vecinos, script 07) empieza en No y, como en el
+ *   mockup, Publicar dice «Falta aceptar» hasta ponerlo en Sí. Al cambiar un negocio ya publicado,
+ *   ponerlo en No lo oculta a los vecinos (solo lo ve su dueño).
  * - Más datos (opcional): horario (abre y cierra, para «Abierto/Cerrado»), precio desde y descripción.
  * El celular se pide recién al publicar (D-03).
  */
@@ -47,7 +48,8 @@ export default function SubeTuNegocio() {
   const [tipo, setTipo] = useState<Tipo | null>(null);
   const [otroOficio, setOtroOficio] = useState<Oficio | null>(null);
   const [nombre, setNombre] = useState("");
-  const [acepta, setAcepta] = useState(true);
+  // Mockup v4 (p. 19): empieza en No y Publicar dice «Falta aceptar». Al editar refleja visible_vecinos.
+  const [acepta, setAcepta] = useState(false);
   const [conHorario, setConHorario] = useState(false);
   const [abre, setAbre] = useState("08:00");
   const [cierra, setCierra] = useState("20:00");
@@ -96,7 +98,7 @@ export default function SubeTuNegocio() {
       return;
     }
     if (falta === "registro") {
-      setAviso("Primero marca dónde vives: Mis datos › Mi dirección.");
+      setAviso("Primero elige tu barrio: Mis datos › Mi barrio.");
       return;
     }
     const precioNumero = precio.trim() ? Number(precio.replace(",", ".")) : null;
@@ -164,7 +166,9 @@ export default function SubeTuNegocio() {
       ? problemaNombre
       : precio.trim() && !Number.isFinite(Number(precio.replace(",", ".")))
         ? "Revisa el precio"
-        : null;
+        : !editando && !acepta
+          ? "Falta aceptar"
+          : null;
 
   return (
     <Pantalla
@@ -234,7 +238,6 @@ export default function SubeTuNegocio() {
         completo={problemaNombre === null}
       />
 
-      <Texto variante="etiqueta">Foto (si quieres)</Texto>
       <ElegirFoto estado={fotoNueva} rutaActual={fotoActual} descripcion={`Foto de ${nombre.trim() || "tu negocio"}`} />
 
       <Texto variante="subtitulo">Más datos (si quieres)</Texto>
@@ -281,7 +284,7 @@ export default function SubeTuNegocio() {
 
       <InterruptorSiNo etiqueta="Mis vecinos pueden verlo" valor={acepta} onCambiar={setAcepta} />
       <Texto variante="ayuda">
-        {acepta ? "Verán el nombre y tu celular para llamarte." : "Se guardará, pero solo tú lo verás. Puedes mostrarlo después."}
+        {acepta ? "Verán el nombre y tu celular para llamarte." : editando ? "Tus vecinos no lo verán hasta que lo pongas en Sí." : "Para publicar, acepta que tus vecinos lo vean."}
       </Texto>
 
       {aviso ? <Mensaje tono="aviso">{aviso}</Mensaje> : null}

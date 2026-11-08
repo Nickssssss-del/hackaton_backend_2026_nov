@@ -14,6 +14,7 @@ import { useEffect, type ReactNode } from "react";
 import { AbrirAvisoDePastilla } from "../src/controladores/AbrirAvisoDePastilla";
 import { AvisosDeVecinos } from "../src/controladores/AvisosDeVecinos";
 import { AvisoSalidaDeCasa } from "../src/controladores/salidaDeCasa";
+import { DetectorDeCaidas } from "../src/controladores/DetectorDeCaidas";
 
 export default function DisenoRaiz() {
   useSesion();
@@ -54,6 +55,7 @@ function Pantallas() {
       <AbrirAvisoDePastilla />
       <AvisosDeVecinos />
       <AvisoSalidaDeCasa />
+      <DetectorDeCaidas />
           <Stack
             screenOptions={{
               // Cada pantalla trae su barra (Volver, Aa, luna, altavoz): sin encabezado del sistema,

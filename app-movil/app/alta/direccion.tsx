@@ -2,7 +2,8 @@
  * Vista. A3.1 · Tu dirección · Paso 1 de 3 (Mockup v4, p. 4).
  * Calle o avenida, Número y Referencia, cada uno con micrófono.
  * «Seguir» queda desactivado mostrando cuántos datos faltan («Falta 1 dato»).
- * «Omitir» continúa a A4 sin dirección. Todo se guarda solo en el teléfono.
+ * «Omitir» continúa sin dirección. Todo se guarda solo en el teléfono. Si el GPS no dejó zona,
+ * se pasa a A3.2 «¿Cuál es tu barrio?» (lista de la tabla zonas) antes de A4.
  * En modo edición (Mis datos) hay además «Usar mi ubicación actual»: vuelve a tomar el GPS,
  * actualiza el barrio y propone la calle y el número (por si la persona se mudó).
  */
@@ -14,6 +15,7 @@ import {
   guardarDireccion,
   leerPerfil,
   omitirDireccion,
+  rutaTrasDireccion,
   ubicarDomicilio,
 } from "../../src/controladores/registroVecinos";
 import type { DireccionLocal } from "../../src/modelos/tipos";
@@ -72,11 +74,12 @@ export default function TuDireccion() {
   const seguir = async () => {
     await guardarDireccion(direccion);
     if (editando) router.back();
-    else router.push("/alta/datos");
+    else router.push(await rutaTrasDireccion());
   };
   const omitir = async () => {
     await omitirDireccion();
-    router.push("/alta/datos");
+    // Sin zona no hay Servicios, Comunidad ni Ayuda: si el GPS no la dejó, se elige de la lista.
+    router.push(await rutaTrasDireccion());
   };
 
   return (

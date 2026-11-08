@@ -45,6 +45,7 @@ export function useAlertaVecinal(emergenciaId: string | undefined) {
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const coord = useRef<{ lat: number; lng: number } | null>(null);
+  const [yo, setYo] = useState<{ lat: number; lng: number } | null>(null);
 
   const manejarError = useCallback((causa: unknown) => {
     const codigo = codigoDeError(causa);
@@ -68,6 +69,7 @@ export function useAlertaVecinal(emergenciaId: string | undefined) {
         setFase("sin_ubicacion");
         return;
       }
+      setYo(coord.current);
       const v = await verAlerta(emergenciaId, coord.current.lat, coord.current.lng);
       setVista(v);
       if (!v.activa) setFase("terminada");
@@ -93,6 +95,7 @@ export function useAlertaVecinal(emergenciaId: string | undefined) {
         setFase("sin_ubicacion");
         return;
       }
+      setYo(coord.current);
       const r = await voyAAyudar(emergenciaId, coord.current.lat, coord.current.lng);
       setRespuesta(r);
       setVista((v) => (v ? { ...v, vecinosEnCamino: r.vecinosEnCamino } : v));
@@ -116,5 +119,5 @@ export function useAlertaVecinal(emergenciaId: string | undefined) {
     }
   }, [emergenciaId]);
 
-  return { fase, vista, respuesta, error, ocupado, voy, noPuedo, reintentar: actualizar };
+  return { fase, vista, respuesta, error, ocupado, voy, noPuedo, reintentar: actualizar, yo };
 }

@@ -38,7 +38,7 @@ export default function ComentarNegocio() {
       return;
     }
     if (falta === "registro") {
-      setAviso("Primero marca dónde vives: Mis datos › Mi dirección.");
+      setAviso("Primero elige tu barrio: Mis datos › Mi barrio.");
       return;
     }
     if (await com.enviar(comentario)) setHecho(true);

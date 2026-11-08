@@ -16,6 +16,7 @@ import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { estiloOficio } from "../../src/vistas/componentes/estiloCategoriaServicio";
 import { Icono } from "../../src/vistas/componentes/Icono";
 import { Insignia } from "../../src/vistas/componentes/Insignia";
+import { usePerfil } from "../../src/controladores/usePerfil";
 import { Mensaje } from "../../src/vistas/componentes/Mensaje";
 import { Pantalla } from "../../src/vistas/componentes/Pantalla";
 import { Texto } from "../../src/vistas/componentes/Texto";
@@ -33,6 +34,7 @@ export default function ListaServicios() {
   const cerca = params.cerca === "1";
   const texto = params.texto?.trim().toLowerCase() ?? "";
   const servicios = useServicios();
+  const { perfil } = usePerfil();
   const faltaServidor = sinBase();
 
   let lista: ServicioConMinutos[] = servicios.servicios;
@@ -83,17 +85,28 @@ export default function ListaServicios() {
       {faltaServidor ? <Mensaje tono="aviso">{faltaServidor}</Mensaje> : null}
       {servicios.copiaFecha ? <Mensaje tono="info">{`Sin internet. Copia guardada del ${servicios.copiaFecha}.`}</Mensaje> : null}
       {cerca && !servicios.ubicacion ? (
-        <Mensaje tono="info">Para saber qué está cerca, marca dónde vives en Mis datos › Mi dirección.</Mensaje>
+        <Mensaje tono="info">Para saber qué está cerca, marca dónde vives en Mis datos › Mi dirección (con «Usar mi ubicación actual»).</Mensaje>
       ) : null}
       {servicios.error && !faltaServidor ? <Mensaje tono="aviso">{servicios.error}</Mensaje> : null}
       {servicios.cargando ? <Texto variante="ayuda">Buscando negocios de tu barrio…</Texto> : null}
 
       {!servicios.cargando && !servicios.error && !faltaServidor && lista.length === 0 ? (
         <>
-          <Mensaje tono="info">{categoria ? `Aún no hay ${categoria.etiqueta.toLowerCase()} en tu barrio.` : "No encontramos negocios."}</Mensaje>
-          <BotonPrincipal variante="secundarioListo" icono="storefront-outline" onPress={() => router.push("/servicios/publicar")}>
-            Sube tu negocio
-          </BotonPrincipal>
+          {perfil && !perfil.zonaId ? (
+            <>
+              <Mensaje tono="aviso">Para ver los negocios de tu barrio, primero elige tu barrio.</Mensaje>
+              <BotonPrincipal variante="tocar" icono="home-city-outline" onPress={() => router.push({ pathname: "/alta/zona", params: { editar: "1" } })}>
+                Elegir mi barrio
+              </BotonPrincipal>
+            </>
+          ) : (
+            <>
+              <Mensaje tono="info">{categoria ? `Aún no hay ${categoria.etiqueta.toLowerCase()} en tu barrio.` : "No encontramos negocios."}</Mensaje>
+              <BotonPrincipal variante="secundarioListo" icono="storefront-outline" onPress={() => router.push("/servicios/publicar")}>
+                Sube tu negocio
+              </BotonPrincipal>
+            </>
+          )}
         </>
       ) : null}
 

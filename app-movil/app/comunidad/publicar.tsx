@@ -24,7 +24,9 @@ import { Pantalla } from "../../src/vistas/componentes/Pantalla";
 import { Texto } from "../../src/vistas/componentes/Texto";
 import { ESTILO_PUBLICACION } from "../../src/vistas/componentes/estiloPublicacion";
 
-const OPCIONES = CATEGORIAS_PUBLICACION.map((valor) => ({
+// Orden del Mockup v4 (p. 22): Kermés, Misa, Donación / Ayuda social, Taller, Otro.
+const ORDEN_MOCKUP: readonly CategoriaPublicacion[] = ["kermes", "misa", "donacion", "ayuda_social", "taller", "otro"];
+const OPCIONES = ORDEN_MOCKUP.filter((v) => CATEGORIAS_PUBLICACION.includes(v)).map((valor) => ({
   valor,
   etiqueta: ETIQUETA_PUBLICACION[valor],
   icono: ESTILO_PUBLICACION[valor].icono,
@@ -38,7 +40,15 @@ export default function NuevaPublicacion() {
   const pub = usePublicar();
   const foto = useFotoNueva();
 
-  const falta = !categoria ? "Elige qué es" : mensaje.trim().length === 0 && !foto.foto ? "Escribe el mensaje o agrega una foto" : null;
+  // Mockup v4 (p. 22): «Falta foto o mensaje y la categoría».
+  const sinContenido = mensaje.trim().length === 0 && !foto.foto;
+  const falta = sinContenido && !categoria
+    ? "Falta foto o mensaje y la categoría"
+    : sinContenido
+      ? "Falta foto o mensaje"
+      : !categoria
+        ? "Falta la categoría"
+        : null;
 
   const enviar = async () => {
     if (!categoria) return;
@@ -50,7 +60,7 @@ export default function NuevaPublicacion() {
       return;
     }
     if (necesita === "registro") {
-      setAviso("Primero marca dónde vives: Mis datos › Mi dirección.");
+      setAviso("Primero elige tu barrio: Mis datos › Mi barrio.");
       return;
     }
     try {
@@ -81,33 +91,31 @@ export default function NuevaPublicacion() {
     <Pantalla
       titulo="Nueva publicación"
       volver
-      textoEscuchar="Nueva publicación. Elige qué es: kermés, misa, ayuda social, donación, taller u otro. Luego cuenta los detalles con tu voz o escríbelos. Si quieres, agrega una foto."
+      textoEscuchar="Nueva publicación. Agrega una foto o cuenta qué quieres avisar con tu voz. Luego elige de qué se trata: kermés, misa, donación, ayuda social, taller u otro."
       pie={
         <BotonPrincipal variante="listo" icono="send" cargando={pub.enviando} motivoDesactivado={falta} onPress={() => void enviar()}>
           Publicar
         </BotonPrincipal>
       }
     >
-      <Texto variante="etiqueta">¿Qué quieres avisar?</Texto>
+      <ElegirFoto estado={foto} forma="recuadro" descripcion="Foto de tu publicación" />
+      <CampoConVoz
+        etiqueta="¿Qué quieres contar?"
+        ayuda="Kermés el domingo…"
+        valor={mensaje}
+        onCambiar={setMensaje}
+        maxLength={140}
+        completo={mensaje.trim().length > 0}
+      />
+      <Texto variante="etiqueta">¿De qué se trata?</Texto>
       <Opciones
-        nombre="¿Qué quieres avisar?"
+        nombre="¿De qué se trata?"
         tarjetas
         columnas={3}
         opciones={OPCIONES}
         seleccion={categoria ? [categoria] : []}
         onCambiar={(sel) => setCategoria(sel[0] ?? null)}
       />
-      <CampoConVoz
-        etiqueta="Cuéntalo"
-        ayuda="Kermés el domingo a las 10 en la parroquia"
-        valor={mensaje}
-        onCambiar={setMensaje}
-        maxLength={140}
-        completo={mensaje.trim().length > 0}
-      />
-      <Texto variante="ayuda">{`${mensaje.trim().length} de 140 letras. Sin páginas web.`}</Texto>
-      <Texto variante="etiqueta">Foto (si quieres)</Texto>
-      <ElegirFoto estado={foto} descripcion="Foto de tu publicación" />
       {aviso ? <Mensaje tono="aviso">{aviso}</Mensaje> : null}
       {pub.error ? <Mensaje tono="aviso">{pub.error}</Mensaje> : null}
       <Mensaje tono="info">Lo verán solo los vecinos de tu barrio, con tu nombre corto. Puedes publicar hasta 3 cosas por día.</Mensaje>

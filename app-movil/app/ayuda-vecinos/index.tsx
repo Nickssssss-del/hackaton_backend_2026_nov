@@ -130,7 +130,14 @@ function QuieroAyudar() {
   const faltaServidor = sinBase();
 
   if (!perfil?.zonaId) {
-    return <Mensaje tono="aviso">Para ver los pedidos de tu barrio, primero marca dónde vives en Mis datos.</Mensaje>;
+    return (
+      <>
+        <Mensaje tono="aviso">Para ver los pedidos de tu barrio, primero elige tu barrio.</Mensaje>
+        <BotonPrincipal variante="tocar" icono="home-city-outline" onPress={() => router.push({ pathname: "/alta/zona", params: { editar: "1" } })}>
+          Elegir mi barrio
+        </BotonPrincipal>
+      </>
+    );
   }
 
   if (faltaServidor) {

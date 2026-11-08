@@ -23,6 +23,7 @@ interface PreferenciasContextoTipo extends PreferenciasCompletas {
   setSonidos: (activar: boolean) => void;
   setAvisarAlSalir: (activar: boolean) => void;
   setVisibleParaVecinos: (activar: boolean) => void;
+  setDetectarCaidas: (activar: boolean) => void;
 }
 
 const VALORES_INICIALES: PreferenciasCompletas = {
@@ -32,6 +33,7 @@ const VALORES_INICIALES: PreferenciasCompletas = {
   sonidos: true,
   avisarAlSalir: false,
   visibleParaVecinos: false,
+  detectarCaidas: true,
 };
 
 const PreferenciasContexto = createContext<PreferenciasContextoTipo>({
@@ -44,6 +46,7 @@ const PreferenciasContexto = createContext<PreferenciasContextoTipo>({
   setSonidos: () => undefined,
   setAvisarAlSalir: () => undefined,
   setVisibleParaVecinos: () => undefined,
+  setDetectarCaidas: () => undefined,
 });
 
 export function PreferenciasProveedor({ children }: { children: ReactNode }) {
@@ -73,6 +76,7 @@ export function PreferenciasProveedor({ children }: { children: ReactNode }) {
       ...(cambios.sonidos !== undefined ? { sonidos: cambios.sonidos } : {}),
       ...(cambios.avisarAlSalir !== undefined ? { avisarAlSalir: cambios.avisarAlSalir } : {}),
       ...(cambios.visibleParaVecinos !== undefined ? { visibleParaVecinos: cambios.visibleParaVecinos } : {}),
+      ...(cambios.detectarCaidas !== undefined ? { detectarCaidas: cambios.detectarCaidas } : {}),
     });
   }, []);
 
@@ -90,6 +94,7 @@ export function PreferenciasProveedor({ children }: { children: ReactNode }) {
       setSonidos: (sonidos) => actualizar({ sonidos }),
       setAvisarAlSalir: (avisarAlSalir) => actualizar({ avisarAlSalir }),
       setVisibleParaVecinos: (visibleParaVecinos) => actualizar({ visibleParaVecinos }),
+      setDetectarCaidas: (detectarCaidas) => actualizar({ detectarCaidas }),
     }),
     [valores, cargando, actualizar],
   );

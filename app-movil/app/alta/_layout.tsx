@@ -13,6 +13,7 @@ export default function DisenoAlta() {
       <Stack.Screen name="modo" />
       <Stack.Screen name="ubicacion" />
       <Stack.Screen name="direccion" />
+      <Stack.Screen name="zona" />
       <Stack.Screen name="datos" />
       <Stack.Screen name="contactos" />
       {/* A6: sin regreso al registro (gesto atrás desactivado). */}

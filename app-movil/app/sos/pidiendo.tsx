@@ -198,12 +198,20 @@ export default function PidiendoAyuda() {
     router.dismissTo("/principal");
   };
 
+  // Mockup v4 (p. 24): «Ana, Jorge y 4 vecinos ven dónde estás», con los datos reales:
+  // los contactos, si ya se abrió el SMS con la ubicación; los vecinos, si alerta-vecinos los avisó.
+  const avisados = nube.vecinosAvisados ?? 0;
+  const quienesVen = [
+    ...(ubicacionAbierta ? nombres : []),
+    ...(avisados > 0 ? [avisados === 1 ? "1 vecino" : `${avisados} vecinos`] : []),
+  ];
+  const unir = (l: string[]) => (l.length <= 1 ? l.join("") : `${l.slice(0, -1).join(", ")} y ${l[l.length - 1]}`);
   const franja = esDemo
-    ? `${[...nombres, "4 vecinos"].join(", ")} ven dónde estás`
-    : ubicacionAbierta
-      ? "Ubicación lista en Mensajes"
+    ? `${unir([...nombres, "4 vecinos"])} ven dónde estás`
+    : quienesVen.length > 0
+      ? `${unir(quienesVen)} pueden ver dónde estás`
       : nombres.length > 0
-        ? `Enviar mi ubicación a ${nombres.join(" y ")}`
+        ? `Enviar mi ubicación a ${unir(nombres)}`
         : "Enviar mi ubicación por mensaje";
 
   const textoAhora = esDemo ? "Llamando…" : fase === "pregunta" ? `¿Contestó? (${restan} s)` : "Llamando…";
@@ -294,9 +302,6 @@ function EstadoVecinos({ nube }: { nube: ReturnType<typeof useEmergenciaNube> })
   const lineas: string[] = [];
   for (const nombre of nube.contactosEnCamino) lineas.push(`${nombre} confirmó que viene`);
   if (nube.vecinosEnCamino > 0) lineas.push(nube.vecinosEnCamino === 1 ? "1 vecino confirmó que viene" : `${nube.vecinosEnCamino} vecinos confirmaron que vienen`);
-  if (nube.vecinosAvisados !== null && nube.vecinosAvisados > 0 && nube.vecinosEnCamino === 0) {
-    lineas.push(nube.vecinosAvisados === 1 ? "Avisamos a 1 vecino cerca" : `Avisamos a ${nube.vecinosAvisados} vecinos cerca`);
-  }
   if (nube.estado === "limite") lineas.push("Ya pediste ayuda varias veces esta hora: solo llamamos y enviamos mensajes.");
   if (lineas.length === 0) return null;
   return (

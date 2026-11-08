@@ -18,6 +18,8 @@ export interface Preferencias {
   avisarAlSalir?: boolean;
   /** B3: vecinos cercanos ven mi ubicación si pido ayuda. Por defecto No (consentimiento, INC-17). */
   visibleParaVecinos?: boolean;
+  /** G: «Emergencia o caída» (Mockup v4, p. 26). Con la app abierta, una caída abre G1. Por defecto Sí. */
+  detectarCaidas?: boolean;
   /** Campos de la versión anterior. Se leen solo para migrar. */
   tema?: "claro" | "emergencia" | "oscuro";
   escalaLetra?: number;
@@ -30,6 +32,7 @@ export interface PreferenciasCompletas {
   sonidos: boolean;
   avisarAlSalir: boolean;
   visibleParaVecinos: boolean;
+  detectarCaidas: boolean;
 }
 
 function tamanoDesdeEscala(escala?: number): TamanoLetra {
@@ -51,6 +54,7 @@ export async function leerPreferenciasCompletas(): Promise<PreferenciasCompletas
     sonidos: p.sonidos ?? true,
     avisarAlSalir: p.avisarAlSalir ?? false,
     visibleParaVecinos: p.visibleParaVecinos ?? false,
+    detectarCaidas: p.detectarCaidas ?? true,
   };
 }
 

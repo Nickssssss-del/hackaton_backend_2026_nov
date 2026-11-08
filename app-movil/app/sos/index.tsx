@@ -7,6 +7,7 @@
  *   Al tocar uno, la cuenta se detiene: si pudo tocar, está consciente.
  * - Si no responde en 1 minuto (caída, desmayo), pasa sola a G2: ubicación y cascada de llamadas.
  * Tocar el círculo pide ayuda de inmediato. «Estoy bien, fue un error» vuelve al Inicio.
+ * Con `caida=1` la abrió el detector de caídas (DetectorDeCaidas): lo dice arriba.
  */
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -30,7 +31,7 @@ const GROSOR = 18;
 export default function EstasBien() {
   const { tema } = useTema();
   const c = tema.colores;
-  const { demo } = useLocalSearchParams<{ demo?: string }>();
+  const { demo, caida } = useLocalSearchParams<{ demo?: string; caida?: string }>();
   const { escuchar, silenciar } = useEscuchar();
   const [nombre, setNombre] = useState("");
   const emergencia = useEmergencia();
@@ -133,6 +134,7 @@ export default function EstasBien() {
       }
     >
       {demo === "1" ? <Mensaje tono="info">Demo: no se llamará a nadie.</Mensaje> : null}
+      {caida === "1" ? <Mensaje tono="aviso">Parece que te caíste. Si estás bien, toca el botón verde.</Mensaje> : null}
       <Texto variante="titulo" centrado accessibilityRole="header" color={c.avisoTexto}>{titulo}</Texto>
 
       {pausado ? (

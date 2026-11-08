@@ -50,7 +50,7 @@ export function useFotoNueva() {
   const subir = useCallback(async (): Promise<string | undefined> => {
     if (!foto) return undefined;
     const perfil = await leerPerfilLocal();
-    if (!perfil?.zonaId) throw new Error("Primero marca dónde vives: Mis datos › Mi dirección.");
+    if (!perfil?.zonaId) throw new Error("Primero elige tu barrio: Mis datos › Mi barrio.");
     try {
       return await subirFoto(foto.base64, foto.tipo, perfil.zonaId);
     } catch (causa) {
