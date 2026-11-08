@@ -7,7 +7,17 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 const url = import.meta.env.VITE_SUPABASE_URL;
 const anon = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
-export const supabase: SupabaseClient | null = url && anon ? createClient(url, anon) : null;
+// La sesión del admin vive solo en esta pestaña (sessionStorage): al cerrar la pestaña o el
+// navegador hay que entrar de nuevo.
+export const supabase: SupabaseClient | null =
+  url && anon
+    ? createClient(url, anon, { auth: { storage: window.sessionStorage, persistSession: true } })
+    : null;
+
+// Antes la sesión se guardaba en localStorage: se borra esa copia vieja para que no quede un token guardado.
+for (const clave of Object.keys(window.localStorage)) {
+  if (/^sb-.+-auth-token$/.test(clave)) window.localStorage.removeItem(clave);
+}
 
 export function cliente(): SupabaseClient {
   if (!supabase) throw new Error("FALTA_CONFIGURACION");
