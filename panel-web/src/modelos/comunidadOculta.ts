@@ -23,6 +23,8 @@ interface ContenidoOculto {
 export interface PublicacionOculta extends ContenidoOculto {
   categoria: string;
   mensaje: string | null;
+  /** Dirección del evento (script 10), o null. */
+  lugar: string | null;
   zona: string | null;
   /** URL firmada por 5 minutos, o null si no tiene foto o no se pudo firmar. */
   foto_url: string | null;
@@ -41,13 +43,15 @@ export async function listarPublicacionesOcultas(): Promise<PublicacionOculta[]>
   const sb = cliente();
   const { data, error } = await sb
     .from("publicaciones")
-    .select("id, autor, categoria, mensaje, foto_path, creado_en, revisado_en, zonas(nombre), reportes_comunidad(id, motivo, creado_en)")
+    .select(
+      "id, autor, categoria, mensaje, lugar, foto_path, creado_en, revisado_en, zonas(nombre), reportes_comunidad(id, motivo, creado_en)",
+    )
     .eq("oculto", true)
     .order("creado_en", { ascending: false });
   if (error) throw error;
 
   type Fila = {
-    id: string; autor: string; categoria: string; mensaje: string | null; foto_path: string | null;
+    id: string; autor: string; categoria: string; mensaje: string | null; lugar: string | null; foto_path: string | null;
     creado_en: string; revisado_en: string | null; zonas: { nombre: string } | null;
     reportes_comunidad: ReporteComunidad[] | null;
   };
@@ -66,6 +70,7 @@ export async function listarPublicacionesOcultas(): Promise<PublicacionOculta[]>
     autor: f.autor,
     categoria: f.categoria,
     mensaje: f.mensaje,
+    lugar: f.lugar,
     creado_en: f.creado_en,
     revisado_en: f.revisado_en,
     zona: f.zonas?.nombre ?? null,
@@ -105,9 +110,20 @@ export async function volverAMostrar(tabla: TablaComunidad, id: string): Promise
   exigirFilas(data);
 }
 
-/** Borra la publicación o el comentario. Sus reportes se borran en cascada. */
-export async function borrarContenido(tabla: TablaComunidad, id: string): Promise<void> {
-  const { data, error } = await cliente().from(tabla).delete().eq("id", id).select("id");
+/**
+ * Borra la publicación o el comentario. Sus reportes se borran en cascada.
+ * Si la publicación tenía foto, la borra del bucket fotos (política fotos_borrar con es_admin()).
+ * fotoSinBorrar: la fila se borró, pero la foto no se pudo borrar.
+ */
+export async function borrarContenido(tabla: TablaComunidad, id: string): Promise<{ fotoSinBorrar: boolean }> {
+  const sb = cliente();
+  const columnas = tabla === "publicaciones" ? "id, foto_path" : "id";
+  const { data, error } = await sb.from(tabla).delete().eq("id", id).select(columnas);
   if (error) throw error;
   exigirFilas(data);
+  const ruta = (data[0] as { foto_path?: string | null }).foto_path;
+  if (!ruta) return { fotoSinBorrar: false };
+  // Con RLS, un borrado sin permiso no da error: devuelve una lista vacía.
+  const { data: borradas, error: errorFoto } = await sb.storage.from("fotos").remove([ruta]);
+  return { fotoSinBorrar: !!errorFoto || !borradas || borradas.length === 0 };
 }

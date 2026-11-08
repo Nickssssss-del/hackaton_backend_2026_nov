@@ -121,6 +121,15 @@ export async function entrarConCelular({ nombre, zonaId, lat, lng, indice = 0 })
     ? crudo
     : `+${digitos.startsWith("51") ? digitos : `51${digitos}`}`;
   const sb = clienteNuevo();
+  let pedido = await sb.auth.signInWithOtp({ phone });
+  // Supabase limita pedir el código seguido para el mismo número: se espera lo que indica y se reintenta una vez.
+  const limite = pedido.error && /only request this after (\d+) seconds/i.exec(pedido.error.message ?? "");
+  if (limite) {
+    const segundos = Math.min(Math.max(Number(limite[1]) + 1, 2), 65);
+    await new Promise((listo) => setTimeout(listo, segundos * 1000));
+    pedido = await sb.auth.signInWithOtp({ phone });
+  }
+  if (pedido.error) throw pedido.error;
   const ingreso = await sb.auth.verifyOtp({
     phone,
     token: process.env.OTP_PRUEBA.trim(),

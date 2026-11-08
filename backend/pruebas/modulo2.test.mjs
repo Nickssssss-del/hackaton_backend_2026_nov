@@ -77,6 +77,23 @@ describe("Módulo 2", { concurrency: false }, () => {
       autores.push(await vecino(`Autora ${i}`, `90000005${i + 2}`));
     }
     reportera = await vecino("Paula Ríos", "900000051");
+
+    // Limpia bloqueos de corridas anteriores en las cuentas de celular de prueba que usa este archivo:
+    // la 0 (pruebas de ayuda) y la 2 (prueba de bloqueo). Sin las variables, las pruebas de celular quedan en skip.
+    if (!motivoDeSkip(["CELULARES_PRUEBA", "OTP_PRUEBA", "ADMIN_EMAIL", "ADMIN_PASSWORD"])) {
+      const admin = await entrarAdmin();
+      for (const indice of [0, 2]) {
+        const cuenta = await entrarConCelular({
+          nombre: "Nilo Prado",
+          zonaId: ZONA_CERCADO,
+          lat: -14.068,
+          lng: -75.728,
+          indice,
+        });
+        const { error } = await admin.sb.from("bloqueos").delete().eq("user_id", cuenta.id);
+        assert.equal(error, null, mensaje(error));
+      }
+    }
   });
 
   test("tres vecinos distintos ocultan una publicación y un comentario", async () => {
@@ -416,28 +433,43 @@ describe("Módulo 2", { concurrency: false }, () => {
     "un ayudante bloqueado deja de aparecer en ayudas_recibidas",
     { skip: motivoDeSkip(["CELULARES_PRUEBA", "OTP_PRUEBA", "ADMIN_EMAIL", "ADMIN_PASSWORD"]) },
     async () => {
+      // Número propio (índice 2): el bloqueo nunca toca la cuenta del índice 0 que usan las otras pruebas.
       const ayudante = await entrarConCelular({
         nombre: "Nilo Prado",
         zonaId: ZONA_CERCADO,
         lat: -14.068,
         lng: -75.728,
+        indice: 2,
       });
-      const pedido = await autora.sb
-        .from("pedidos_ayuda")
-        .insert({ categoria: "arreglos", descripcion: "Falta una bisagra." })
-        .select("id")
-        .single();
-      assert.equal(pedido.error, null, mensaje(pedido.error));
-      const ayuda = await ayudante.sb.rpc("yo_ayudo", { p_pedido_id: pedido.data.id });
-      assert.equal(ayuda.error, null, mensaje(ayuda.error));
       const admin = await entrarAdmin();
-      const bloqueo = await admin.sb.from("bloqueos").insert({
-        user_id: ayudante.id,
-        motivo: "abuso de prueba",
-      });
-      assert.equal(bloqueo.error, null, mensaje(bloqueo.error));
-      const recibidas = await autora.sb.from("ayudas_recibidas").select("id").eq("pedido_id", pedido.data.id);
-      assert.equal(recibidas.data.length, 0);
+      // La cuenta de celular de prueba se reutiliza entre corridas: se desbloquea al inicio y al final
+      // (bloqueos_admin), para recuperarse aunque una corrida anterior haya fallado a la mitad.
+      const desbloquearAyudante = async () => {
+        const { error } = await admin.sb.from("bloqueos").delete().eq("user_id", ayudante.id);
+        assert.equal(error, null, mensaje(error));
+      };
+      await desbloquearAyudante();
+      try {
+        // Vecina nueva: autora ya tiene 2 pedidos abiertos de pruebas anteriores (tope de la base).
+        const pide = await vecino("Olga Ramos", "900000044");
+        const pedido = await pide.sb
+          .from("pedidos_ayuda")
+          .insert({ categoria: "arreglos", descripcion: "Falta una bisagra." })
+          .select("id")
+          .single();
+        assert.equal(pedido.error, null, mensaje(pedido.error));
+        const ayuda = await ayudante.sb.rpc("yo_ayudo", { p_pedido_id: pedido.data.id });
+        assert.equal(ayuda.error, null, mensaje(ayuda.error));
+        const bloqueo = await admin.sb.from("bloqueos").insert({
+          user_id: ayudante.id,
+          motivo: "abuso de prueba",
+        });
+        assert.equal(bloqueo.error, null, mensaje(bloqueo.error));
+        const recibidas = await pide.sb.from("ayudas_recibidas").select("id").eq("pedido_id", pedido.data.id);
+        assert.equal(recibidas.data.length, 0);
+      } finally {
+        await desbloquearAyudante();
+      }
     },
   );
 

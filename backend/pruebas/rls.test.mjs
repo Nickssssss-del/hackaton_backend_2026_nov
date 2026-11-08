@@ -161,23 +161,46 @@ describe("RLS", { concurrency: false }, () => {
         lat: -14.045,
         lng: -75.698,
       });
-      const ajeno = await publicarPedido(ana.sb);
-      assert.equal(ajeno.error, null, mensaje(ajeno.error));
-      const zona = await verificado.sb.rpc("yo_ayudo", { p_pedido_id: ajeno.data.id });
-      exigeRechazo(zona.error, "ZONA_DISTINTA");
+      // La cuenta de celular de prueba se reutiliza entre corridas y el tope es de 2 pedidos abiertos.
+      // Cada autor cancela los suyos (pedidos_editar): al inicio, todos los abiertos; al final, los creados aquí.
+      const cancelarAbiertos = async (quien, ids) => {
+        let consulta = quien.sb
+          .from("pedidos_ayuda")
+          .update({ estado: "cancelado" })
+          .eq("autor", quien.id)
+          .eq("estado", "abierto");
+        if (ids) consulta = consulta.in("id", ids);
+        const { error } = await consulta;
+        assert.equal(error, null, mensaje(error));
+      };
+      await cancelarAbiertos(verificado);
+      await cancelarAbiertos(ana);
+      const deAna = [];
+      const deVerificado = [];
+      try {
+        const ajeno = await publicarPedido(ana.sb);
+        assert.equal(ajeno.error, null, mensaje(ajeno.error));
+        deAna.push(ajeno.data.id);
+        const zona = await verificado.sb.rpc("yo_ayudo", { p_pedido_id: ajeno.data.id });
+        exigeRechazo(zona.error, "ZONA_DISTINTA");
 
-      const propio = await publicarPedido(verificado.sb, { zonaId: ZONA_PARCONA });
-      assert.equal(propio.error, null, mensaje(propio.error));
-      const mismo = await verificado.sb.rpc("yo_ayudo", { p_pedido_id: propio.data.id });
-      exigeRechazo(mismo.error, "PEDIDO_NO_DISPONIBLE");
+        const propio = await publicarPedido(verificado.sb, { zonaId: ZONA_PARCONA });
+        assert.equal(propio.error, null, mensaje(propio.error));
+        deVerificado.push(propio.data.id);
+        const mismo = await verificado.sb.rpc("yo_ayudo", { p_pedido_id: propio.data.id });
+        exigeRechazo(mismo.error, "PEDIDO_NO_DISPONIBLE");
 
-      const cerrado = await ana.sb
-        .from("pedidos_ayuda")
-        .update({ estado: "cancelado" })
-        .eq("id", ajeno.data.id);
-      assert.equal(cerrado.error, null, mensaje(cerrado.error));
-      const despues = await verificado.sb.rpc("yo_ayudo", { p_pedido_id: ajeno.data.id });
-      exigeRechazo(despues.error, "PEDIDO_NO_DISPONIBLE");
+        const cerrado = await ana.sb
+          .from("pedidos_ayuda")
+          .update({ estado: "cancelado" })
+          .eq("id", ajeno.data.id);
+        assert.equal(cerrado.error, null, mensaje(cerrado.error));
+        const despues = await verificado.sb.rpc("yo_ayudo", { p_pedido_id: ajeno.data.id });
+        exigeRechazo(despues.error, "PEDIDO_NO_DISPONIBLE");
+      } finally {
+        if (deAna.length > 0) await cancelarAbiertos(ana, deAna);
+        if (deVerificado.length > 0) await cancelarAbiertos(verificado, deVerificado);
+      }
     },
   );
 
