@@ -44,9 +44,9 @@ Los lee la persona de esa emergencia y un admin. Los crea y actualiza solo la pe
 
 ### `enlaces`
 
-Token de la página «Voy en camino», como máximo dos por emergencia. Columnas: `id`, `emergencia_id`, `eslabon_id`, `contacto`, `token` (lo genera la base; la app no lo elige), `va_en_camino_en`, `creado_en`.
+Token de la página «Voy en camino» (https://kuna-voy.netlify.app), como máximo dos por emergencia. Columnas: `id`, `emergencia_id`, `eslabon_id`, `contacto`, `token` (lo genera la base; la app no lo elige), `va_en_camino_en`, `creado_en`.
 
-Los crea y lee la persona, porque necesita el token para el SMS. Un admin también los lee. Quien recibe el SMS no tiene cuenta: entra con `enlace_ver` y `enlace_voy`.
+Los crea y lee la persona, porque necesita el token para el SMS. Un admin también los lee. Quien recibe el SMS no tiene cuenta: abre la página con `?t=` y el token, y esa página llama a `enlace_ver` y `enlace_voy`.
 
 ### `vecinos_que_van`
 
@@ -208,7 +208,7 @@ Errores: `PERFIL_INCOMPLETO` si no hay sesión o no hay perfil. Si el token mide
 
 ### `enlace_ver(p_token)`
 
-Quién: `anon` y `authenticated`. La usa la página del contacto, que no tiene cuenta.
+Quién: `anon` y `authenticated`. La llama la página https://kuna-voy.netlify.app, que no tiene cuenta: un `POST` a `/rest/v1/rpc/enlace_ver` con la clave publicable y `{ p_token }`.
 
 Devuelve: `nombre`, `direccion`, `lat`, `lng`, `va_en_camino`. Solo mientras la emergencia esté activa y sin vencer.
 
@@ -234,27 +234,33 @@ Errores: `EMERGENCIA_TERMINADA`.
 
 ## 4. Códigos de error
 
-Los que estos scripts nombran o lanzan:
+Los que lanzan los scripts 07 y 08, y los que devuelven las funciones. La app los muestra en una frase y no reintenta la misma acción.
 
-| Código | Cuándo |
-| --- | --- |
-| `CELULAR_NO_VERIFICADO` | Ofrecer ayuda o ver datos de una emergencia sin celular verificado. |
-| `BLOQUEADO` | La persona está en `bloqueos`. |
-| `EMERGENCIA_TERMINADA` | La emergencia se cerró, venció, es de práctica, no avisa a vecinos, es la propia, o el token de la página ya no sirve. |
-| `MAXIMO_DOS_CONTACTOS` | Más de dos enlaces en la misma emergencia. |
-| `PUBLICACION_NO_DISPONIBLE` | Marcar «Voy», comentar o reportar una publicación oculta, borrada o, al reportar, propia. |
-| `SERVICIO_NO_DISPONIBLE` | Comentar un negocio oculto o que los vecinos no pueden ver. |
-| `PERFIL_INCOMPLETO` | No hay sesión, no hay perfil, o el perfil no está completo cuando la acción lo exige. |
-| `CON_ENLACE` | El mensaje, el comentario o el texto editado trae un enlace. |
-| `LIMITE_DIARIO` | Tres publicaciones, diez comentarios o diez reportes de comunidad en el día. |
-| `ZONA_DISTINTA` | El contenido o el pedido no es de la zona de quien actúa. |
-| `PEDIDO_NO_DISPONIBLE` | El pedido no existe, no está abierto, venció o es de quien intenta ayudar. |
-| `ESLABON_DE_OTRA_EMERGENCIA` | El enlace apunta a un eslabón de otra emergencia. |
-| `FALTA_CONTACTO` | Un eslabón queda sin nombre. Solo la limpieza puede vaciarlo. |
-| `LIMITE_EMERGENCIAS` | Más de cinco emergencias reales de la misma persona en una hora. |
-| `REPORTE_NO_VALIDO` | Reportar a una persona que no ofreció ayuda en un pedido propio, o reportarse a sí mismo. |
-| `COMENTARIO_NO_DISPONIBLE` | Reportar un comentario oculto, borrado o propio. |
-| `TIPO_AVISO_INVALIDO` | `reclamar_aviso` recibe un tipo que no es `inicio` ni `cierre`. |
+| Código | Qué significa | Qué hace la app |
+| --- | --- | --- |
+| `PERFIL_INCOMPLETO` | No hay sesión, no hay perfil, o faltan nombre, celular o zona. | Pide completar el perfil antes de seguir. |
+| `CELULAR_NO_VERIFICADO` | Ofrecer ayuda o ver una alerta exige celular verificado, y no lo está. | Avisa que hace falta verificar el celular y no muestra el contacto de quien pidió. |
+| `BLOQUEADO` | La persona está en `bloqueos`. | Dice que la cuenta no puede hacer esa acción. |
+| `ZONA_DISTINTA` | El pedido, la publicación, el comentario o el negocio no es de su zona. | Dice que eso es de otra zona y no lo publica. |
+| `CON_ENLACE` | El texto trae un enlace. | Pide quitar el enlace y deja el borrador. |
+| `LIMITE_DIARIO` | Llegó al tope del día: 3 publicaciones, 10 comentarios o 10 reportes de comunidad. | Dice que ya llegó al límite de hoy. |
+| `LIMITE_EMERGENCIAS` | Ya hubo 5 emergencias reales de esa persona en la última hora. La práctica no cuenta. | Dice que debe esperar y no abre otra emergencia real. |
+| `PEDIDO_NO_DISPONIBLE` | El pedido no existe, no está abierto, venció o es de quien intenta ayudar. | Quita ese pedido de la lista. |
+| `PUBLICACION_NO_DISPONIBLE` | La publicación está oculta, borrada, o es propia y se está reportando. | La saca de la lista o no deja reportarla. |
+| `COMENTARIO_NO_DISPONIBLE` | El comentario está oculto, borrado o es propio y se está reportando. | No deja reportarlo. |
+| `SERVICIO_NO_DISPONIBLE` | El negocio está oculto o los vecinos no pueden verlo. | No deja comentarlo. |
+| `REPORTE_NO_VALIDO` | Se reporta a sí misma, o a alguien que no ofreció ayuda en un pedido suyo. | Dice que ese reporte no corresponde. |
+| `EMERGENCIA_TERMINADA` | La emergencia se cerró, venció, es de práctica, no avisa a vecinos, es la propia, o el token ya no sirve. | En la app, cierra la pantalla de la alerta. En la página, se ve «Esta emergencia ya terminó». |
+| `MAXIMO_DOS_CONTACTOS` | Esa emergencia ya tiene dos enlaces. | No deja agregar un tercer contacto. |
+| `ESLABON_DE_OTRA_EMERGENCIA` | El enlace apunta a un eslabón de otra emergencia. | No guarda ese enlace. |
+| `FALTA_CONTACTO` | Un eslabón queda sin nombre. Solo la limpieza puede vaciarlo. | Pide el nombre del contacto. |
+| `TIPO_AVISO_INVALIDO` | `reclamar_aviso` recibió un tipo que no es `inicio` ni `cierre`. | `alerta-vecinos` solo manda esos dos tipos. |
+| `SIN_SESION` | `preguntale` o `alerta-vecinos` no recibieron `Authorization: Bearer`. | Vuelve a entrar antes de llamar. |
+| `TEXTO_INVALIDO` | El texto de `preguntale` falta, está vacío o pasa de 300 caracteres. | Pide decirlo de nuevo, más corto. |
+| `ENTRADA_INVALIDA` | `alerta-vecinos` no recibió un `emergencia_id` válido y un `tipo` `inicio` o `cierre`. | No reenvía el aviso con ese cuerpo. |
+| `NO_ES_TUYA` | Quien llama a `alerta-vecinos` no es la persona de esa emergencia. | No muestra el aviso como enviado. |
+| `METODO_INVALIDO` | La función recibió algo que no es `POST`. | La app solo usa `POST`. |
+| `ERROR_INTERNO` | `alerta-vecinos` falló al comprobar la emergencia, reclamar el aviso o listar vecinos. | Dice que no se pudo avisar y permite intentarlo otra vez. |
 
 ## 5. Datos temporales de una emergencia
 
@@ -263,7 +269,7 @@ Al cerrarla, o al vencer las dos horas:
 - El estado pasa a `cerrada`.
 - Se borran nombre, dirección y ubicación exacta. Quedan `lat_aprox` y `lng_aprox` para avisar el cierre.
 - Se borra el nombre de cada contacto de la cadena.
-- Se borran los enlaces. La página del token deja de funcionar.
+- Se borran los enlaces. https://kuna-voy.netlify.app deja de mostrar esa emergencia.
 
 Al vencer las dos horas, la app deja de poder ver los datos (las funciones y las políticas revisan el vencimiento). El borrado físico ocurre en la siguiente limpieza: al crear o cerrar otra emergencia, o cada 10 minutos si pg_cron está activo.
 
@@ -283,40 +289,31 @@ La ven los vecinos de esa zona y un admin. Cada persona sube solo en su carpeta,
 
 ### `alerta-vecinos`
 
-Sin responsable asignado.
+Responsable: Luana.
 
-| | |
-| --- | --- |
-| Entrada | Id de la emergencia. |
-| Qué hace | Busca vecinos con alerta activa a unos 500 m, con la ubicación aproximada, y les envía el push por Expo. El push no lleva nombre ni dirección. |
-| Salida | Cantidad de avisados. |
+`POST`. El cuerpo es `emergencia_id` (uuid) y `tipo` (`inicio` o `cierre`). Hace falta `Authorization: Bearer` de la persona de esa emergencia. Antes de usar `service_role`, lee la emergencia con la clave publicable y el JWT, y solo sigue si `persona` es quien llama. Si no, responde `NO_ES_TUYA`.
 
-Texto del aviso inicial: «Un vecino necesita ayuda a X m». Ejemplo: «Un vecino necesita ayuda a 120 m». El nombre y la dirección se piden aparte, al confirmar.
+Luego llama a `reclamar_aviso` con `service_role`. Si devuelve falso, no envía nada y responde `{ "avisados": 0 }`. Si devuelve verdadero, llama a `vecinos_para_alerta` y manda el push por la API de Expo, en lotes. La salida es `{ "avisados": n }`: cuántos envíos aceptó Expo, no cuántos vecinos había.
 
-Al cerrar la emergencia el texto es «Ya no hace falta, gracias».
+El aviso se titula «Kuna». El texto inicial es «Un vecino necesita ayuda a X m», con la distancia redondeada a decenas de metros y nunca menos de 10. Ejemplo: «Un vecino necesita ayuda a 120 m». No lleva nombre ni dirección. El de cierre es «Ya no hace falta, gracias».
 
-En la base, los destinatarios salen de `vecinos_para_alerta`. Antes de enviar, `reclamar_aviso` con tipo `inicio` o `cierre` debe devolver verdadero; si devuelve falso, no se envía nada. `inicio` solo vale en una emergencia real, activa, sin vencer, que avise a vecinos y que todavía no se haya avisado. `cierre` solo vale si ya se avisó al inicio, está cerrada y el cierre todavía no se avisó.
+El secreto opcional del envío se llama `EXPO_ACCESS_TOKEN`. `SUPABASE_URL`, `SUPABASE_ANON_KEY` y `SUPABASE_SERVICE_ROLE_KEY` los pone Supabase. `service_role` solo entra a `reclamar_aviso` y `vecinos_para_alerta`.
 
 ### `voy-en-camino`
 
-La abre el navegador del contacto, sin cuenta. Entrada: el token del enlace. Salida: la página o la confirmación.
+No es una función desplegada. Es la página estática de `backend/web/voy-en-camino/`, publicada en https://kuna-voy.netlify.app. La abre el navegador del contacto, sin cuenta, con `?t=` y el token.
 
-| Método | Qué hace |
-| --- | --- |
-| GET | Devuelve la página HTML con la ubicación y el botón. |
-| POST | Registra que el contacto va en camino. |
-
-Rechaza los tokens vencidos. En la base, GET corresponde a `enlace_ver` (nombre, dirección, ubicación y si ya marcó que va) y POST a `enlace_voy` (marca el enlace y, si hay eslabón, lo pasa a `va_en_camino`). Las dos están abiertas a `anon` y a `authenticated`. Si la emergencia se cerró o venció, responden `EMERGENCIA_TERMINADA`.
+La página hace `POST` a `/rest/v1/rpc/enlace_ver` y `/rest/v1/rpc/enlace_voy` con la clave publicable y `{ p_token }`. No manda sesión. `enlace_ver` pinta el nombre, la dirección y el mapa. `enlace_voy` marca el contacto y, si hay eslabón, lo deja en `va_en_camino`. Si el token no tiene 64 caracteres hexadecimales, o la base responde `EMERGENCIA_TERMINADA`, la página dice «Esta emergencia ya terminó».
 
 ### `preguntale`
 
-| | |
-| --- | --- |
-| Entrada | El texto dictado. |
-| Qué hace | Llama al modelo solo con las seis funciones permitidas. No envía nombre, teléfono ni pastillas. |
-| Salida | La función elegida y el texto para leer. |
+Responsable del código en `backend/supabase/functions/preguntale/`.
 
-Funciones permitidas: `buscar_servicio`, `crear_recordatorio`, `ver_mi_horario`, `pedir_ayuda`, `llamar`, `como_llegar`.
+`POST` con `Authorization: Bearer` de la sesión de la app. El cuerpo es `texto` (obligatorio, de 1 a 300 caracteres), y pueden ir `lat`, `lng` y `zona_id`. A la IA solo se le manda el texto: no van nombre, teléfono, pastillas, ubicación ni zona.
+
+Los secretos de la IA se llaman `IA_URL`, `IA_API_KEY` e `IA_MODELO`. En el código de main, `ia.ts` lee `IA_API_KEY` e `IA_MODELO`. Si `IA_MODELO` no está, usa `openai/gpt-oss-20b`.
+
+Devuelve `texto` (hasta 140, sin enlaces), `funcion`, `argumentos`, `confirmar`, y en una búsqueda también `servicios` (hasta 3) y `botones`. Las funciones permitidas son `buscar_servicio`, `crear_recordatorio`, `ver_mi_horario`, `pedir_ayuda`, `llamar` y `como_llegar`. `buscar_servicio` lee `servicios_publicos` con la clave publicable y el JWT de quien pregunta, sin `service_role`. Si la IA no elige una función válida, el texto es «No te entendí. ¿Qué necesitas?». Si la IA falla, «No pude responder ahora. Elige una opción.». Si falta barrio y ubicación, «¿En qué barrio estás?».
 
 ## 8. Realtime
 
