@@ -21,6 +21,7 @@ Cada script se corre en el SQL Editor de Supabase, en este orden. Se pueden corr
 9. `09_datos_demo.sql`: datos ficticios de demo (negocios, publicaciones y un pedido). Lo ejecuta Karla.
 10. `10_uso_y_comunidad.sql`: tiempo de uso por zona, sin usuario, y el lugar del evento en las publicaciones.
 11. `11_admin_perfiles.sql`: el admin puede leer `perfiles`. Un vecino sigue leyendo solo el suyo. Lo ejecuta Karla después del respaldo de la base.
+12. `12_admin_grupos.sql`: el admin puede crear, editar y borrar grupos de apoyo. Un vecino sigue sin poder escribir. Lo ejecuta Karla.
 
 ## Panel
 

@@ -80,4 +80,60 @@ describe("Admin", { concurrency: false }, () => {
     assert.equal(ajena.error, null, mensaje(ajena.error));
     assert.equal(ajena.data.length, 0);
   });
+
+  test(
+    "el admin puede crear, editar y borrar un grupo",
+    { skip: motivoDeSkip(["ADMIN_EMAIL", "ADMIN_PASSWORD"]) },
+    async () => {
+      const admin = await entrarAdmin();
+      const creado = await admin.sb
+        .from("grupos_apoyo")
+        .insert({
+          nombre: "Punto seguro de prueba",
+          tipo: "punto_seguro",
+          zona_id: ZONA_CERCADO,
+          verificada: false,
+        })
+        .select("id, verificada")
+        .single();
+      assert.equal(creado.error, null, mensaje(creado.error));
+      assert.equal(creado.data.verificada, false);
+      const id = creado.data.id;
+      try {
+        const editado = await admin.sb
+          .from("grupos_apoyo")
+          .update({ nombre: "Punto seguro editado" })
+          .eq("id", id)
+          .select("nombre")
+          .single();
+        assert.equal(editado.error, null, mensaje(editado.error));
+        assert.equal(editado.data.nombre, "Punto seguro editado");
+        const borrado = await admin.sb.from("grupos_apoyo").delete().eq("id", id).select("id");
+        assert.equal(borrado.error, null, mensaje(borrado.error));
+        assert.equal(borrado.data.length, 1);
+      } finally {
+        await admin.sb.from("grupos_apoyo").delete().eq("id", id);
+      }
+    },
+  );
+
+  test("un vecino no puede crear, editar ni borrar un grupo", async () => {
+    const idFijo = "22222222-0000-4000-8000-000000000001";
+    const nombreOriginal = "Brigada Vecinal Cercado (ficticia)";
+    const creado = await otro.sb
+      .from("grupos_apoyo")
+      .insert({ nombre: "Grupo que el vecino no crea", tipo: "brigada", zona_id: ZONA_CERCADO })
+      .select("id");
+    assert.ok(creado.error, mensaje(creado.error));
+
+    const editado = await otro.sb.from("grupos_apoyo").update({ nombre: "No debe cambiar" }).eq("id", idFijo).select("id");
+    assert.ok(editado.error || (editado.data ?? []).length === 0, mensaje(editado.error));
+    const sigue = await otro.sb.from("grupos_apoyo").select("nombre").eq("id", idFijo).single();
+    assert.equal(sigue.data.nombre, nombreOriginal);
+
+    const borrado = await otro.sb.from("grupos_apoyo").delete().eq("id", idFijo).select("id");
+    assert.ok(borrado.error || (borrado.data ?? []).length === 0, mensaje(borrado.error));
+    const queda = await otro.sb.from("grupos_apoyo").select("id").eq("id", idFijo);
+    assert.equal(queda.data.length, 1);
+  });
 });
