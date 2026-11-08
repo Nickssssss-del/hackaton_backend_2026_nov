@@ -1,6 +1,6 @@
 # Configuración de Vecinos
 
-Esta guía es para quien monte el proyecto en los paneles: Supabase, Twilio, Firebase y Expo. No trae scripts de base de datos. Los scripts 07 y 08 se ejecutan aparte; aquí solo se revisa lo que esos scripts esperan encontrar ya activado.
+Esta guía es para quien monte el proyecto en los paneles: Supabase, Twilio, Firebase y Expo. No trae scripts de base de datos. Los scripts se ejecutan aparte, en el orden de la sección 4; aquí se revisa lo que esperan encontrar ya activado.
 
 La app usa solo la clave publicable. La clave secreta, o `service_role`, nunca va en la app ni en el repositorio. Las claves de la IA y del push viven como secretos de Supabase.
 
@@ -49,6 +49,16 @@ Cambiar de modelo de IA no pide una APK nueva: se cambia el secreto o la funció
 
 ## 4. Lo que piden los scripts
 
+Orden de ejecución, en el editor SQL de Supabase:
+
+1. `01` a `05`, en ese orden.
+2. `07_mockup_v4.sql` y luego `08_ajustes_backend.sql`.
+3. `09_datos_demo.sql`, con datos ficticios para la demo.
+4. **Antes del 10:** respaldo en CSV. Exporta desde el editor de tablas al menos `publicaciones`, porque el 10 le agrega una columna.
+5. `10_uso_y_comunidad.sql`: tiempo de uso (`uso_app`, `registrar_uso`) y lugar del evento (`publicaciones.lugar`).
+
+El `06` es mantenimiento manual y no entra en este orden. Los scripts 07 a 10 se pueden volver a correr sin error.
+
 Lista de verificación, sin volver a escribir el SQL. El script 07 crea el bucket y publica las tablas de Realtime si la publicación ya existe. Si `pg_cron` no se puede activar, el script sigue y solo avisa: hay que activar la extensión y volver a ejecutarlo.
 
 | Qué revisar | Dónde buscarlo | Qué debe quedar |
@@ -92,4 +102,6 @@ Límites de ese plan que importan:
 - [ ] `pg_cron` está activo para la limpieza cada 10 minutos.
 - [ ] Realtime incluye `emergencias`, `eslabones`, `enlaces` y `vecinos_que_van`.
 - [ ] El bucket `fotos` existe, es privado y lo creó el script 07.
+- [ ] Antes del script 10 se hizo el respaldo en CSV, al menos de `publicaciones`.
+- [ ] El script 10 corrió sin error y `uso_app` tiene RLS activado.
 - [ ] El proyecto de Supabase está abierto y no pausado.

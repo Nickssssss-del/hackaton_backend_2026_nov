@@ -1,6 +1,6 @@
 # Contrato del Módulo 2
 
-Fuente: `07_mockup_v4.sql` y `08_ajustes_backend.sql`. La app entra con la clave publicable. La sesión anónima de la app también usa el rol authenticated; por eso la lectura se limita por zona y por las políticas de cada tabla.
+Fuente: `07_mockup_v4.sql`, `08_ajustes_backend.sql` y `10_uso_y_comunidad.sql`, alineado con el Informe v2.3. La app entra con la clave publicable. La sesión anónima de la app también usa el rol authenticated; por eso la lectura se limita por zona y por las políticas de cada tabla.
 
 ## 1. Tablas nuevas y columnas agregadas
 
@@ -15,6 +15,7 @@ Fuente: `07_mockup_v4.sql` y `08_ajustes_backend.sql`. La app entra con la clave
 | `servicios.oficio` | valores nuevos `menu` y `pago_servicios` | Menú del día, y lugares donde pagar agua y luz. La app no procesa pagos. |
 | `publicaciones` | `revisado_en` | La pone el script 08. Marca la revisión del admin: los reportes anteriores dejan de contar. |
 | `comentarios` | `revisado_en` | Igual que en publicaciones. |
+| `publicaciones` | `lugar` | La pone el script 10. Dirección del evento, opcional, hasta 100 caracteres y sin enlaces. Ver la sección 10. |
 | `emergencias` | `avisado_en`, `cierre_avisado_en` | Las escribe solo `reclamar_aviso`, con `service_role`. Sirven para no mandar dos veces el aviso inicial ni el de cierre. |
 | `eslabones.contacto` | puede quedar vacío | El nombre del contacto se borra al cerrar la emergencia. |
 
@@ -38,7 +39,13 @@ La persona la crea. La leen ella, un admin, y el vecino que confirmó «voy», v
 
 ### `eslabones`
 
-Estado de cada llamada de la cadena. El número no se guarda. Columnas: `id`, `emergencia_id`, `orden` (1 a 5, único por emergencia), `contacto` (el nombre, hasta 40), `estado` (`pendiente`, `llamando`, `no_contesto`, `hablamos`, `va_en_camino`), `duracion_s`, `actualizado_en`.
+Estado de cada llamada de la cadena. El número no se guarda. Columnas: `id`, `emergencia_id`, `orden` (único por emergencia), `contacto` (el nombre, hasta 40), `estado` (`pendiente`, `llamando`, `no_contesto`, `hablamos`, `va_en_camino`), `duracion_s`, `actualizado_en`.
+
+Cascada del Informe v2.3: contactos → posta → 106 → 105 → 116. Ya no incluye al comité vecinal.
+
+- En `eslabones` solo se guardan los contactos y la posta: como máximo 3 (`orden` 1 a 3). Las llamadas al 106, el 105 y el 116 no se guardan.
+- La app espera 30 s a cada contacto antes de pasar al siguiente (antes eran 20 s).
+- La base todavía acepta `orden` de 1 a 5; el tope de 3 lo pone la app.
 
 Los lee la persona de esa emergencia y un admin. Los crea y actualiza solo la persona, y solo mientras la emergencia siga vigente.
 
@@ -56,7 +63,7 @@ Leen la persona, el propio vecino y un admin. La app no inserta filas: las escri
 
 ### `publicaciones`
 
-Kermés, misa, ayuda social, donación, taller u otro. Columnas: `id`, `autor`, `zona_id`, `categoria`, `mensaje` (hasta 140), `foto_path` (hasta 300), `oculto`, `creado_en`, `revisado_en`. Hace falta foto o mensaje.
+Kermés, misa, ayuda social, donación, taller u otro. Columnas: `id`, `autor`, `zona_id`, `categoria`, `mensaje` (hasta 140), `lugar` (opcional, hasta 100), `foto_path` (hasta 300), `oculto`, `creado_en`, `revisado_en`. Hace falta foto o mensaje.
 
 En la tabla, leen, editan y borran el autor y un admin. Los vecinos leen por la vista `publicaciones_cercanas`. Al crear, la base pone autor, zona y fecha, y rechaza enlaces. Máximo 3 publicaciones por día. Al editar no se pueden cambiar autor, zona ni fecha. Solo un admin cambia `oculto` y `revisado_en`. Si un admin vuelve a mostrar algo oculto, `revisado_en` se pone solo y los reportes anteriores dejan de contar. Un texto editado con enlace da `CON_ENLACE`.
 
@@ -206,6 +213,10 @@ Devuelve: verdadero. Si el token ya existía con otra cuenta, pasa a la sesión 
 
 Errores: `PERFIL_INCOMPLETO` si no hay sesión o no hay perfil. Si el token mide menos de 10 o más de 300 caracteres, o la plataforma no es android ni ios, la tabla rechaza el dato (error de restricción, sin código propio).
 
+### `registrar_uso(p_segundos)`
+
+Quién: `authenticated`. Guarda el tiempo de uso sin saber quién lo usó. Ver la sección 10.
+
 ### `enlace_ver(p_token)`
 
 Quién: `anon` y `authenticated`. La llama la página https://kuna-voy.netlify.app, que no tiene cuenta: un `POST` a `/rest/v1/rpc/enlace_ver` con la clave publicable y `{ p_token }`.
@@ -234,7 +245,7 @@ Errores: `EMERGENCIA_TERMINADA`.
 
 ## 4. Códigos de error
 
-Los que lanzan los scripts 07 y 08, y los que devuelven las funciones. La app los muestra en una frase y no reintenta la misma acción.
+Los que lanzan los scripts 07, 08 y 10, y los que devuelven las funciones. La app los muestra en una frase y no reintenta la misma acción.
 
 | Código | Qué significa | Qué hace la app |
 | --- | --- | --- |
@@ -255,6 +266,7 @@ Los que lanzan los scripts 07 y 08, y los que devuelven las funciones. La app lo
 | `ESLABON_DE_OTRA_EMERGENCIA` | El enlace apunta a un eslabón de otra emergencia. | No guarda ese enlace. |
 | `FALTA_CONTACTO` | Un eslabón queda sin nombre. Solo la limpieza puede vaciarlo. | Pide el nombre del contacto. |
 | `TIPO_AVISO_INVALIDO` | `reclamar_aviso` recibió un tipo que no es `inicio` ni `cierre`. | `alerta-vecinos` solo manda esos dos tipos. |
+| `USO_INVALIDO` | `registrar_uso` recibió menos de 5 o más de 14400 segundos. | No reintenta. No muestra nada a la persona. |
 | `SIN_SESION` | `preguntale` o `alerta-vecinos` no recibieron `Authorization: Bearer`. | Vuelve a entrar antes de llamar. |
 | `TEXTO_INVALIDO` | El texto de `preguntale` falta, está vacío o pasa de 300 caracteres. | Pide decirlo de nuevo, más corto. |
 | `ENTRADA_INVALIDA` | `alerta-vecinos` no recibió un `emergencia_id` válido y un `tipo` `inicio` o `cierre`. | No reenvía el aviso con ese cuerpo. |
@@ -311,7 +323,7 @@ Responsable del código en `backend/supabase/functions/preguntale/`.
 
 `POST` con `Authorization: Bearer` de la sesión de la app. El cuerpo es `texto` (obligatorio, de 1 a 300 caracteres), y pueden ir `lat`, `lng` y `zona_id`. A la IA solo se le manda el texto: no van nombre, teléfono, pastillas, ubicación ni zona.
 
-Los secretos de la IA se llaman `IA_URL`, `IA_API_KEY` e `IA_MODELO`. En el código de main, `ia.ts` lee `IA_API_KEY` e `IA_MODELO`. Si `IA_MODELO` no está, usa `openai/gpt-oss-20b`.
+`ia.ts` lee `IA_API_KEY`, `IA_MODELO` e `IA_URL` para la IA principal (Groq por defecto) e `IA_RESPALDO_API_KEY`, `IA_RESPALDO_MODELO` e `IA_RESPALDO_URL` para el respaldo (Gemini). Si `IA_MODELO` no está, usa `openai/gpt-oss-20b`.
 
 Devuelve `texto` (hasta 140, sin enlaces), `funcion`, `argumentos`, `confirmar`, y en una búsqueda también `servicios` (hasta 3) y `botones`. Las funciones permitidas son `buscar_servicio`, `crear_recordatorio`, `ver_mi_horario`, `pedir_ayuda`, `llamar` y `como_llegar`. `buscar_servicio` lee `servicios_publicos` con la clave publicable y el JWT de quien pregunta, sin `service_role`. Si la IA no elige una función válida, el texto es «No te entendí. ¿Qué necesitas?». Si la IA falla, «No pude responder ahora. Elige una opción.». Si falta barrio y ubicación, «¿En qué barrio estás?».
 
@@ -322,3 +334,25 @@ El script 07 publica en Realtime las tablas `emergencias`, `eslabones`, `enlaces
 ## 9. Lo que la app debe hacer con el token
 
 La app registra el token de push solo con `registrar_push_token`. No hace `insert` ni `update` directo en `push_tokens`. La política por filas no deja tocar el token de otra persona; la función sí lo reasigna cuando el mismo celular entra con otra cuenta.
+
+## 10. Para el equipo de la app: tiempo de uso y lugar del evento
+
+Lo agrega el script `10_uso_y_comunidad.sql` (Informe v2.3).
+
+### `registrar_uso(p_segundos)`
+
+- **Cuándo:** al pasar la app a segundo plano, con los segundos que estuvo en primer plano.
+- **No llamarla** si son menos de 5 segundos.
+- **Recibe:** `p_segundos`, un entero de 5 a 14400 (4 horas).
+- **Devuelve:** nada. Si no hay error, quedó guardado.
+- **Error:** `USO_INVALIDO` con menos de 5 o más de 14400. La app no reintenta ni muestra nada.
+- **Qué guarda:** zona del perfil (vacía = «Sin zona»), fecha y hora de Lima, y los segundos.
+- **Qué no guarda:** quién la usó. La tabla `uso_app` no tiene usuario, nombre ni celular.
+- La app no lee `uso_app`: solo un admin. Las filas se borran a los 7 días.
+
+### `publicaciones.lugar`
+
+- **Para qué:** la dirección del evento, por ejemplo «Parque San Isidro».
+- **Opcional:** se puede dejar vacío.
+- **Hasta 100 caracteres.** Si pasa, la tabla rechaza el dato (error de restricción, sin código propio).
+- **Sin enlaces:** con un enlace, al crear o al editar, da `CON_ENLACE`. La app pide quitarlo y deja el borrador.
