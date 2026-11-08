@@ -18,15 +18,18 @@ export type EstadoPaso = "espera" | "llamando" | "no_contesto" | "viene" | "no_h
 export interface PasoCascada {
   id: string;
   titulo: string;
+  /** Nombre completo del servicio (p. ej. SAMU = Servicio de Atención Móvil de Urgencia). */
+  detalle?: string;
   telefono: string;
   tipo: TipoPaso;
   estado: EstadoPaso;
 }
 
-export const SERVICIOS_EMERGENCIA: readonly { titulo: string; telefono: string }[] = [
-  { titulo: "106 SAMU", telefono: "106" },
-  { titulo: "105 Policía", telefono: "105" },
-  { titulo: "116 Bomberos", telefono: "116" },
+/** `detalle` = nombre completo, debajo del título (SAMU según el Minsa). */
+export const SERVICIOS_EMERGENCIA: readonly { titulo: string; telefono: string; detalle: string }[] = [
+  { titulo: "106 SAMU", telefono: "106", detalle: "Servicio de Atención Móvil de Urgencia (Minsa)" },
+  { titulo: "105 Policía", telefono: "105", detalle: "Policía Nacional del Perú" },
+  { titulo: "116 Bomberos", telefono: "116", detalle: "Cuerpo General de Bomberos Voluntarios del Perú" },
 ];
 
 export interface ComiteVecinal {
@@ -50,6 +53,7 @@ export function armarCascada(
     id: `servicio-${s.telefono}`,
     titulo: s.titulo,
     telefono: s.telefono,
+    detalle: s.detalle,
     tipo: "servicio",
     estado: "espera",
   }));

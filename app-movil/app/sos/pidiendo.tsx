@@ -54,7 +54,9 @@ export default function PidiendoAyuda() {
   const [pasos, setPasos] = useState<PasoCascada[]>([]);
   const [fase, setFase] = useState<Fase>(null);
   const [restan, setRestan] = useState(ESPERA_RESPUESTA);
-  const [ubicacionAbierta, setUbicacionAbierta] = useState(false);
+  // SMS uno por uno: ids de los contactos a quienes ya se les abrió Mensajes.
+  const [smsAbiertos, setSmsAbiertos] = useState<number[]>([]);
+  const ubicacionAbierta = smsAbiertos.length > 0;
   const [aviso, setAviso] = useState<string | null>(null);
   const [vueltaDemo, setVueltaDemo] = useState(0);
   const llamadoPara = useRef<string | null>(null);
@@ -166,21 +168,31 @@ export default function PidiendoAyuda() {
     setPasos(contesto ? viene : noContesto);
   };
 
+  const contactosSms = contactos.slice(0, 2);
+  const siguienteSms = contactosSms.findIndex((_, k) => !smsAbiertos.includes(k));
+
   const enviarUbicacion = async () => {
     if (esDemo) {
       router.push({ pathname: "/sos/vecino", params: { demo: "1" } });
       return;
     }
     setAviso(null);
+    if (contactosSms.length === 0) {
+      setAviso("Aún no tienes personas de confianza. Agrégalas en Mis datos › Mis contactos.");
+      return;
+    }
+    const k = siguienteSms < 0 ? 0 : siguienteSms;
+    const persona = contactosSms[k];
     try {
       const enlace = await nube.esperarEnlace();
-      const r = await emergencia.necesitoAyuda(enlace);
-      if (r.estado === "pedir_numero") {
-        setAviso("Aún no tienes personas de confianza. Agrégalas en Mis datos › Mis contactos.");
-        return;
-      }
-      setUbicacionAbierta(true);
-      setAviso(r.smsDisponible ? "Se abrió Mensajes con tu ubicación. Toca Enviar." : "Este teléfono no puede enviar mensajes.");
+      const r = await emergencia.enviarUbicacionA(persona, enlace);
+      setSmsAbiertos((s) => (s.includes(k) ? s : [...s, k]));
+      const otra = contactosSms.find((_, j) => j !== k && !smsAbiertos.includes(j));
+      setAviso(
+        r.smsDisponible
+          ? `Se abrió Mensajes para ${persona.nombre}. Toca la flecha de Enviar para que le llegue.${otra ? ` Luego vuelve y toca de nuevo para ${otra.nombre}.` : ""}`
+          : "Este teléfono no puede enviar mensajes.",
+      );
     } catch {
       setAviso("No se pudo preparar el mensaje.");
     }
@@ -202,16 +214,18 @@ export default function PidiendoAyuda() {
   // los contactos, si ya se abrió el SMS con la ubicación; los vecinos, si alerta-vecinos los avisó.
   const avisados = nube.vecinosAvisados ?? 0;
   const quienesVen = [
-    ...(ubicacionAbierta ? nombres : []),
+    ...contactosSms.filter((_, k) => smsAbiertos.includes(k)).map((x) => x.nombre),
     ...(avisados > 0 ? [avisados === 1 ? "1 vecino" : `${avisados} vecinos`] : []),
   ];
   const unir = (l: string[]) => (l.length <= 1 ? l.join("") : `${l.slice(0, -1).join(", ")} y ${l[l.length - 1]}`);
   const franja = esDemo
     ? `${unir([...nombres, "4 vecinos"])} ven dónde estás`
-    : quienesVen.length > 0
+    : ubicacionAbierta && siguienteSms >= 0
+      ? `Enviar también a ${contactosSms[siguienteSms].nombre}`
+      : quienesVen.length > 0
       ? `${unir(quienesVen)} pueden ver dónde estás`
       : nombres.length > 0
-        ? `Enviar mi ubicación a ${unir(nombres)}`
+        ? `Enviar mi ubicación a ${contactosSms[Math.max(siguienteSms, 0)]?.nombre ?? unir(nombres)}`
         : "Enviar mi ubicación por mensaje";
 
   const textoAhora = esDemo ? "Llamando…" : fase === "pregunta" ? `¿Contestó? (${restan} s)` : "Llamando…";
@@ -273,7 +287,7 @@ export default function PidiendoAyuda() {
 
       {pasos.map((p, k) => (
         <View key={p.id} style={estilos.bloque}>
-          <TarjetaPaso numero={k + 1} paso={p} textoAhora={textoAhora} subtitulo={p.tipo === "comite" ? comite?.nombre : p.tipo === "salud" ? salud?.nombre : undefined} />
+          <TarjetaPaso numero={k + 1} paso={p} textoAhora={textoAhora} subtitulo={p.tipo === "comite" ? comite?.nombre : p.tipo === "salud" ? salud?.nombre : p.detalle} />
           {!esDemo && actual && k === i && fase === "pregunta" ? (
             <View style={estilos.fila}>
               <View style={{ flex: 1 }}>

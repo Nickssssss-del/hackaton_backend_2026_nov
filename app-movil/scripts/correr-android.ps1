@@ -9,6 +9,10 @@
     -SoloServidor   No compila: solo abre el servidor (cuando la app ya está instalada).
     -Apk            Genera un APK independiente (no necesita PC ni servidor), lo instala en el
                     dispositivo conectado y lo copia al Escritorio como Vecinos.apk. Para presentar.
+    -Compartir      Genera un APK para ENVIAR a otras personas (WhatsApp, Drive). No necesita
+                    teléfono conectado. Sirve para casi todos los Android (arm64-v8a y armeabi-v7a).
+                    Revisa antes que exista .env con Supabase (si no, la app no se conecta a nada).
+                    Lo deja en el Escritorio como Kuna-AAAA-MM-DD.apk.
     -Limpiar        Ejecuta "gradlew clean" antes de compilar (no usa prebuild).
     -RutaCorta      Compila desde V:\app-movil (subst V: = carpeta del repositorio) para evitar el límite de 260 caracteres.
                     Para quitar la unidad V: después:  subst V: /D
@@ -19,6 +23,7 @@
 param(
   [switch]$SoloServidor,
   [switch]$Apk,
+  [switch]$Compartir,
   [switch]$Limpiar,
   [switch]$RutaCorta
 )
@@ -119,6 +124,18 @@ $env:Path = "$sdk\platform-tools;$sdk\emulator;$env:Path"
 Bien "ANDROID_HOME = $sdk"
 
 # ---------------------------------------------------------------- 5. Dispositivo
+if ($Compartir) {
+  Paso "5. APK para compartir: no hace falta teléfono conectado"
+  $envArchivo = Join-Path $app ".env"
+  $envTexto = if (Test-Path $envArchivo) { Get-Content $envArchivo -Raw } else { "" }
+  if ($envTexto -notmatch "EXPO_PUBLIC_SUPABASE_URL=\S+" -or $envTexto -notmatch "EXPO_PUBLIC_SUPABASE_ANON_KEY=\S+") {
+    Mal "Falta .env con EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY (copia .env.example a .env y llénalo)."
+    Mal "Sin eso el APK no se conecta a Supabase: no habría ayuda, servicios, comunidad ni emergencia en la nube."
+    Terminar 1
+  }
+  Bien ".env con Supabase encontrado (queda dentro del APK; solo la clave publicable, nunca la secreta)"
+  if (-not (Test-Path (Join-Path $app "android\app\google-services.json"))) { Write-Host "  Aviso: falta android\app\google-services.json: el APK no recibirá avisos push." -ForegroundColor Yellow }
+} else {
 Paso "5. Teléfono o emulador"
 adb start-server 2>&1 | Out-Host
 function Dispositivos { (adb devices) | Select-Object -Skip 1 | Where-Object { $_ -match "\S+\s+(device|unauthorized|offline)$" } }
@@ -150,6 +167,8 @@ adb reverse tcp:8081 tcp:8081 2>&1 | Out-Host
 # (evita el error "Failed to connect to /192.168.x.x:8081" cuando el Wi-Fi o el firewall lo bloquean).
 $env:REACT_NATIVE_PACKAGER_HOSTNAME = "localhost"
 
+}
+
 # ---------------------------------------------------------------- 6. Dependencias y código
 Paso "6. Dependencias y revisión de TypeScript"
 if (-not (Test-Path ".\node_modules\expo")) { npm install 2>&1 | Out-Host; if ($LASTEXITCODE -ne 0) { Mal "npm install falló."; Terminar 1 } }
@@ -158,6 +177,23 @@ if ($LASTEXITCODE -ne 0) { Mal "TypeScript encontró errores (ver arriba)."; Ter
 Bien "TypeScript sin errores"
 
 # ---------------------------------------------------------------- 7. Compilar o servir
+if ($Compartir) {
+  Paso "7. APK para compartir (release, arm64-v8a + armeabi-v7a). La primera vez: 10-30 minutos"
+  Push-Location android
+  .\gradlew.bat assembleRelease "-PreactNativeArchitectures=arm64-v8a,armeabi-v7a" 2>&1 | Out-Host
+  $codigoApk = $LASTEXITCODE
+  Pop-Location
+  $apkSalida = Join-Path $app "android\app\build\outputs\apk\release\app-release.apk"
+  if ($codigoApk -ne 0 -or -not (Test-Path $apkSalida)) { Mal "No se generó el APK. El detalle quedó en: $log"; Terminar 1 }
+  $nombre = "Kuna-$(Get-Date -Format 'yyyy-MM-dd').apk"
+  $destino = Join-Path ([Environment]::GetFolderPath("Desktop")) $nombre
+  Copy-Item $apkSalida $destino -Force
+  $mb = [math]::Round((Get-Item $destino).Length / 1MB, 1)
+  Bien "APK listo para enviar: $destino  ($mb MB)"
+  Write-Host "  Para instalarlo, la otra persona abre el archivo y acepta 'Instalar apps de origen desconocido'."
+  Write-Host "  Si ya tenía una versión instalada desde este PC por USB, primero debe desinstalarla."
+  Terminar 0
+}
 if ($Apk) {
   Paso "7. APK independiente (release). La primera vez: 10-30 minutos"
   $abi = "$(adb shell getprop ro.product.cpu.abi 2>$null)".Trim()

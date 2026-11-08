@@ -45,6 +45,16 @@ function numeroValido(telefono: string): boolean {
   return /^9\d{8}$/.test(telefono);
 }
 
+/**
+ * Grupos de los datos de prueba del backend (04_datos_prueba.sql): nombre con «ficticia» o número
+ * 9000000xx. No se les llama ni se les manda SMS: ese número no existe, y si va dentro de un SMS
+ * grupal puede hacer que el mensaje no le llegue a nadie.
+ */
+export function esDatoDePrueba(grupo: Pick<GrupoApoyoPublico, "nombre" | "contacto"> | null | undefined): boolean {
+  if (!grupo) return false;
+  return /ficticia/i.test(grupo.nombre ?? "") || /^9000000\d\d$/.test((grupo.contacto ?? "").replace(/\D/g, ""));
+}
+
 function telefonosDe(contactos: ContactoLocal[], brigada: GrupoApoyoPublico | null): string[] {
   return [...contactos.map((contacto) => contacto.telefono), brigada?.contacto ?? ""].filter(Boolean);
 }
@@ -97,7 +107,7 @@ export function useEmergencia() {
           (!perfil?.zonaId || grupo.zonaId === perfil.zonaId),
       ) ??
       (brigadaBase?.tipo === "brigada" && brigadaBase.verificada ? brigadaBase : null);
-    setBrigada(copiaBrigada);
+    setBrigada(copiaBrigada && !esDatoDePrueba(copiaBrigada) ? copiaBrigada : null);
     setCargando(false);
   }, []);
 
@@ -177,6 +187,30 @@ export function useEmergencia() {
     return { estado: "mensaje_listo", mensaje: texto, telefonos, smsDisponible };
   }, [asegurarUbicacion, brigada, contactos, ficha]);
 
+  /**
+   * Abre Mensajes con UN solo destinatario. Un SMS a varios números se vuelve MMS grupal en muchos
+   * Android: sin datos móviles no sale, y la app no puede saberlo. Uno por uno sí llega.
+   * Android no deja que una app envíe el SMS sola: la persona toca Enviar (la flecha) en Mensajes.
+   */
+  const enviarUbicacionA = useCallback(
+    async (contacto: ContactoLocal, enlace?: string | null): Promise<{ smsDisponible: boolean }> => {
+      const actual = ficha ?? (await leerFichaConRespaldo());
+      const coordenada = await asegurarUbicacion();
+      const texto = armarMensajeEmergencia({
+        nombre: (await leerPerfilLocal())?.nombre,
+        coord: coordenada,
+        hora: new Date(),
+        ficha: { texto: actual.mensaje },
+        aceptoConsentimiento: actual.consentimiento?.aceptado === true,
+        enlace,
+      });
+      const smsDisponible = await SMS.isAvailableAsync();
+      if (smsDisponible) await SMS.sendSMSAsync([contacto.telefono], texto);
+      return { smsDisponible };
+    },
+    [asegurarUbicacion, ficha],
+  );
+
   const guardarNumeroRapido = useCallback(async (telefono: string): Promise<boolean> => {
     if (!numeroValido(telefono)) return false;
     const actuales = await leerContactosLocales();
@@ -231,6 +265,7 @@ export function useEmergencia() {
   const brigadaYContactos = [...contactos, ...(brigada ? [brigada] : [])];
 
   return {
+    enviarUbicacionA,
     ficha,
     contactos,
     brigada,
