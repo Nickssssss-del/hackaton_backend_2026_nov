@@ -61,6 +61,7 @@ La IA solo ve estas 6 herramientas. Antes de responder, la función valida el no
 - **No entiende:** la función responde `200` con `funcion: null`, `texto: "No te entendí. ¿Qué necesitas?"` y los botones Servicios, Pastillas y Ayuda.
 - **La IA falla o tarda más de 8 s:** la misma respuesta de «no entiende», con `texto: "No pude responder ahora. Elige una opción."`.
 - **`buscar_servicio` sin ubicación ni `zona_id`:** la misma forma, con `texto: "¿En qué barrio estás?"` y los botones de siempre, sin buscar.
+- **`buscar_servicio` sin resultados:** `servicios: []`, `texto: "No encontré … en tu barrio."` y los botones de siempre (Servicios, Pastillas y Ayuda), para que la persona no quede sin salida.
 
 | Código HTTP | `error` | Cuándo |
 | --- | --- | --- |
@@ -83,13 +84,37 @@ Es un secreto de Supabase. Nunca va en el código, en `.env` versionados ni en l
 npx supabase secrets set IA_API_KEY=... IA_MODELO=openai/gpt-oss-20b
 ```
 
-La IA es **Groq** (API compatible con OpenAI), llamada con `fetch` y sin SDK. `IA_API_KEY` es la clave de Groq y `IA_MODELO` es opcional (por defecto `openai/gpt-oss-20b`). Cambiar de modelo es cambiar `IA_MODELO`, sin nueva APK. Cambiar de proveedor solo toca `ia.ts`, tampoco la APK.
+La IA es cualquier API **compatible con OpenAI**, llamada con `fetch` y sin SDK. Por defecto es **Groq**:
+
+- `IA_URL`: opcional. Por defecto `https://api.groq.com/openai/v1/chat/completions`.
+- `IA_API_KEY`: la clave del proveedor. Se envía como `Authorization: Bearer`.
+- `IA_MODELO`: opcional. Por defecto `openai/gpt-oss-20b`.
+
+Cambiar de modelo o de proveedor es cambiar estos secretos, sin tocar código ni sacar una APK nueva.
+
+## Cambiar de proveedor
+
+Para pasar a **Gemini** por su endpoint compatible con OpenAI:
+
+```bash
+npx supabase secrets set IA_URL=https://generativelanguage.googleapis.com/v1beta/openai/chat/completions IA_API_KEY=<clave de Gemini> IA_MODELO=gemini-3.8-flash
+```
+
+Confirmado en la documentación oficial de Google: https://aistudio.google.com/docs/openai. Es la ruta a la que redirige `ai.google.dev/gemini-api/docs/openai`; la consulté el 2026-11-08.
+
+- **URL base:** `https://generativelanguage.googleapis.com/v1beta/openai/`. El ejemplo REST de chat usa `…/v1beta/openai/chat/completions`.
+- **Clave:** se envía como `Authorization: Bearer $GEMINI_API_KEY`, igual que hace `llamarIA()`.
+- **Funciones:** la sección de function calling del ejemplo REST manda `"tools"` (con funciones de tipo `function`) y `"tool_choice": "auto"`, el mismo formato que usa `llamarIA()`. La página solo muestra `"auto"`; no lista otros valores de `tool_choice`.
+- **Modelo:** el ejemplo oficial usa `gemini-3.8-flash`.
+- **Advertencia de la página:** el soporte de las librerías de OpenAI «todavía está en beta».
+
+**Sin verificar:** si Gemini acepta todas las palabras de los esquemas que envía `llamarIA()` (por ejemplo `enum` y `maxLength`; `pattern` y `format` ya se quitan). Hay que probar una llamada real antes de la demo. Si el proveedor rechaza la petición, la función responde «No pude responder ahora».
 
 ## Estructura y comandos
 
 ```
 backend/supabase/functions/preguntale/index.ts        → entrada: búsqueda real en servicios_publicos y Deno.serve
-backend/supabase/functions/preguntale/ia.ts           → llamarIA(): único punto del proveedor (Groq por fetch)
+backend/supabase/functions/preguntale/ia.ts           → llamarIA(): único punto del proveedor (API compatible con OpenAI por fetch; Groq por defecto)
 backend/supabase/functions/preguntale/handler.ts      → handler sin red: valida, arma la respuesta, ordena y recorta servicios
 backend/supabase/functions/preguntale/herramientas.ts → las 6 definiciones y la validación de argumentos
 backend/supabase/functions/preguntale/*_test.ts       → pruebas Deno sin red (fetch, la IA y la búsqueda son dobles inyectados)

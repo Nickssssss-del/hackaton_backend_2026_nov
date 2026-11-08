@@ -1,6 +1,7 @@
 // Edge Function preguntale: arma las dependencias reales y sirve el handler.
 // Contrato: backend/docs/spec_preguntale.md
-// Secretos (npx supabase secrets set): IA_API_KEY (Groq), IA_MODELO (opcional, por defecto openai/gpt-oss-20b).
+// Secretos (npx supabase secrets set): IA_API_KEY, IA_MODELO (opcional, por defecto openai/gpt-oss-20b)
+// e IA_URL (opcional, por defecto Groq: https://api.groq.com/openai/v1/chat/completions).
 // SUPABASE_URL y SUPABASE_ANON_KEY los pone Supabase; nunca se copian al código.
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { crearHandler, type FiltroServicios, type ServicioEncontrado } from "./handler.ts";
