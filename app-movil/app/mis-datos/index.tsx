@@ -3,7 +3,7 @@
  * Rediseñada con los componentes del Mockup v4: el tamaño de letra y el modo oscuro ya están en
  * la barra de arriba (Aa y luna) y en B3, así que aquí no se repiten.
  * - Mi perfil: nombre, celular y el NOMBRE del barrio (nunca el código interno de la base).
- * - A quién avisamos: tus 2 personas (se cambian en A5, con Cambiar/Quitar) y la brigada.
+ * - A quién avisamos: tus 2 personas (se cambian en A5, con Cambiar) y la brigada.
  * - Mi ficha, Mis servicios, Mis pedidos, tutorial y Borrar mis datos.
  * Contactos, ficha y consentimiento solo en el teléfono.
  */

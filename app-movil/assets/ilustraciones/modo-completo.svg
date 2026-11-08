@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180" width="100%" height="100%">
+  <defs>
+    <!-- Degradado de fondo -->
+    <linearGradient id="bg-completo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFBEB" />
+      <stop offset="100%" stop-color="#FDE68A" />
+    </linearGradient>
+
+    <!-- Sombras -->
+    <filter id="shadow-phone-2" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#78350F" flood-opacity="0.12" />
+    </filter>
+    
+    <filter id="shadow-badge" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="1" dy="3" stdDeviation="3" flood-color="#047857" flood-opacity="0.3" />
+    </filter>
+  </defs>
+
+  <!-- Fondo contenedor -->
+  <rect width="320" height="180" rx="20" fill="url(#bg-completo)" />
+
+  <!-- Cuerpo del Teléfono -->
+  <g filter="url(#shadow-phone-2)">
+    <rect x="115" y="20" width="70" height="140" rx="16" fill="#FFFFFF" stroke="#1E293B" stroke-width="3" />
+    <!-- Notch / Cámara -->
+    <path d="M 135 20 H 165 A 4 4 0 0 1 169 24 V 25 A 3 3 0 0 1 166 28 H 134 A 3 3 0 0 1 131 25 V 24 A 4 4 0 0 1 135 20 Z" fill="#1E293B" />
+  </g>
+
+  <!-- Grid de Apps (Fila 1) -->
+  <rect x="125" y="42" width="14" height="14" rx="4" fill="#3B82F6" />
+  <rect x="143" y="42" width="14" height="14" rx="4" fill="#10B981" />
+  <rect x="161" y="42" width="14" height="14" rx="4" fill="#F59E0B" />
+
+  <!-- Grid de Apps (Fila 2) -->
+  <rect x="125" y="62" width="14" height="14" rx="4" fill="#8B5CF6" />
+  <rect x="143" y="62" width="14" height="14" rx="4" fill="#06B6D4" />
+  <rect x="161" y="62" width="14" height="14" rx="4" fill="#F97316" />
+
+  <!-- Grid de Apps (Fila 3) -->
+  <rect x="125" y="82" width="14" height="14" rx="4" fill="#EC4899" />
+  <rect x="143" y="82" width="14" height="14" rx="4" fill="#84CC16" />
+  <rect x="161" y="82" width="14" height="14" rx="4" fill="#EF4444" />
+
+  <!-- Tarjetas/Banners inferiores -->
+  <rect x="125" y="104" width="50" height="10" rx="5" fill="#E2E8F0" />
+  <rect x="125" y="120" width="36" height="10" rx="5" fill="#CBD5E1" />
+
+  <!-- Botón de adición (+) destacado -->
+  <g filter="url(#shadow-badge)">
+    <circle cx="186" cy="42" r="14" fill="#10B981" />
+    <path d="M 186 35 V 49 M 179 42 H 193" stroke="#FFFFFF" stroke-width="3.5" stroke-linecap="round" />
+  </g>
+</svg>

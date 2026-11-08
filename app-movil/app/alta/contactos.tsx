@@ -306,14 +306,7 @@ export default function AQuienLlamamos() {
       {Array.from({ length: MAX_CONTACTOS }, (_, i) => {
         const persona = contactos[i];
         if (!persona) {
-          return (
-            <View key={i} style={[estilos.hueco, { borderColor: c.borde }]}>
-              <View style={[estilos.numero, { borderColor: c.borde }]}>
-                <Texto variante="etiqueta" color={c.textoSecundario}>{i + 1}</Texto>
-              </View>
-              <Texto color={c.textoSecundario}>Persona {i + 1}</Texto>
-            </View>
-          );
+          return null;
         }
         const cambiando = reemplazar === i;
         return (
@@ -345,15 +338,6 @@ export default function AQuienLlamamos() {
               >
                 <Icono nombre="swap-horizontal" color={c.accionTexto} />
                 <Texto variante="etiqueta" color={c.accionTexto}>{cambiando ? "Cancelar" : "Cambiar"}</Texto>
-              </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel={`Quitar a ${persona.nombre}`}
-                onPress={() => quitar(i)}
-                style={[estilos.botonChico, { borderColor: c.peligro, backgroundColor: c.superficie, flex: 1 }]}
-              >
-                <Icono nombre="close" color={c.peligro} />
-                <Texto variante="etiqueta" color={c.peligro}>Quitar</Texto>
               </Pressable>
             </View>
           </View>
