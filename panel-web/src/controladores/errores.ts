@@ -15,6 +15,12 @@ export function mensajeDeError(causa: unknown, porDefecto: string): string {
   if (detalle.includes("FALTA_CONFIGURACION")) {
     return "Falta configurar Supabase en panel-web/.env (mira .env.example).";
   }
+  if (detalle.includes("URL_NO_VALIDA")) {
+    return "VITE_SUPABASE_URL debe ser la URL del proyecto, como https://abcd1234.supabase.co (no la cadena postgresql://).";
+  }
+  if (detalle.includes("CLAVE_SECRETA")) {
+    return "VITE_SUPABASE_ANON_KEY tiene una clave secreta. Usa la clave publicable (sb_publishable_…) y cambia la secreta en Supabase.";
+  }
   if (detalle.includes("YA_BLOQUEADO")) {
     return "Ese usuario ya está bloqueado.";
   }

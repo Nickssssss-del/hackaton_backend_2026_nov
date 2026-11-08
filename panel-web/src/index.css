@@ -1,1 +1,74 @@
 @import "tailwindcss";
+
+/* Colores y tipografías del mockup «Vecinos · Panel administrativo». */
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-titulo: "Lexend", "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-marca: #1f4f9c;
+  --color-marca-oscuro: #173d7a;
+  --color-marca-suave: #e7eefa;
+  --color-marca-barra: #a9c0e8;
+
+  --color-fondo: #f4f3ee;
+  --color-superficie: #ffffff;
+  --color-borde: #e6e3db;
+  --color-borde-fuerte: #d6d2c7;
+  --color-tinta: #1c1b19;
+  --color-tinta-2: #4a4741;
+  --color-tinta-3: #78736a;
+
+  --color-rojo: #c8102e;
+  --color-rojo-suave: #fde8eb;
+  --color-verde: #1f7a45;
+  --color-verde-suave: #e3f2e8;
+  --color-ambar: #8a5a00;
+  --color-ambar-suave: #fdf3d3;
+  --color-morado: #6b4fbb;
+  --color-morado-suave: #efeafb;
+  --color-naranja: #b5651d;
+  --color-naranja-suave: #fbeadb;
+  --color-gris-suave: #efece5;
+}
+
+@layer base {
+  html {
+    background: var(--color-fondo);
+    color: var(--color-tinta);
+    font-feature-settings: "zero" 1, "cv11" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    background: var(--color-fondo);
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-titulo);
+  }
+  :focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--color-marca) 55%, transparent);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes latido {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.latido {
+  animation: latido 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .latido {
+    animation: none;
+  }
+}

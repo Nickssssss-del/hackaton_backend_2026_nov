@@ -13,6 +13,7 @@ import {
   type TablaComunidad,
 } from "../modelos/comunidadOculta";
 import { mensajeDeError } from "./errores";
+import { avisarCambio } from "./eventos";
 
 export function useComunidadOculta() {
   const [publicaciones, setPublicaciones] = useState<PublicacionOculta[]>([]);
@@ -58,6 +59,7 @@ export function useComunidadOculta() {
     try {
       await accion();
       setAviso(hecho);
+      avisarCambio();
       return true;
     } catch (causa) {
       setError(mensajeDeError(causa, fallo));

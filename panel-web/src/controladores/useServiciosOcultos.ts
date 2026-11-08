@@ -10,6 +10,7 @@ import {
   type ServicioOculto,
 } from "../modelos/serviciosOcultos";
 import { mensajeDeError } from "./errores";
+import { avisarCambio } from "./eventos";
 
 export function useServiciosOcultos() {
   const [servicios, setServicios] = useState<ServicioOculto[]>([]);
@@ -40,6 +41,7 @@ export function useServiciosOcultos() {
     setAviso(null);
     try {
       await accion(id);
+      avisarCambio();
       setServicios((lista) => lista.filter((servicio) => servicio.id !== id));
       setAviso(hecho);
     } catch (causa) {

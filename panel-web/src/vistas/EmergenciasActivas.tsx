@@ -1,84 +1,132 @@
 /**
- * Vista. Emergencias activas con su cadena y los vecinos que van. Solo lectura, en tiempo real.
- * No muestra nombre, dirección ni coordenadas.
+ * Vista. Emergencias activas con su cadena de llamadas y los vecinos que van.
+ * Solo lectura, en tiempo real. No muestra nombre, dirección ni ubicación de la persona.
  */
 import { useEmergenciasActivas } from "../controladores/useEmergenciasActivas";
-import { estadoEslabon, hora, venceEn } from "./etiquetas";
-import { Mensajes } from "./Mensajes";
+import { enZona } from "../controladores/usePendientes";
+import type { EmergenciaActiva } from "../modelos/emergencias";
+import { usePanel } from "./contexto";
+import { estadoEslabon, haceTiempo, tipoEslabon, venceEn } from "./etiquetas";
+import { Aviso, Cuerpo, Encabezado, Estado, Icono, Pill, Vacio } from "./ui";
 
-function Conexion({ enVivo }: { enVivo: boolean | null }) {
-  const [texto, punto] =
-    enVivo === null
-      ? ["Conectando…", "bg-stone-400"]
-      : enVivo
-        ? ["En vivo", "bg-emerald-600"]
-        : ["Sin conexión en vivo · se recarga cada 15 s", "bg-amber-600"];
+function EnVivo({ enVivo }: { enVivo: boolean | null }) {
+  if (enVivo === null) {
+    return <span className="rounded-full bg-gris-suave px-4 py-2 font-titulo text-sm font-semibold text-tinta-2">Conectando…</span>;
+  }
+  if (!enVivo) {
+    return (
+      <span role="status" className="rounded-full bg-ambar-suave px-4 py-2 font-titulo text-sm font-semibold text-ambar">
+        Sin conexión en vivo · se recarga cada 15 s
+      </span>
+    );
+  }
   return (
-    <p className="mt-2 flex items-center gap-2 text-sm text-stone-700" role="status">
-      <span aria-hidden="true" className={`inline-block h-2.5 w-2.5 rounded-full ${punto}`} />
-      {texto}
-    </p>
+    <span role="status" className="inline-flex items-center gap-2 rounded-full bg-rojo-suave px-4 py-2 font-titulo text-[15px] font-semibold text-rojo">
+      <span className="latido h-2.5 w-2.5 rounded-full bg-rojo" aria-hidden="true" />
+      En vivo
+    </span>
   );
 }
 
-function Etiqueta({ children, tono }: { children: string; tono: "ambar" | "gris" }) {
-  const clases = tono === "ambar" ? "bg-amber-100 text-amber-900" : "bg-stone-100 text-stone-800";
-  return <span className={`rounded-full px-2.5 py-0.5 text-sm font-medium ${clases}`}>{children}</span>;
-}
-
 export function EmergenciasActivas() {
+  const { zona } = usePanel();
   const { emergencias, cargando, error, enVivo, ahora, recargar } = useEmergenciasActivas();
+  const visibles = emergencias.filter(enZona(zona));
 
   return (
-    <section aria-labelledby="titulo-emergencias">
-      <h2 id="titulo-emergencias" className="text-xl font-bold">
-        Emergencias activas
-      </h2>
-      <p className="mt-1 text-stone-700">Solo lectura. Muestra la cadena de llamadas y cuántos vecinos van.</p>
-      <Conexion enVivo={enVivo} />
+    <>
+      <Encabezado
+        titulo="Emergencias activas"
+        subtitulo="Solo lectura · se actualiza solo · sin nombre, dirección ni ubicación de la persona"
+        extra={<EnVivo enVivo={enVivo} />}
+      />
+      <Cuerpo>
+        <Aviso>
+          El panel solo mira. Las emergencias las abre y cierra el celular de la vecina («Estoy bien») o vencen solas.
+        </Aviso>
+        <Estado cargando={cargando} error={error} onRecargar={recargar} />
+        {!cargando && !error && visibles.length === 0 ? (
+          <Vacio>No hay emergencias activas{zona ? ` en ${zona}` : ""}.</Vacio>
+        ) : null}
+        <ul className="space-y-6">
+          {visibles.map((e) => (
+            <Emergencia key={e.id} e={e} ahora={ahora} />
+          ))}
+        </ul>
+      </Cuerpo>
+    </>
+  );
+}
 
-      <Mensajes cargando={cargando} error={error} aviso={null} onRecargar={recargar} />
+function Emergencia({ e, ahora }: { e: EmergenciaActiva; ahora: number }) {
+  const real = !e.practica;
+  let resuelto = false;
 
-      {!cargando && !error && emergencias.length === 0 ? (
-        <p className="mt-6 rounded-xl bg-stone-100 p-4">No hay emergencias activas.</p>
-      ) : null}
+  return (
+    <li
+      className={`rounded-2xl border bg-superficie p-6 ${real ? "border-rojo ring-1 ring-rojo" : "border-borde"}`}
+      aria-label={`Emergencia ${e.codigo}${real ? ", real" : ", de práctica"}`}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 className="text-2xl font-bold tracking-tight">{e.codigo}</h2>
+          {real ? <Pill tono="rojo">Real</Pill> : <Pill tono="ambar">Práctica</Pill>}
+          {e.avisar_vecinos ? <Pill tono="verde">Avisa a vecinos</Pill> : <Pill tono="gris">Sin aviso a vecinos</Pill>}
+        </div>
+        <p className="text-[15px] text-tinta-2">
+          {e.zona ?? "Zona sin identificar"} · empezó {haceTiempo(e.creado_en, ahora)}
+          <span className="text-tinta-3"> · {venceEn(e.expira_en, ahora)}</span>
+        </p>
+      </div>
 
-      <ul className="mt-6 space-y-4">
-        {emergencias.map((emergencia) => (
-          <li key={emergencia.id} className="rounded-xl border border-stone-200 bg-white p-4">
-            <div className="flex flex-wrap items-start justify-between gap-2">
-              <div>
-                <h3 className="font-semibold">Emergencia de las {hora(emergencia.creado_en)}</h3>
-                <p className="text-sm text-stone-600">{venceEn(emergencia.expira_en, ahora)}</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {emergencia.practica ? <Etiqueta tono="ambar">Práctica</Etiqueta> : null}
-                <Etiqueta tono="gris">{emergencia.avisar_vecinos ? "Avisa a vecinos" : "Solo contactos"}</Etiqueta>
-              </div>
-            </div>
-
-            <p className="mt-3 font-medium">
-              {emergencia.vecinos_van} {emergencia.vecinos_van === 1 ? "vecino va" : "vecinos van"}
-            </p>
-
-            <h4 className="mt-3 text-sm font-semibold">Cadena de llamadas</h4>
-            {emergencia.eslabones.length === 0 ? (
-              <p className="text-sm text-stone-600">Todavía no hay llamadas.</p>
-            ) : (
-              <ol className="mt-1 space-y-1 text-sm">
-                {emergencia.eslabones.map((eslabon) => (
-                  <li key={eslabon.orden} className="flex justify-between gap-3">
-                    <span>
-                      {eslabon.orden}. {eslabon.contacto ?? "Sin nombre"}
+      <div className="mt-5 grid gap-6 lg:grid-cols-[1.55fr_1fr]">
+        <div>
+          <h3 className="font-titulo text-[13px] font-semibold uppercase tracking-wider text-tinta-2">Cadena de llamadas</h3>
+          {e.eslabones.length === 0 ? (
+            <p className="mt-2 text-tinta-2">Todavía no hay llamadas.</p>
+          ) : (
+            <ol className="mt-2 space-y-2.5">
+              {e.eslabones.map((s) => {
+                const estado = estadoEslabon(s.estado, resuelto);
+                if (s.estado === "hablamos" || s.estado === "va_en_camino") resuelto = true;
+                const circulo =
+                  estado.tono === "rojo" ? "bg-rojo" : estado.tono === "verde" ? "bg-verde" : "bg-[#8d867a]";
+                const texto =
+                  estado.tono === "rojo" ? "text-rojo/80" : estado.tono === "verde" ? "text-verde" : "text-tinta-2";
+                return (
+                  <li key={s.orden} className="flex items-center gap-3 rounded-xl border border-borde px-3.5 py-2.5">
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-titulo text-sm font-bold text-white ${circulo}`}>
+                      {s.orden}
                     </span>
-                    <span className="font-medium">{estadoEslabon(eslabon.estado)}</span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block font-titulo font-semibold">{s.contacto ?? "Sin nombre"}</span>
+                      <span className="block text-sm text-tinta-2">{tipoEslabon(s.contacto)}</span>
+                    </span>
+                    <span className={`font-titulo text-sm font-semibold ${texto}`}>{estado.texto}</span>
                   </li>
-                ))}
-              </ol>
-            )}
-          </li>
-        ))}
-      </ul>
-    </section>
+                );
+              })}
+            </ol>
+          )}
+        </div>
+
+        <div>
+          <h3 className="font-titulo text-[13px] font-semibold uppercase tracking-wider text-tinta-2">Vecinos que van</h3>
+          <div className="mt-2 flex items-center gap-4 rounded-xl bg-verde-suave px-5 py-5 text-verde">
+            <Icono nombre="caminante" className="h-7 w-7" />
+            <p>
+              <span className="block font-titulo text-3xl font-bold leading-none">{e.vecinos_van}</span>
+              <span className="mt-1 block font-titulo font-semibold">en camino</span>
+            </p>
+          </div>
+          {e.vecinos_retirados > 0 ? (
+            <p className="mt-3 text-[15px] text-tinta-2">
+              {e.vecinos_retirados === 1 ? "1 vecino se retiró" : `${e.vecinos_retirados} vecinos se retiraron`} («Ya no
+              puedo ir»)
+            </p>
+          ) : null}
+        </div>
+      </div>
+    </li>
   );
 }

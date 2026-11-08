@@ -1,12 +1,12 @@
 /**
- * Controlador. Usuarios bloqueados y reportes de personas:
- * "Desbloquear", "Bloquear" (con motivo) y "Descartar reporte".
+ * Controlador. Personas reportadas por decidir («Bloquear» con motivo, «Descartar»)
+ * y personas bloqueadas («Desbloquear»).
  */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   bloquear,
   desbloquear,
-  descartarReporte,
+  descartarReportes,
   idDeLaSesion,
   listarBloqueos,
   listarReportesDePersonas,
@@ -14,6 +14,39 @@ import {
   type ReportePersona,
 } from "../modelos/bloqueos";
 import { mensajeDeError } from "./errores";
+import { avisarCambio } from "./eventos";
+
+/** Todos los reportes a una misma persona, juntos. */
+export interface PersonaReportada {
+  usuario_id: string;
+  nombre: string | null;
+  contexto: string | null;
+  motivos: { motivo: string; cantidad: number }[];
+  ids: string[];
+  ultimo: string;
+}
+
+function agrupar(reportes: ReportePersona[], bloqueados: Set<string>): PersonaReportada[] {
+  const porPersona = new Map<string, PersonaReportada>();
+  for (const r of reportes) {
+    if (bloqueados.has(r.usuario_id)) continue;
+    const p = porPersona.get(r.usuario_id) ?? {
+      usuario_id: r.usuario_id,
+      nombre: r.nombre ?? null,
+      contexto: r.contexto ?? null,
+      motivos: [],
+      ids: [],
+      ultimo: r.creado_en,
+    };
+    p.ids.push(r.id);
+    if (Date.parse(r.creado_en) > Date.parse(p.ultimo)) p.ultimo = r.creado_en;
+    const m = p.motivos.find((x) => x.motivo === r.motivo);
+    if (m) m.cantidad += 1;
+    else p.motivos.push({ motivo: r.motivo, cantidad: 1 });
+    porPersona.set(r.usuario_id, p);
+  }
+  return [...porPersona.values()].sort((a, b) => Date.parse(b.ultimo) - Date.parse(a.ultimo));
+}
 
 export function useBloqueos() {
   const [bloqueos, setBloqueos] = useState<Bloqueo[]>([]);
@@ -50,6 +83,7 @@ export function useBloqueos() {
     try {
       await accion();
       setAviso(hecho);
+      avisarCambio();
       return true;
     } catch (causa) {
       setError(mensajeDeError(causa, fallo));
@@ -60,30 +94,41 @@ export function useBloqueos() {
   };
 
   const quitarBloqueo = async (userId: string) => {
-    if (await ejecutar(userId, () => desbloquear(userId), "Usuario desbloqueado.", "No se pudo desbloquear.")) {
+    if (await ejecutar(userId, () => desbloquear(userId), "Persona desbloqueada.", "No se pudo desbloquear.")) {
       setBloqueos((lista) => lista.filter((b) => b.user_id !== userId));
     }
   };
 
   /** Devuelve true si quedó bloqueado; recarga la lista para mostrar el bloqueo nuevo. */
-  const bloquearUsuario = async (userId: string, motivo: string) => {
-    const hecho = await ejecutar(userId, () => bloquear(userId, motivo), "Usuario bloqueado.", "No se pudo bloquear.");
-    if (hecho) setBloqueos(await listarBloqueos().catch(() => bloqueos));
+  const bloquearPersona = async (userId: string, motivo: string) => {
+    const hecho = await ejecutar(userId, () => bloquear(userId, motivo), "Persona bloqueada.", "No se pudo bloquear.");
+    if (hecho) {
+      const [lista, dePersonas] = await Promise.all([
+        listarBloqueos().catch(() => bloqueos),
+        listarReportesDePersonas().catch(() => reportes),
+      ]);
+      setBloqueos(lista);
+      setReportes(dePersonas);
+    }
     return hecho;
   };
 
-  const descartar = async (id: string) => {
-    if (await ejecutar(id, () => descartarReporte(id), "Reporte descartado.", "No se pudo descartar el reporte.")) {
-      setReportes((lista) => lista.filter((r) => r.id !== id));
-    }
+  /** Descarta todos los reportes a esa persona. */
+  const descartar = async (persona: PersonaReportada) => {
+    const hecho = await ejecutar(
+      persona.usuario_id,
+      () => descartarReportes(persona.ids),
+      "Reportes descartados.",
+      "No se pudieron descartar los reportes.",
+    );
+    if (hecho) setReportes((lista) => lista.filter((r) => !persona.ids.includes(r.id)));
   };
 
-  const bloqueados = new Set(bloqueos.map((b) => b.user_id));
+  const porDecidir = useMemo(() => agrupar(reportes, new Set(bloqueos.map((b) => b.user_id))), [reportes, bloqueos]);
 
   return {
     bloqueos,
-    reportes,
-    bloqueados,
+    porDecidir,
     miId,
     cargando,
     error,
@@ -91,7 +136,7 @@ export function useBloqueos() {
     enCurso,
     recargar: cargar,
     quitarBloqueo,
-    bloquearUsuario,
+    bloquearPersona,
     descartar,
   };
 }

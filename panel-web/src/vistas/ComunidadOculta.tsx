@@ -1,213 +1,209 @@
 /**
- * Vista. Publicaciones y comentarios ocultos con sus reportes:
- * «Volver a mostrar», «Borrar» y «Bloquear al autor».
+ * Vista. Publicaciones y comentarios ocultos por reportes: «Mostrar», «Borrar»
+ * y, dentro de «Ver reportes», bloquear al autor.
  */
-import { useState, type ReactNode } from "react";
+import { Fragment, useState } from "react";
 import { useComunidadOculta } from "../controladores/useComunidadOculta";
+import { enZona } from "../controladores/usePendientes";
 import type { ReporteComunidad, TablaComunidad } from "../modelos/comunidadOculta";
-import { categoriaPublicacion, fecha, idCorto, motivoComunidad } from "./etiquetas";
-import { FormularioBloqueo } from "./FormularioBloqueo";
-import { Mensajes } from "./Mensajes";
+import { usePanel } from "./contexto";
+import { categoriaPublicacion, cuando, idCorto, motivoComunidad, nombrePersona } from "./etiquetas";
+import { Acciones, DetalleReportes, Motivos, ocultoDesde, SelectorBloqueo } from "./moderacion";
+import { Aviso, Celda, Cuerpo, Encabezado, Estado, Pill, Tabla, Vacio, type Tono } from "./ui";
 
-function Reportes({ reportes, revisadoEn }: { reportes: ReporteComunidad[]; revisadoEn: string | null }) {
-  return (
-    <>
-      <h4 className="mt-3 text-sm font-semibold">Reportes</h4>
-      {reportes.length === 0 ? (
-        <p className="text-sm text-stone-600">Sin reportes: lo ocultó un admin.</p>
-      ) : (
-        <ul className="mt-1 space-y-1 text-sm">
-          {reportes.map((reporte) => {
-            const previo = revisadoEn !== null && Date.parse(reporte.creado_en) <= Date.parse(revisadoEn);
-            return (
-              <li key={reporte.id} className="flex justify-between gap-3">
-                <span>
-                  {motivoComunidad(reporte.motivo)}
-                  {previo ? <span className="text-stone-500"> (antes de la última revisión)</span> : null}
-                </span>
-                <span className="text-stone-600">{fecha(reporte.creado_en)}</span>
-              </li>
-            );
-          })}
-        </ul>
-      )}
-    </>
-  );
-}
-
-type TarjetaProps = {
-  tabla: TablaComunidad;
-  id: string;
-  titulo: string;
-  meta: string;
-  autor: string;
-  reportes: ReporteComunidad[];
-  revisadoEn: string | null;
-  enCurso: string | null;
-  autorBloqueado: boolean;
-  formularioAbierto: boolean;
-  onMostrar: () => void;
-  onBorrar: () => void;
-  onAbrirBloqueo: () => void;
-  onCerrarBloqueo: () => void;
-  onBloquear: (motivo: string) => Promise<boolean>;
-  children: ReactNode;
+const TONO_CATEGORIA: Record<string, Tono> = {
+  seguridad: "azul",
+  ayuda_social: "verde",
+  donacion: "verde",
+  kermes: "naranja",
+  misa: "morado",
+  taller: "morado",
 };
 
-function Tarjeta(p: TarjetaProps) {
-  const nombre = p.tabla === "publicaciones" ? "esta publicación" : "este comentario";
-  const ocupado = p.enCurso !== null;
-  return (
-    <li className="rounded-xl border border-stone-200 bg-white p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h4 className="font-semibold">{p.titulo}</h4>
-          <p className="text-sm text-stone-600">{p.meta}</p>
-        </div>
-        <span className="rounded-full bg-red-100 px-2.5 py-0.5 text-sm font-medium text-red-800">
-          {p.reportes.length} {p.reportes.length === 1 ? "reporte" : "reportes"}
-        </span>
-      </div>
-      {p.children}
-      <Reportes reportes={p.reportes} revisadoEn={p.revisadoEn} />
-
-      <div className="mt-4 flex flex-wrap gap-2">
-        <button
-          type="button"
-          disabled={ocupado}
-          onClick={p.onMostrar}
-          aria-label={`Volver a mostrar ${nombre}`}
-          className="rounded-lg bg-stone-900 px-4 py-2 font-medium text-white disabled:opacity-60"
-        >
-          {p.enCurso === p.id ? "Guardando…" : "Volver a mostrar"}
-        </button>
-        <button
-          type="button"
-          disabled={ocupado}
-          onClick={p.onBorrar}
-          aria-label={`Borrar ${nombre}`}
-          className="rounded-lg border border-red-700 px-4 py-2 font-medium text-red-800 disabled:opacity-60"
-        >
-          Borrar
-        </button>
-        {p.autorBloqueado ? (
-          <span className="self-center rounded-full bg-stone-200 px-3 py-1 text-sm font-medium text-stone-800">
-            Autor bloqueado
-          </span>
-        ) : (
-          <button
-            type="button"
-            disabled={ocupado}
-            onClick={p.onAbrirBloqueo}
-            aria-expanded={p.formularioAbierto}
-            aria-label={`Bloquear al autor de ${nombre}`}
-            className="rounded-lg border border-stone-400 px-4 py-2 font-medium disabled:opacity-60"
-          >
-            Bloquear al autor
-          </button>
-        )}
-      </div>
-      {p.formularioAbierto && !p.autorBloqueado ? (
-        <FormularioBloqueo
-          persona={idCorto(p.autor)}
-          enviando={p.enCurso === p.autor}
-          onBloquear={p.onBloquear}
-          onCancelar={p.onCerrarBloqueo}
-        />
-      ) : null}
-    </li>
-  );
+interface Fila {
+  tabla: TablaComunidad;
+  id: string;
+  texto: string | null;
+  autor: string;
+  autorNombre: string | null;
+  zona: string | null;
+  categoria: string | null;
+  donde: string | null;
+  fotoUrl: string | null;
+  tieneFoto: boolean;
+  reportes: ReporteComunidad[];
+  revisadoEn: string | null;
+  creadoEn: string;
 }
 
 export function ComunidadOculta() {
+  const { zona } = usePanel();
   const c = useComunidadOculta();
-  const [bloqueando, setBloqueando] = useState<string | null>(null);
-  const vacio = !c.cargando && !c.error && c.publicaciones.length === 0 && c.comentarios.length === 0;
+  const [pestana, setPestana] = useState<TablaComunidad>("publicaciones");
+  const [abierto, setAbierto] = useState<string | null>(null);
+  const filtro = enZona(zona);
 
-  const propsComunes = (tabla: TablaComunidad, id: string, autor: string) => {
-    const clave = `${tabla}:${id}`;
-    const nombre = tabla === "publicaciones" ? "esta publicación" : "este comentario";
-    return {
-      tabla,
-      id,
-      autor,
-      enCurso: c.enCurso,
-      autorBloqueado: c.bloqueados.has(autor),
-      formularioAbierto: bloqueando === clave,
-      onMostrar: () => void c.mostrar(tabla, id),
-      onBorrar: () => {
-        if (window.confirm(`¿Borrar ${nombre}? También se borran sus reportes. No se puede deshacer.`)) {
-          void c.borrar(tabla, id);
-        }
-      },
-      onAbrirBloqueo: () => setBloqueando(clave),
-      onCerrarBloqueo: () => setBloqueando(null),
-      onBloquear: (motivo: string) => c.bloquearAutor(autor, motivo),
-    };
-  };
+  const publicaciones: Fila[] = c.publicaciones.filter(filtro).map((p) => ({
+    tabla: "publicaciones",
+    id: p.id,
+    texto: p.mensaje,
+    autor: p.autor,
+    autorNombre: p.autor_nombre ?? null,
+    zona: p.zona,
+    categoria: p.categoria,
+    donde: null,
+    fotoUrl: p.foto_url,
+    tieneFoto: p.tiene_foto,
+    reportes: p.reportes,
+    revisadoEn: p.revisado_en,
+    creadoEn: p.creado_en,
+  }));
+  const comentarios: Fila[] = c.comentarios.filter(filtro).map((co) => ({
+    tabla: "comentarios",
+    id: co.id,
+    texto: co.texto,
+    autor: co.autor,
+    autorNombre: co.autor_nombre ?? null,
+    zona: co.zona,
+    categoria: null,
+    donde: co.en_publicacion ? "En una publicación" : "En un negocio",
+    fotoUrl: null,
+    tieneFoto: false,
+    reportes: co.reportes,
+    revisadoEn: co.revisado_en,
+    creadoEn: co.creado_en,
+  }));
+  const filas = pestana === "publicaciones" ? publicaciones : comentarios;
+  const nombreTipo = pestana === "publicaciones" ? "esta publicación" : "este comentario";
 
   return (
-    <section aria-labelledby="titulo-comunidad">
-      <h2 id="titulo-comunidad" className="text-xl font-bold">
-        Comunidad oculta
-      </h2>
-      <p className="mt-1 text-stone-700">
-        Publicaciones y comentarios que se ocultaron con 3 reportes o por un admin. Al volver a mostrarlos, el conteo
-        empieza de cero.
-      </p>
+    <>
+      <Encabezado titulo="Comunidad oculta" subtitulo="Publicaciones y comentarios ocultos por reportes" />
+      <Cuerpo>
+        <div role="tablist" aria-label="Tipo de contenido" className="flex flex-wrap gap-3">
+          {(
+            [
+              ["publicaciones", `Publicaciones · ${publicaciones.length}`],
+              ["comentarios", `Comentarios · ${comentarios.length}`],
+            ] as const
+          ).map(([id, texto]) => (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={pestana === id}
+              onClick={() => {
+                setPestana(id);
+                setAbierto(null);
+              }}
+              className={`rounded-full border px-5 py-2.5 font-titulo text-[16px] font-semibold transition-colors ${
+                pestana === id ? "border-marca bg-marca text-white" : "border-marca bg-superficie text-marca hover:bg-marca-suave"
+              }`}
+            >
+              {texto}
+            </button>
+          ))}
+        </div>
 
-      <Mensajes cargando={c.cargando} error={c.error} aviso={c.aviso} onRecargar={() => void c.recargar()} />
+        <Estado cargando={c.cargando} error={c.error} aviso={c.aviso} onRecargar={() => void c.recargar()} />
 
-      {vacio ? <p className="mt-6 rounded-xl bg-stone-100 p-4">No hay contenido oculto.</p> : null}
+        {!c.cargando && !c.error && filas.length === 0 ? (
+          <Vacio>
+            No hay {pestana === "publicaciones" ? "publicaciones ocultas" : "comentarios ocultos"}
+            {zona ? ` en ${zona}` : ""}.
+          </Vacio>
+        ) : null}
 
-      {c.publicaciones.length > 0 ? (
-        <>
-          <h3 className="mt-6 text-lg font-semibold">Publicaciones</h3>
-          <ul className="mt-3 space-y-4">
-            {c.publicaciones.map((p) => (
-              <Tarjeta
-                key={p.id}
-                {...propsComunes("publicaciones", p.id, p.autor)}
-                titulo={categoriaPublicacion(p.categoria)}
-                meta={`${idCorto(p.autor)}${p.zona ? ` · ${p.zona}` : ""} · ${fecha(p.creado_en)}`}
-                reportes={p.reportes}
-                revisadoEn={p.revisado_en}
-              >
-                {p.mensaje ? <p className="mt-2">{p.mensaje}</p> : null}
-                {p.foto_url ? (
-                  <img
-                    src={p.foto_url}
-                    alt="Foto de la publicación"
-                    className="mt-3 max-h-64 rounded-lg border border-stone-200 object-contain"
-                  />
-                ) : p.tiene_foto ? (
-                  <p className="mt-2 text-sm text-stone-600">La foto no se pudo cargar.</p>
-                ) : null}
-              </Tarjeta>
-            ))}
-          </ul>
-        </>
-      ) : null}
+        {filas.length > 0 ? (
+          <Tabla
+            etiqueta={pestana === "publicaciones" ? "Publicaciones ocultas" : "Comentarios ocultos"}
+            columnas={[pestana === "publicaciones" ? "Publicación" : "Comentario", pestana === "publicaciones" ? "Categoría" : "Dónde", "Motivos", "Oculta desde", "Acción"]}
+          >
+            {filas.map((f) => {
+              const clave = `${f.tabla}:${f.id}`;
+              const verReportes = abierto === clave;
+              const autor = nombrePersona(f.autorNombre, f.autor);
+              const bloqueado = c.bloqueados.has(f.autor);
+              return (
+                <Fragment key={clave}>
+                  <tr>
+                    <Celda className="max-w-sm">
+                      <span className="block text-[16px]">
+                        {f.texto ? `«${f.texto}»` : f.tieneFoto ? "(Solo foto)" : "(Sin texto)"}
+                      </span>
+                      <span className="mt-1 block text-sm text-tinta-2">
+                        Publicó: {autor}
+                        {f.zona ? ` · ${f.zona}` : ""}
+                      </span>
+                    </Celda>
+                    <Celda>
+                      {f.categoria ? (
+                        <Pill tono={TONO_CATEGORIA[f.categoria] ?? "gris"}>{categoriaPublicacion(f.categoria)}</Pill>
+                      ) : (
+                        <span className="text-[15px] text-tinta-2">{f.donde}</span>
+                      )}
+                    </Celda>
+                    <Celda>
+                      <Motivos reportes={f.reportes} etiqueta={motivoComunidad} />
+                    </Celda>
+                    <Celda className="whitespace-nowrap">{cuando(ocultoDesde(f.reportes, f.creadoEn))}</Celda>
+                    <Celda>
+                      <Acciones
+                        nombre={nombreTipo}
+                        ocupado={c.enCurso !== null}
+                        guardando={c.enCurso === f.id}
+                        abierto={verReportes}
+                        onMostrar={() => void c.mostrar(f.tabla, f.id)}
+                        onBorrar={() => {
+                          if (window.confirm(`¿Borrar ${nombreTipo}? También se borran sus reportes. No se puede deshacer.`)) {
+                            void c.borrar(f.tabla, f.id);
+                          }
+                        }}
+                        onVerReportes={() => setAbierto(verReportes ? null : clave)}
+                      />
+                    </Celda>
+                  </tr>
+                  {verReportes ? (
+                    <tr>
+                      <td colSpan={5} className="px-4 pb-4">
+                        <DetalleReportes reportes={f.reportes} revisadoEn={f.revisadoEn} etiqueta={motivoComunidad}>
+                          {f.fotoUrl ? (
+                            <img
+                              src={f.fotoUrl}
+                              alt="Foto de la publicación"
+                              className="mt-4 max-h-64 rounded-lg border border-borde object-contain"
+                            />
+                          ) : f.tieneFoto ? (
+                            <p className="mt-3 text-sm text-tinta-2">La foto no se pudo cargar.</p>
+                          ) : null}
+                          <div className="mt-4 border-t border-borde pt-4">
+                            <p className="mb-2 font-titulo text-[15px] font-semibold">
+                              Autor: {autor} <span className="font-mono text-xs text-tinta-3">{idCorto(f.autor)}</span>
+                            </p>
+                            {bloqueado ? (
+                              <Pill tono="gris">Autor bloqueado</Pill>
+                            ) : (
+                              <SelectorBloqueo
+                                compacto
+                                persona={autor}
+                                ocupado={c.enCurso !== null}
+                                guardando={c.enCurso === f.autor}
+                                onBloquear={(motivo) => void c.bloquearAutor(f.autor, motivo)}
+                              />
+                            )}
+                          </div>
+                        </DetalleReportes>
+                      </td>
+                    </tr>
+                  ) : null}
+                </Fragment>
+              );
+            })}
+          </Tabla>
+        ) : null}
 
-      {c.comentarios.length > 0 ? (
-        <>
-          <h3 className="mt-8 text-lg font-semibold">Comentarios</h3>
-          <ul className="mt-3 space-y-4">
-            {c.comentarios.map((co) => (
-              <Tarjeta
-                key={co.id}
-                {...propsComunes("comentarios", co.id, co.autor)}
-                titulo={co.en_publicacion ? "Comentario en una publicación" : "Comentario en un negocio"}
-                meta={`${idCorto(co.autor)} · ${fecha(co.creado_en)}`}
-                reportes={co.reportes}
-                revisadoEn={co.revisado_en}
-              >
-                <p className="mt-2">{co.texto}</p>
-              </Tarjeta>
-            ))}
-          </ul>
-        </>
-      ) : null}
-    </section>
+        <Aviso>Al volver a mostrar, la base guarda la fecha de revisión y los reportes anteriores dejan de contar.</Aviso>
+      </Cuerpo>
+    </>
   );
 }
