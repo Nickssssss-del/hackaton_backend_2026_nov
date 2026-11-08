@@ -16,6 +16,14 @@ export interface ReportePersona {
   usuario_id: string;
   motivo: string;
   creado_en: string;
+  /** Solo se rellena si el reporte no es a una persona. En estos listados queda vacío. */
+  publicacion_id: string | null;
+  comentario_id: string | null;
+}
+
+export interface FichaCorta {
+  nombre: string | null;
+  zona: string | null;
 }
 
 export async function listarBloqueos(): Promise<Bloqueo[]> {
@@ -31,7 +39,7 @@ export async function listarBloqueos(): Promise<Bloqueo[]> {
 export async function listarReportesDePersonas(): Promise<ReportePersona[]> {
   const { data, error } = await cliente()
     .from("reportes_comunidad")
-    .select("id, usuario_id, motivo, creado_en")
+    .select("id, usuario_id, motivo, creado_en, publicacion_id, comentario_id")
     .not("usuario_id", "is", null)
     .order("creado_en", { ascending: false });
   if (error) throw error;
@@ -69,16 +77,20 @@ export function nombreCorto(nombre: string | null): string | null {
   return `${recortado.split(" ")[0]} ${inicial}.`;
 }
 
-/** Solo id y nombre. El celular y la zona no salen de la base. */
-export async function nombresCortos(ids: string[]): Promise<Map<string, string>> {
+/** Solo id, nombre y el nombre de la zona. Sin celular, lat ni lng. */
+export async function fichasCortas(ids: string[]): Promise<Map<string, FichaCorta>> {
   const unicos = [...new Set(ids)];
   if (unicos.length === 0) return new Map();
-  const { data, error } = await cliente().from("perfiles").select("id, nombre").in("id", unicos);
+  const { data, error } = await cliente().from("perfiles").select("id, nombre, zonas(nombre)").in("id", unicos);
   if (error) throw error;
-  const mapa = new Map<string, string>();
-  for (const fila of (data ?? []) as { id: string; nombre: string | null }[]) {
-    const corto = nombreCorto(fila.nombre);
-    if (corto) mapa.set(fila.id, corto);
+  const mapa = new Map<string, FichaCorta>();
+  for (const fila of (data ?? []) as {
+    id: string;
+    nombre: string | null;
+    zonas: { nombre: string } | { nombre: string }[] | null;
+  }[]) {
+    const zona = Array.isArray(fila.zonas) ? fila.zonas[0] : fila.zonas;
+    mapa.set(fila.id, { nombre: nombreCorto(fila.nombre), zona: zona?.nombre ?? null });
   }
   return mapa;
 }

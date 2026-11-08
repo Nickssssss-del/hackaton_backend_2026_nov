@@ -10,8 +10,9 @@ import {
   idDeLaSesion,
   listarBloqueos,
   listarReportesDePersonas,
-  nombresCortos,
+  fichasCortas,
   type Bloqueo,
+  type FichaCorta,
   type ReportePersona,
 } from "../modelos/bloqueos";
 import { mensajeDeError } from "./errores";
@@ -24,7 +25,7 @@ export function useBloqueos() {
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [enCurso, setEnCurso] = useState<string | null>(null);
-  const [nombres, setNombres] = useState<Map<string, string>>(new Map());
+  const [fichas, setFichas] = useState<Map<string, FichaCorta>>(new Map());
   /** La lectura de perfiles falló (por ejemplo, el script 11 aún no está aplicado). */
   const [sinNombres, setSinNombres] = useState(false);
 
@@ -41,10 +42,10 @@ export function useBloqueos() {
         ...dePersonas.map((reporte) => reporte.usuario_id),
       ];
       try {
-        setNombres(await nombresCortos(ids));
+        setFichas(await fichasCortas(ids));
         setSinNombres(false);
       } catch {
-        setNombres(new Map());
+        setFichas(new Map());
         setSinNombres(true);
       }
     } catch (causa) {
@@ -104,7 +105,7 @@ export function useBloqueos() {
     error,
     aviso,
     enCurso,
-    nombres,
+    fichas,
     sinNombres,
     recargar: cargar,
     quitarBloqueo,
