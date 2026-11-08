@@ -6,6 +6,7 @@ import { borrarMisDatos, obtenerSupabase } from "./supabase";
 import { asignarZona, redondear3 } from "./geo";
 import { listarZonasPublicas } from "./zonasRepositorio";
 import { leerPreferenciasCompletas } from "./local/preferencias";
+import { leerPerfilLocal } from "./local/perfil";
 
 export async function listarZonas(): Promise<ZonaPublica[]> {
   const { data, error } = await obtenerSupabase()
@@ -53,7 +54,23 @@ export async function guardarPerfilNube(perfil: PerfilLocal): Promise<void> {
     if (reintento.error) throw reintento.error;
     return;
   }
+
   if (error) throw error;
+}
+
+/**
+ * Sincroniza el perfil local antes de una lectura que dependa de `mi_zona()` o
+ * de una RPC que exige que exista la fila del perfil.
+ */
+export async function sincronizarPerfilLocalConNube(): Promise<boolean> {
+  const perfil = await leerPerfilLocal();
+  const nombre = perfil?.nombre?.trim() ?? "";
+  const celular = perfil?.celular?.trim() ?? "";
+  if (!perfil || nombre.length < 2 || !/^9\d{8}$/.test(celular) || !perfil.zonaId) {
+    return false;
+  }
+  await guardarPerfilNube(perfil);
+  return true;
 }
 
 /**

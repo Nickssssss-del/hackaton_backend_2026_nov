@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
 import { registrarPushToken } from "../modelos/alertaVecinalRepositorio";
+import { sincronizarPerfilLocalConNube } from "../modelos/perfilRepositorio";
 import { asegurarSesionAnonima, tieneConfiguracionSupabase } from "../modelos/supabase";
 import { usePreferencias } from "./PreferenciasContexto";
 
@@ -43,6 +44,7 @@ export async function registrarAvisosDeVecinos(): Promise<boolean> {
     }
     const { data: token } = await Notifications.getExpoPushTokenAsync({ projectId });
     await asegurarSesionAnonima();
+    await sincronizarPerfilLocalConNube();
     await registrarPushToken(token, Platform.OS === "ios" ? "ios" : "android");
     return true;
   } catch (causa) {

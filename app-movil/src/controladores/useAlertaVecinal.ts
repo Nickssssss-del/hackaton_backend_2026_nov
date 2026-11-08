@@ -16,6 +16,7 @@ import {
   type VistaPreviaAlerta,
 } from "../modelos/alertaVecinalRepositorio";
 import { leerUltimaUbicacion } from "../modelos/local/ultimaUbicacion";
+import { sincronizarPerfilLocalConNube } from "../modelos/perfilRepositorio";
 import { asegurarSesionAnonima } from "../modelos/supabase";
 import { codigoDeError, mensajeDeError } from "./errores";
 
@@ -64,6 +65,7 @@ export function useAlertaVecinal(emergenciaId: string | undefined) {
     }
     try {
       await asegurarSesionAnonima();
+      await sincronizarPerfilLocalConNube();
       coord.current = coord.current ?? (await ubicacionActual());
       if (!coord.current) {
         setFase("sin_ubicacion");

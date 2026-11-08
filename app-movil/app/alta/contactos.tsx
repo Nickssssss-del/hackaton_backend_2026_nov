@@ -53,7 +53,6 @@ export default function AQuienLlamamos() {
   const [buscando, setBuscando] = useState(false);
   // Índice de la persona que se está cambiando (null: se agrega una nueva).
   const [reemplazar, setReemplazar] = useState<number | null>(null);
-  const [quitada, setQuitada] = useState<{ persona: ContactoLocal; indice: number } | null>(null);
   const [agenda, setAgenda] = useState<{ nombre: string; telefono: string }[] | null>(null);
   const [filtro, setFiltro] = useState("");
 
@@ -84,7 +83,6 @@ export default function AQuienLlamamos() {
     setFormulario(null);
     setAgenda(null);
     setFiltro("");
-    setQuitada(null);
   };
 
   const yaEsta = (telefono: string) => contactos.some((x, j) => x.telefono === telefono && j !== reemplazar);
@@ -108,21 +106,6 @@ export default function AQuienLlamamos() {
     setFiltro("");
     setReemplazar(null);
     setMensaje(null);
-  };
-
-  const quitar = (i: number) => {
-    setQuitada({ persona: contactos[i], indice: i });
-    actualizar(contactos.filter((_, j) => j !== i));
-    setReemplazar(null);
-    setMensaje(null);
-  };
-
-  const deshacer = () => {
-    if (!quitada) return;
-    const lista = [...contactos];
-    lista.splice(Math.min(quitada.indice, lista.length), 0, quitada.persona);
-    actualizar(lista.slice(0, MAX_CONTACTOS));
-    setQuitada(null);
   };
 
   const alDictar = useCallback(
@@ -190,14 +173,6 @@ export default function AQuienLlamamos() {
     >
       {reemplazar !== null ? (
         <Mensaje tono="info">{`Elige a quién pones en lugar de ${contactos[reemplazar]?.nombre ?? "esa persona"}.`}</Mensaje>
-      ) : null}
-      {quitada ? (
-        <View style={[estilos.deshacer, { backgroundColor: c.superficie, borderColor: c.borde }]}>
-          <Texto style={{ flex: 1 }}>{`Quitaste a ${quitada.persona.nombre}.`}</Texto>
-          <Pressable accessibilityRole="button" onPress={deshacer} style={[estilos.botonChico, { borderColor: c.accion }]}>
-            <Texto variante="etiqueta" color={c.accionTexto}>Deshacer</Texto>
-          </Pressable>
-        </View>
       ) : null}
 
       {!lleno && !formulario && !agenda ? (
@@ -330,7 +305,6 @@ export default function AQuienLlamamos() {
                 onPress={() => {
                   setFormulario(null);
                   setAgenda(null);
-                  setQuitada(null);
                   setMensaje(null);
                   setReemplazar(cambiando ? null : i);
                 }}
@@ -390,7 +364,6 @@ const estilos = StyleSheet.create({
     justifyContent: "center",
     gap: 6,
   },
-  deshacer: { flexDirection: "row", alignItems: "center", gap: 10, padding: 12, borderRadius: RADIO.l, borderWidth: 1.5 },
   filaAgenda: { flexDirection: "row", alignItems: "center", gap: 10, minHeight: ALTO_TACTIL, padding: 10, borderRadius: RADIO.m, borderWidth: 1 },
   numero: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, alignItems: "center", justifyContent: "center" },
   datos: { flex: 1 },

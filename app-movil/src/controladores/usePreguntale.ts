@@ -12,6 +12,7 @@ import { leerPerfilLocal } from "../modelos/local/perfil";
 import { horaLegible, nuevoId } from "../modelos/local/pastillas";
 import { leerUltimaUbicacion } from "../modelos/local/ultimaUbicacion";
 import { preguntar, type RespuestaPreguntale, type ServicioEncontrado } from "../modelos/preguntaleRepositorio";
+import { sincronizarPerfilLocalConNube } from "../modelos/perfilRepositorio";
 import { asegurarSesionAnonima } from "../modelos/supabase";
 import { etiquetaCategoriaAyuda } from "../modelos/categoriasAyuda";
 import type { CategoriaPedido } from "../modelos/tipos";
@@ -93,6 +94,7 @@ export function usePreguntale() {
       setCargando(true);
       try {
         await asegurarSesionAnonima();
+        await sincronizarPerfilLocalConNube();
         const [perfil, ubicacion] = await Promise.all([leerPerfilLocal(), leerUltimaUbicacion()]);
         const r = await preguntar({
           texto: limpio,

@@ -174,6 +174,9 @@ export default function EstasBien() {
         <BotonLlamada icono="fire-truck" titulo="Bomberos" numero="116" onPress={() => llamarYa("los Bomberos (116)", "116")} />
         <BotonLlamada icono="ambulance" titulo="Ambulancia" numero="106" onPress={() => llamarYa("la ambulancia del SAMU (106)", "106")} />
       </View>
+      <Texto variante="etiqueta" centrado color={c.avisoTexto} style={estilos.ayudaSamu}>
+        SAMU = Sistema de Atención Móvil de Urgencia (ambulancias)
+      </Texto>
 
       <Pressable
         accessibilityRole="button"
@@ -249,6 +252,7 @@ const estilos = StyleSheet.create({
   numero: { fontSize: 72, lineHeight: 84 },
   accion: { flexDirection: "row", alignItems: "center", gap: 14 },
   llamadas: { gap: 10 },
+  ayudaSamu: { marginTop: 12, marginBottom: 8, fontSize: 18, fontWeight: "700", paddingVertical: 10, paddingHorizontal: 16, backgroundColor: "#FFFFFF", borderRadius: RADIO.m, borderWidth: 1.5, borderColor: "#DCA838" },
   radar: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 2, borderRadius: RADIO.l, padding: 12, minHeight: 64 },
   llamada: { flexDirection: "row", minHeight: 64, borderWidth: 2.5, borderRadius: RADIO.l, alignItems: "center", paddingHorizontal: 14, gap: 12 },
   iconoAccion: { width: 56, height: 56, borderRadius: 28, alignItems: "center", justifyContent: "center" },
