@@ -5,7 +5,7 @@
 3. No existe un campo `rol`. Los administradores están en la tabla `admins`, que la app no lee ni escribe.
 4. La app solo lee las vistas `servicios_publicos` y `pedidos_cercanos`. Nunca lee las tablas `servicios`, `vistos_buenos` ni perfiles ajenos.
 5. `lat` y `lng` son `numeric(7,3)`.
-6. No pidas, guardes ni escribas claves: ni `service_role` ni contraseñas.
+6. No pidas, guardes ni escribas claves: ni `service_role` ni contraseñas. Las Edge Functions usan las variables de entorno que Supabase les da; nunca se copian al código ni a archivos versionados.
 7. Descripciones y comentarios: máximo 140 caracteres y sin enlaces.
 8. Cada vista `security definer` lleva un comentario que explica por qué.
 9. Todo dato de prueba es ficticio.
