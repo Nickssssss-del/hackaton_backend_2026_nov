@@ -4,8 +4,10 @@
  */
 import * as Location from "expo-location";
 import { useEffect, useState } from "react";
-import { distanciaMetros, minutosAPie } from "../modelos/distancia";
+import { distanciaMetros, minutosAPie } from "../modelos/geo";
 import { listarGrupos, type GrupoApoyo } from "../modelos/gruposRepositorio";
+import { guardarCacheGrupos } from "../modelos/local/cacheGrupos";
+import { exigirInternet } from "./red";
 
 export interface GrupoCercano extends GrupoApoyo {
   minutos?: number;
@@ -18,7 +20,9 @@ export function useGruposCercanos() {
     let activo = true;
     (async () => {
       try {
+        await exigirInternet();
         const lista = await listarGrupos();
+        await guardarCacheGrupos(lista);
         const permiso = await Location.getForegroundPermissionsAsync();
         let aqui: { lat: number; lng: number } | null = null;
         if (permiso.granted) {

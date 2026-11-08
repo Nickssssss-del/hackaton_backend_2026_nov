@@ -1,7 +1,7 @@
 /**
  * Modelo. Contratos de la app, en camelCase.
  * Las lecturas públicas salen de las vistas servicios_publicos y pedidos_cercanos.
- * La app no modela lecturas de servicios, vistos_buenos, perfiles ajenos ni auth.users.
+ * La app no modela lecturas de tablas privadas ni perfiles ajenos.
  */
 
 /** Fila cruda de la vista servicios_publicos. */
@@ -9,7 +9,7 @@ export interface FilaServicioPublico {
   id: string;
   nombre: string | null;
   nombre_negocio: string | null;
-  oficio: string;
+  oficio: Oficio;
   descripcion: string | null;
   precio_desde: number | string | null;
   hora_apertura: string | null;
@@ -31,6 +31,9 @@ export interface FilaServicioPublico {
   comentario_destacado: string | null;
   comentario_autor: string | null;
   comentario_fecha: string | null;
+  /** Desde el script 07: interruptor «Mis vecinos pueden verlo» y ruta de la foto en Storage. */
+  visible_vecinos?: boolean | null;
+  foto_path?: string | null;
   es_mio: boolean;
   creado_en: string;
 }
@@ -40,6 +43,8 @@ export interface ServicioPublico {
   id: string;
   /** Nombre del negocio o del autor. */
   nombre: string;
+  /** Nombre del negocio (si el autor lo proporcionó). */
+  nombreNegocio?: string;
   oficio: string;
   descripcion: string;
   precioDesde?: number;
@@ -57,12 +62,20 @@ export interface ServicioPublico {
   votosConfiable: number;
   votosVieneDomicilio: number;
   comentarioDestacado?: string;
+  /** Texto del comentario destacado sin el autor (E3 los muestra por separado). */
+  comentarioTexto?: string;
   comentarioAutor?: string;
   esMio: boolean;
+  /** Disponible en emergencias. */
+  disponibleEmergencia?: boolean;
   /** Presente solo si el autor permitió mostrar el contacto. */
   contacto?: string;
   /** Presente solo si el autor permitió mostrar la dirección. */
   direccion?: string;
+  /** «Mis vecinos pueden verlo». En false solo lo ve el dueño. */
+  visibleVecinos: boolean;
+  /** Ruta de la foto en el bucket privado `fotos` (<zona>/<user>/<archivo>). */
+  fotoPath?: string;
 }
 
 /** Fila cruda de la vista pedidos_cercanos. */
@@ -79,7 +92,18 @@ export interface FilaPedidoCercano {
   ya_ofreci: boolean;
 }
 
-export type CategoriaPedido = "arreglos" | "compras" | "transporte" | "salud";
+/** Valores del CHECK de pedidos_ayuda.categoria (script 07). «Una manito» se guarda como 'transporte' (D-05). */
+export type CategoriaPedido = "arreglos" | "compras" | "transporte" | "salud" | "desastre_natural" | "apoyo";
+
+/** Fila de la vista ayudas_recibidas: solo quien pidió ve a quien se ofreció. */
+export interface AyudaRecibida {
+  id: string;
+  pedidoId: string;
+  categoria: CategoriaPedido;
+  ayudanteNombre: string;
+  ayudanteCelular: string;
+  creadoEn: string;
+}
 
 /** Pedido tal como lo muestra la vista. */
 export interface PedidoCercano {
@@ -96,10 +120,12 @@ export interface PedidoCercano {
 export interface CrearServicioDTO {
   nombreNegocio?: string;
   oficio: Oficio;
-  descripcion?: string;
-  precioDesde?: number;
-  horaApertura?: string;
-  horaCierre?: string;
+  /** null borra el valor al editar. */
+  descripcion?: string | null;
+  precioDesde?: number | null;
+  /** "HH:MM". Las dos horas van juntas o las dos en null (CHECK de servicios). */
+  horaApertura?: string | null;
+  horaCierre?: string | null;
   direccion?: string;
   mostrarDireccion: boolean;
   contacto?: string;
@@ -107,13 +133,17 @@ export interface CrearServicioDTO {
   lat?: number;
   lng?: number;
   disponibleEmergencia: boolean;
+  /** «Mis vecinos pueden verlo». La base lo pone en true si no se envía. */
+  visibleVecinos?: boolean;
+  /** Ruta en el bucket `fotos`, si se subió una. */
+  fotoPath?: string;
 }
 
 /** Datos para publicar un pedido. La descripción admite 140 caracteres y no lleva enlaces. */
 export interface CrearPedidoDTO {
   categoria: CategoriaPedido;
   descripcion: string;
-  zonaId: string;
+  zonaId?: string;
 }
 
 export const OFICIOS = [
@@ -121,6 +151,7 @@ export const OFICIOS = [
   "bodega",
   "panaderia",
   "restaurante",
+  "menu",
   "mercado",
   "farmacia",
   "gasfitero",
@@ -139,6 +170,7 @@ export const OFICIOS = [
   "mototaxi",
   "cuidado_personas",
   "clases_particulares",
+  "pago_servicios",
   "otro",
 ] as const;
 
@@ -150,6 +182,42 @@ export interface ZonaPublica {
   id: string;
   nombre: string;
   distrito: string;
+  latCentro?: number;
+  lngCentro?: number;
+  radioM?: number;
+}
+
+export interface GrupoApoyoPublico {
+  id: string;
+  nombre: string;
+  tipo: TipoGrupoApoyo;
+  contacto: string | null;
+  direccion: string | null;
+  lat: number | null;
+  lng: number | null;
+  zonaId: string | null;
+  verificada: boolean;
+}
+
+export type TipoGrupoApoyo =
+  | "brigada"
+  | "bomberos"
+  | "comisaria"
+  | "salud"
+  | "municipalidad"
+  | "punto_seguro"
+  | "otro";
+
+export interface PerfilNube {
+  id: string;
+  nombre: string | null;
+  celular: string | null;
+  celular_verificado: boolean;
+  cuenta_asegurada_en: string | null;
+  zona_id: string | null;
+  lat: number | null;
+  lng: number | null;
+  creado_en: string;
 }
 
 export type MotivoVistoBueno =
@@ -174,6 +242,23 @@ export interface PerfilLocal {
   nombre?: string;
   zonaId?: string;
   celular?: string;
+  lat?: number;
+  lng?: number;
+  /** Registro Mockup v4 (A4). Solo en el celular, nunca se envía a la nube. */
+  edad?: number;
+  genero?: Genero;
+  /** Avatar elegido a mano en Mis datos; sin valor se elige por edad y género. Solo en el celular. */
+  avatar?: "senora" | "senor" | "jovenMujer" | "jovenHombre";
+  /** Registro Mockup v4 (A3.1). Solo en el celular. */
+  direccion?: DireccionLocal;
+}
+
+export type Genero = "mujer" | "hombre" | "no_decir";
+
+export interface DireccionLocal {
+  calle: string;
+  numero: string;
+  referencia: string;
 }
 
 export interface ContactoEmergencia {
@@ -181,8 +266,34 @@ export interface ContactoEmergencia {
   telefono: string;
 }
 
+export interface ContactoLocal {
+  nombre: string;
+  telefono: string;
+  relacion: string;
+  orden: number;
+}
+
 /** Ficha guardada solo en el teléfono. */
 export interface FichaEmergencia {
   contactos: ContactoEmergencia[];
   mensaje: string;
+  consentimiento?: Consentimiento;
+}
+
+export interface ContactoConfianza extends ContactoEmergencia {}
+
+export interface Consentimiento {
+  aceptado: boolean;
+  fecha: string;
+}
+
+export interface UltimaUbicacion {
+  lat: number;
+  lng: number;
+  fecha: string;
+}
+
+export interface CacheGrupos {
+  grupos: GrupoApoyoPublico[];
+  fecha: string;
 }
