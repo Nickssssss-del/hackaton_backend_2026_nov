@@ -4,12 +4,18 @@
 import { useState } from "react";
 import { useSesion } from "../controladores/useSesion";
 import { Acceso } from "./Acceso";
+import { Bloqueos } from "./Bloqueos";
+import { ComunidadOculta } from "./ComunidadOculta";
+import { EmergenciasActivas } from "./EmergenciasActivas";
 import { GruposApoyo } from "./GruposApoyo";
 import { ServiciosOcultos } from "./ServiciosOcultos";
 
 const PANTALLAS = [
-  { id: "ocultos", titulo: "Servicios ocultos" },
-  { id: "grupos", titulo: "Grupos de apoyo" },
+  { id: "ocultos", titulo: "Servicios ocultos", Vista: ServiciosOcultos },
+  { id: "grupos", titulo: "Grupos de apoyo", Vista: GruposApoyo },
+  { id: "emergencias", titulo: "Emergencias activas", Vista: EmergenciasActivas },
+  { id: "comunidad", titulo: "Comunidad oculta", Vista: ComunidadOculta },
+  { id: "bloqueos", titulo: "Bloqueos", Vista: Bloqueos },
 ] as const;
 
 type Pantalla = (typeof PANTALLAS)[number]["id"];
@@ -26,6 +32,8 @@ export function App() {
     return <Acceso error={sesion.error} enviando={sesion.enviando} onEntrar={(c, k) => void sesion.entrar(c, k)} />;
   }
 
+  const Vista = PANTALLAS.find((p) => p.id === pantalla)!.Vista;
+
   return (
     <div className="min-h-screen bg-stone-50">
       <header className="border-b border-stone-200 bg-white">
@@ -38,7 +46,7 @@ export function App() {
             </button>
           </div>
         </div>
-        <nav aria-label="Pantallas del panel" className="mx-auto flex max-w-3xl gap-1 px-6">
+        <nav aria-label="Pantallas del panel" className="mx-auto flex max-w-3xl flex-wrap gap-1 px-6">
           {PANTALLAS.map(({ id, titulo }) => (
             <button
               key={id}
@@ -55,7 +63,7 @@ export function App() {
         </nav>
       </header>
       <main className="mx-auto max-w-3xl p-6">
-        {pantalla === "ocultos" ? <ServiciosOcultos /> : <GruposApoyo />}
+        <Vista />
       </main>
     </div>
   );

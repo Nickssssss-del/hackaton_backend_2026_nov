@@ -15,6 +15,9 @@ export function mensajeDeError(causa: unknown, porDefecto: string): string {
   if (detalle.includes("FALTA_CONFIGURACION")) {
     return "Falta configurar Supabase en panel-web/.env (mira .env.example).";
   }
+  if (detalle.includes("YA_BLOQUEADO")) {
+    return "Ese usuario ya está bloqueado.";
+  }
   if (detalle.includes("SIN_PERMISO")) {
     return "No se hizo el cambio: tu cuenta no tiene permiso o el registro ya no existe. Recarga la lista.";
   }

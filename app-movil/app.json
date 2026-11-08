@@ -38,9 +38,10 @@
         }
       ]
     ],
-    "android": {
-      "package": "com.melllfer.proyectobarrio",
-      "permissions": ["android.permission.CALL_PHONE"]
-    }
+   "android": {
+  "package": "com.melllfer.proyectobarrio",
+  "permissions": ["android.permission.CALL_PHONE"],
+  "googleServicesFile": "./google-services.json"
+}
   }
 }
