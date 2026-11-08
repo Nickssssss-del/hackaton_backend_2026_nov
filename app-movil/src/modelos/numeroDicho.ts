@@ -37,3 +37,82 @@ export function numeroDicho(texto: string): number | null {
   }
   return hubo ? total : null;
 }
+
+const CENTENAS: Record<string, number> = {
+  cien: 100, ciento: 100, doscientos: 200, doscientas: 200, trescientos: 300, trescientas: 300,
+  cuatrocientos: 400, cuatrocientas: 400, quinientos: 500, quinientas: 500, seiscientos: 600,
+  seiscientas: 600, setecientos: 700, setecientas: 700, ochocientos: 800, ochocientas: 800,
+  novecientos: 900, novecientas: 900,
+};
+
+/**
+ * Convierte lo dictado a una fila de dígitos, en el orden en que se dijo. Sirve para celulares y
+ * códigos, que la gente dicta de a pedazos y con palabras:
+ *   «939 123 456» → «939123456»
+ *   «nueve tres nueve, uno dos tres…» → «939123…»
+ *   «novecientos treinta y nueve ciento veintitrés cuatrocientos cincuenta y seis» → «939123456»
+ *   «nueve ochenta y siete, seis cinco cuatro» → «987654»
+ * Cada número dicho con palabras se escribe completo («treinta y nueve» → «39»).
+ */
+export function digitosDichos(texto: string): string {
+  const t = texto
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "");
+  const fichas = t.match(/\d+|[a-z]+/g) ?? [];
+  let salida = "";
+  let valor = 0;
+  let hay = false;
+  // Qué parte del número ya se dijo: así «nueve tres» son dos números y «treinta y nueve» uno.
+  let nivel: "nada" | "centena" | "decena" | "decena_y" | "unidad" = "nada";
+  const cerrar = () => {
+    if (hay) salida += String(valor);
+    valor = 0;
+    hay = false;
+    nivel = "nada";
+  };
+  for (const f of fichas) {
+    if (/^\d+$/.test(f)) {
+      cerrar();
+      salida += f;
+      continue;
+    }
+    if (f === "y") {
+      if (nivel === "decena") nivel = "decena_y";
+      continue;
+    }
+    if (f === "mil") {
+      valor = (hay ? valor : 1) * 1000;
+      hay = true;
+      cerrar();
+      continue;
+    }
+    const centena = CENTENAS[f];
+    if (centena !== undefined) {
+      if (nivel !== "nada") cerrar();
+      valor = centena;
+      hay = true;
+      nivel = "centena";
+      continue;
+    }
+    const decena = DECENAS[f];
+    if (decena !== undefined) {
+      if (nivel !== "nada" && nivel !== "centena") cerrar();
+      valor += decena;
+      hay = true;
+      nivel = "decena";
+      continue;
+    }
+    const unidad = UNIDADES[f];
+    if (unidad !== undefined) {
+      const cabe = unidad <= 9 ? nivel === "nada" || nivel === "centena" || nivel === "decena" || nivel === "decena_y" : nivel === "nada" || nivel === "centena";
+      if (!cabe) cerrar();
+      valor += unidad;
+      hay = true;
+      nivel = "unidad";
+    }
+    // Otras palabras («mi», «número», «es») no cambian nada.
+  }
+  cerrar();
+  return salida;
+}

@@ -15,6 +15,7 @@ import { AbrirAvisoDePastilla } from "../src/controladores/AbrirAvisoDePastilla"
 import { AvisosDeVecinos } from "../src/controladores/AvisosDeVecinos";
 import { AvisoSalidaDeCasa } from "../src/controladores/salidaDeCasa";
 import { DetectorDeCaidas } from "../src/controladores/DetectorDeCaidas";
+import { PrepararMapaSinInternet } from "../src/controladores/mapaSinInternet";
 import { ajustarVozPorSituaciones } from "../src/controladores/useEscuchar";
 import { leerSituaciones } from "../src/modelos/local/situaciones";
 
@@ -62,6 +63,7 @@ function Pantallas() {
       <AvisosDeVecinos />
       <AvisoSalidaDeCasa />
       <DetectorDeCaidas />
+      <PrepararMapaSinInternet />
           <Stack
             screenOptions={{
               // Cada pantalla trae su barra (Volver, Aa, luna, altavoz): sin encabezado del sistema,

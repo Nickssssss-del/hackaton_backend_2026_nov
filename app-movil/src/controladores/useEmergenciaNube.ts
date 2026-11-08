@@ -30,6 +30,14 @@ import { codigoDeError } from "./errores";
 import { useConexion } from "./useConexion";
 
 const TIEMPO_MAXIMO = 8000;
+/**
+ * alerta-vecinos puede tardar más (arranque en frío de la Edge Function + envío a Expo). No frena
+ * nada (no se espera), y la base solo deja avisar una vez (reclamar_aviso): si se cortaba a los 8 s,
+ * los vecinos SÍ recibían el aviso pero A nunca veía «1 vecino puede ver dónde estás».
+ */
+const TIEMPO_AVISO_VECINOS = 45000;
+/** Contador de quién va: además de Realtime, se relee cada 10 s. */
+const RELEER_MS = 10000;
 
 export type EstadoNube = "inactiva" | "registrando" | "registrada" | "sin_conexion" | "no_disponible" | "limite";
 
@@ -116,7 +124,7 @@ export function useEmergenciaNube() {
         enlace.current = token ? urlVoyEnCamino(token) : null;
 
         if (creada.avisarVecinos) {
-          void conTiempoMaximo(avisarVecinos(creada.id, "inicio"))
+          void conTiempoMaximo(avisarVecinos(creada.id, "inicio"), TIEMPO_AVISO_VECINOS)
             .then(setVecinosAvisados)
             .catch(() => setVecinosAvisados(null));
         }
@@ -147,12 +155,17 @@ export function useEmergenciaNube() {
   }, []);
 
   const cerrar = useCallback(async () => {
+    // Si se cancela mientras la emergencia aún se registra, se espera a tener su id para cerrarla
+    // (si no, quedaba activa 2 h y los vecinos no veían «Esta emergencia ya terminó»).
+    if (!idRef.current && esperandoEnlace.current) {
+      await Promise.race([esperandoEnlace.current, new Promise((r) => setTimeout(r, 20000))]).catch(() => undefined);
+    }
     const id = idRef.current;
     if (!id) return;
     idRef.current = null;
     try {
       await conTiempoMaximo(cerrarEmergencia(id));
-      await conTiempoMaximo(avisarVecinos(id, "cierre")).catch(() => undefined);
+      await conTiempoMaximo(avisarVecinos(id, "cierre"), TIEMPO_AVISO_VECINOS).catch(() => undefined);
     } catch {
       // Si no se pudo, la base la cierra sola a las 2 horas.
     }
@@ -175,9 +188,9 @@ export function useEmergenciaNube() {
     try {
       dejar = escucharAyudaEnCamino(emergenciaId, leer);
     } catch {
-      // Sin Realtime, se relee cada 20 s.
+      // Sin Realtime, se relee cada 10 s.
     }
-    const intervalo = setInterval(leer, 20000);
+    const intervalo = setInterval(leer, RELEER_MS);
     return () => {
       activo = false;
       clearInterval(intervalo);

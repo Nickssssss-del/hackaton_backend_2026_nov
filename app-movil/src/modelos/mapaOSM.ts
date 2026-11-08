@@ -64,6 +64,9 @@ export function zoomParaVer(puntos: Coordenada[], radioM: number, ancho: number,
 export interface Tesela {
   clave: string;
   url: string;
+  z: number;
+  x: number;
+  y: number;
   izquierda: number;
   arriba: number;
 }
@@ -87,6 +90,9 @@ export function teselasVisibles(
       lista.push({
         clave: `${z}/${x}/${ty}`,
         url: urlTesela(plantilla, z, x, ty),
+        z,
+        x,
+        y: ty,
         izquierda: tx * TAMANO_TESELA - izq,
         arriba: ty * TAMANO_TESELA - arr,
       });

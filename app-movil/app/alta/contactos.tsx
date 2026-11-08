@@ -259,6 +259,7 @@ export default function AQuienLlamamos() {
             etiqueta="Celular"
             ayuda="987 654 321"
             teclado="phone-pad"
+            digitos={9}
             valor={formulario.telefono}
             onCambiar={(telefono) => setFormulario({ ...formulario, telefono })}
             maxLength={15}
