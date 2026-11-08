@@ -10,7 +10,7 @@ import { guardarContactosLocales, leerContactosLocales } from "../modelos/local/
 import { guardarPerfilLocal, leerPerfilLocal } from "../modelos/local/perfil";
 import { guardarEstadoRegistro, leerEstadoRegistro } from "../modelos/local/registro";
 import { guardarUltimaUbicacion } from "../modelos/local/ultimaUbicacion";
-import { guardarUbicacionNube } from "../modelos/perfilRepositorio";
+import { guardarPerfilNube, guardarUbicacionNube } from "../modelos/perfilRepositorio";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { guardarJson, leerJson, PREFIJO } from "../modelos/almacen";
 import { cancelarTodosLosAvisos } from "./recordatorios";
@@ -231,4 +231,27 @@ export async function cerrarSesionLocal(): Promise<void> {
 
 export async function completarRegistro(): Promise<void> {
   await guardarEstadoRegistro({ completo: true, completadoEn: new Date().toISOString() });
+}
+
+// ---------- A3.2 · ¿Cuál es tu barrio? (zonas del backend) ----------
+
+/** Después de A3.1: si el GPS no dejó zona (fuera de las zonas o sin señal), se elige de la lista. */
+export async function rutaTrasDireccion(): Promise<"/alta/zona" | "/alta/datos"> {
+  const perfil = await leerPerfil();
+  return perfil.zonaId ? "/alta/datos" : "/alta/zona";
+}
+
+/**
+ * Guarda la zona elegida de la lista (tabla zonas). Si las coordenadas del teléfono no caen en esa
+ * zona, la nube recibe solo la zona (validar_zona_perfil rechazaría coordenadas fuera de ella).
+ */
+export async function guardarZonaElegida(zonaId: string): Promise<void> {
+  await actualizarPerfil({ zonaId });
+  if (!tieneConfiguracionSupabase()) return;
+  try {
+    await asegurarSesionAnonima();
+    await guardarPerfilNube(await leerPerfil());
+  } catch {
+    // Se reintenta al publicar o pedir ayuda.
+  }
 }

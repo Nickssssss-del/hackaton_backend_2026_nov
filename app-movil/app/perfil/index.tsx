@@ -71,7 +71,7 @@ export default function MisDatos() {
     <Pantalla
       titulo="Mis datos"
       volver
-      textoEscuchar={`Mis datos. Tamaño de letra: ${TAMANOS_LETRA[prefs.tamano].etiqueta}. Modo oscuro: ${prefs.oscuro ? "sí" : "no"}. Avisar si salgo de casa: ${prefs.avisarAlSalir ? "sí" : "no"}. Vecinos cerca me ven si pido ayuda: ${prefs.visibleParaVecinos ? "sí" : "no"}. También puedes cambiar tu dirección, tus contactos, lo que te pasa y el modo.`}
+      textoEscuchar={`Mis datos. Tamaño de letra: ${TAMANOS_LETRA[prefs.tamano].etiqueta}. Modo oscuro: ${prefs.oscuro ? "sí" : "no"}. Avisar si salgo de casa: ${prefs.avisarAlSalir ? "sí" : "no"}. Detectar caídas: ${prefs.detectarCaidas ? "sí" : "no"}. Vecinos cerca me ven si pido ayuda: ${prefs.visibleParaVecinos ? "sí" : "no"}. También puedes cambiar tu dirección, tus contactos, lo que te pasa y el modo.`}
     >
       <Texto variante="etiqueta">Tamaño de letra</Texto>
       <View style={estilos.tamanos} accessibilityRole="radiogroup" accessibilityLabel="Tamaño de letra">
@@ -110,6 +110,7 @@ export default function MisDatos() {
       <InterruptorSiNo etiqueta="Modo oscuro" valor={prefs.oscuro} onCambiar={prefs.setOscuro} />
       <InterruptorSiNo etiqueta="Avisar si salgo de casa" valor={prefs.avisarAlSalir} onCambiar={cambiarAvisoSalida} />
       {avisoSalida ? <Mensaje tono="aviso">{avisoSalida}</Mensaje> : null}
+      <InterruptorSiNo etiqueta="Detectar caídas" valor={prefs.detectarCaidas} onCambiar={prefs.setDetectarCaidas} />
       <InterruptorSiNo
         etiqueta="Vecinos cerca me ven si pido ayuda"
         valor={prefs.visibleParaVecinos}
@@ -142,6 +143,12 @@ export default function MisDatos() {
         titulo="Mi dirección"
         subtitulo="Calle, número y ubicación"
         onPress={() => router.push({ pathname: "/alta/direccion", params: { editar: "1" } })}
+      />
+      <TarjetaAcceso
+        icono="home-city-outline"
+        titulo="Mi barrio"
+        subtitulo="Para ver servicios y vecinos"
+        onPress={() => router.push({ pathname: "/alta/zona", params: { editar: "1" } })}
       />
       <TarjetaAcceso
         icono="account-heart-outline"

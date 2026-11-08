@@ -138,3 +138,22 @@ Con `expo-image-picker` (~58.0.10): «Tomar foto» o «Mis fotos», recorte 4:3 
 ## D-19 · «Avisar si salgo de casa» con geocerca
 
 Al activar el interruptor (A5 o B3) se pide la ubicación «Todo el tiempo» y se crea una geocerca de 150 m alrededor de la casa (`expo-location` + `expo-task-manager` ~58.0.13). Al salir llega una notificación local, como máximo una cada 30 min; al tocarla, `/salida` abre Mensajes para las personas de confianza con la hora y la ubicación. La persona toca Enviar. Nada sale del teléfono hacia Supabase. Requiere `ACCESS_BACKGROUND_LOCATION` (`isAndroidBackgroundLocationEnabled` en `app.json`); Google Play revisa este permiso si algún día se publica allí.
+
+## D-20 · Emergencia por caída (Mockup v4, p. 26)
+
+`expo-sensors` (~58.0.4). Con la app abierta, el acelerómetro busca caída libre (< 0,4 g por 80 ms o más), golpe (> 2,5 g antes de 1,5 s) y quietud (2 s cerca de 1 g). Si se cumplen las tres, abre G1 (`/sos?caida=1`) con «Parece que te caíste». Está activado por defecto y se apaga en Mis datos › «Detectar caídas». No corre durante el registro ni dentro de la emergencia, y espera 1 minuto entre detecciones. Con la app cerrada no funciona: haría falta un servicio en primer plano. La lógica está en `src/modelos/detectorCaida.ts` (probada con series simuladas).
+
+## D-21 · Elegir el barrio de la lista (tabla `zonas`)
+
+A3.2 `/alta/zona` («¿Cuál es tu barrio?») muestra las zonas de la base y marca «Estás aquí» si la ubicación cae en una. Aparece en el registro cuando el GPS no dejó zona, y desde Mis datos › Mi barrio. Si las coordenadas no caen en la zona elegida, a la nube va solo la zona (`validar_zona_perfil`). Servicios, Comunidad y Ayuda muestran «Elegir mi barrio» si falta.
+
+## D-22 · Mapa de OpenStreetMap en la alerta vecinal (G3)
+
+`MapaOSM` dibuja teselas de `tile.openstreetmap.org`, con User-Agent propio y la atribución «© OpenStreetMap», sin librería nativa ni clave. Antes de «Voy a ayudar», `ver_alerta` no entrega la ubicación: se ve tu punto y un anillo a la distancia aproximada. Después, `voy_a_ayudar` revela la ubicación: tu punto, el de la persona (late) y el camino punteado, además de la dirección. Sin internet se usa el mapa dibujado.
+
+## D-23 · Fidelidad al Mockup v4
+
+- D1 es un chat: burbujas con historial (las últimas 6), botones dentro de la respuesta y, abajo, teclado y «Toca y habla», que envía al terminar de hablar. La confirmación del recordatorio usa el texto del mockup.
+- F3 sigue el orden del mockup: foto (recuadro punteado), «¿Qué quieres contar?», «¿De qué se trata?», y en el botón «Falta foto o mensaje y la categoría».
+- E4: «Mis vecinos pueden verlo» empieza en No y Publicar dice «Falta aceptar», como en el mockup. Al editar, ponerlo en No oculta el negocio (`visible_vecinos`). Reemplaza la parte de D-15 que lo hacía opcional al publicar.
+- G2: la franja verde dice quién puede ver dónde estás con datos reales, por ejemplo «Ana, Jorge y 3 vecinos pueden ver dónde estás».

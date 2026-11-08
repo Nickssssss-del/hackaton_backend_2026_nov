@@ -1,6 +1,8 @@
 /**
  * Vista. G3 · Alerta vecinal real (Mockup v4, p. 25). Se abre al tocar el aviso push
  * «Un vecino necesita ayuda a X m» (Edge Function alerta-vecinos), con `emergencia`.
+ * - Mapa de OpenStreetMap (MapaOSM): primero tu punto y un anillo a la distancia aproximada
+ *   (ver_alerta no entrega la ubicación); tras «Voy a ayudar», tu punto, el de la persona y el camino.
  * - Primero solo la distancia y cuántos van (ver_alerta): sin nombre ni dirección.
  * - «Voy a ayudar»: si la base lo permite, muestra nombre y dirección, «Cómo llegar» y el contador.
  * - «Llamar 106» abre el marcador. «No puedo» sale; si ya iba, avisa «Ya no puedo ir».
@@ -11,6 +13,7 @@ import { Linking, StyleSheet, View } from "react-native";
 import { useAlertaVecinal } from "../../src/controladores/useAlertaVecinal";
 import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { Icono } from "../../src/vistas/componentes/Icono";
+import { MapaOSM, type PuntoMapa } from "../../src/vistas/componentes/MapaOSM";
 import { Mensaje } from "../../src/vistas/componentes/Mensaje";
 import { Pantalla } from "../../src/vistas/componentes/Pantalla";
 import { Texto } from "../../src/vistas/componentes/Texto";
@@ -120,6 +123,31 @@ export default function AlertaVecinal() {
         </View>
       </View>
 
+      {a.yo ? (
+        <MapaOSM
+          puntos={[
+            { ...a.yo, tipo: "yo" } as PuntoMapa,
+            ...(a.fase === "voy" && r?.lat !== undefined && r?.lng !== undefined
+              ? [{ lat: r.lat, lng: r.lng, tipo: "ayuda" } as PuntoMapa]
+              : []),
+          ]}
+          anilloM={a.fase === "voy" && r?.lat !== undefined ? undefined : distancia}
+          descripcion={
+            a.fase === "voy" && r?.lat !== undefined
+              ? `Mapa: tú y ${r.nombre ?? "la persona"}, a ${distancia !== undefined ? distanciaLegible(distancia) : "poca distancia"}.`
+              : `Mapa: tú al centro. La persona está a ${distancia !== undefined ? distanciaLegible(distancia) : "poca distancia"}, en algún punto del círculo rojo.`
+          }
+        />
+      ) : null}
+      {a.yo && a.fase !== "voy" && distancia !== undefined ? (
+        <Texto variante="ayuda" color={c.textoSecundario}>Está en algún punto del círculo rojo. Al tocar «Voy a ayudar» verás el lugar exacto.</Texto>
+      ) : null}
+      {a.fase === "voy" && r?.direccion ? (
+        <View style={[estilos.chip, { backgroundColor: c.accionSuave }]}>
+          <Texto variante="etiqueta" color={c.accionTexto}>{r.direccion}</Texto>
+        </View>
+      ) : null}
+
       {a.fase === "cargando" ? <Texto variante="ayuda">Buscando dónde es…</Texto> : null}
       {a.fase === "sin_ubicacion" ? (
         <Mensaje tono="aviso">No pude saber dónde estás. Activa la ubicación y vuelve a abrir el aviso.</Mensaje>
@@ -159,4 +187,5 @@ const estilos = StyleSheet.create({
   circuloBlanco: { width: 64, height: 64, borderRadius: 32, backgroundColor: "#FFFFFF", alignItems: "center", justifyContent: "center" },
   franja: { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: RADIO.l, padding: 14, minHeight: 64 },
   datos: { borderWidth: 1.5, borderRadius: RADIO.l, padding: 14, gap: 8 },
+  chip: { alignSelf: "flex-start", borderRadius: RADIO.m, paddingHorizontal: 12, paddingVertical: 6 },
 });

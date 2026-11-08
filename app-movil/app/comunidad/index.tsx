@@ -66,7 +66,14 @@ export default function Comunidad() {
         })}
       </View>
 
-      {lista.sinZona ? <Mensaje tono="aviso">Para ver la comunidad de tu barrio, primero marca dónde vives en Mis datos.</Mensaje> : null}
+      {lista.sinZona ? (
+        <>
+          <Mensaje tono="aviso">Para ver la comunidad de tu barrio, primero elige tu barrio.</Mensaje>
+          <BotonPrincipal variante="tocar" icono="home-city-outline" onPress={() => router.push({ pathname: "/alta/zona", params: { editar: "1" } })}>
+            Elegir mi barrio
+          </BotonPrincipal>
+        </>
+      ) : null}
       {lista.error ? <Mensaje tono="aviso">{lista.error}</Mensaje> : null}
       {voy.error ? <Mensaje tono="aviso">{voy.error}</Mensaje> : null}
       {lista.cargando ? <Texto variante="ayuda">Buscando novedades de tu barrio…</Texto> : null}

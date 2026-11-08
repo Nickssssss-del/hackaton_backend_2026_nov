@@ -9,7 +9,7 @@ import { guardarJson, leerJson } from "../modelos/almacen";
 import { crearPedido } from "../modelos/pedidosRepositorio";
 import { leerContactosLocales } from "../modelos/local/contactos";
 import { leerPerfilLocal } from "../modelos/local/perfil";
-import { nuevoId } from "../modelos/local/pastillas";
+import { horaLegible, nuevoId } from "../modelos/local/pastillas";
 import { leerUltimaUbicacion } from "../modelos/local/ultimaUbicacion";
 import { preguntar, type RespuestaPreguntale, type ServicioEncontrado } from "../modelos/preguntaleRepositorio";
 import { asegurarSesionAnonima } from "../modelos/supabase";
@@ -24,6 +24,16 @@ import { useEscuchar } from "./useEscuchar";
 const CLAVE_ACEPTO = "preguntale_acepto";
 const CATEGORIAS: readonly CategoriaPedido[] = ["arreglos", "compras", "transporte", "salud", "desastre_natural", "apoyo"];
 
+/** Una burbuja del chat (Mockup v4, p. 15): lo que dijo la persona o la respuesta de Vecinos. */
+export interface MensajeChat {
+  id: string;
+  de: "yo" | "vecinos";
+  texto: string;
+  respuesta?: RespuestaPreguntale;
+  /** Sin internet o con error: se muestran los botones de siempre. */
+  conBotonesBase?: boolean;
+}
+
 export interface LlamadaPosible {
   etiqueta: string;
   telefono: string;
@@ -37,6 +47,10 @@ export function usePreguntale() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hecho, setHecho] = useState<string | null>(null);
+  const [mensajes, setMensajes] = useState<MensajeChat[]>([]);
+  const agregar = useCallback((m: Omit<MensajeChat, "id">) => {
+    setMensajes((lista) => [...lista, { ...m, id: `${Date.now()}-${lista.length}` }]);
+  }, []);
 
   useEffect(() => {
     void leerJson<boolean>(CLAVE_ACEPTO, false).then(setAceptado);
@@ -58,6 +72,7 @@ export function usePreguntale() {
         setError("Dime o escribe qué necesitas.");
         return;
       }
+      agregar({ de: "yo", texto: limpio });
       if (limpio.length > 300) {
         setError("Dilo de nuevo, más corto.");
         return;
@@ -65,11 +80,14 @@ export function usePreguntale() {
       const faltaServidor = sinBase();
       if (faltaServidor) {
         setError(faltaServidor);
+        agregar({ de: "vecinos", texto: faltaServidor, conBotonesBase: true });
         return;
       }
       if (conexion === "sin internet") {
-        setError("Necesito internet para responderte. Mientras tanto, usa los botones de abajo.");
+        const texto = "Necesito internet para responderte. Mientras tanto, elige una opción.";
+        setError(texto);
         setRespuesta(null);
+        agregar({ de: "vecinos", texto, conBotonesBase: true });
         return;
       }
       setCargando(true);
@@ -83,15 +101,18 @@ export function usePreguntale() {
           zonaId: perfil?.zonaId,
         });
         setRespuesta(r);
+        agregar({ de: "vecinos", texto: r.texto, respuesta: r });
         hablar(r.texto);
       } catch (causa) {
         setRespuesta(null);
-        setError(mensajeDeError(causa, "general"));
+        const texto = mensajeDeError(causa, "general");
+        setError(texto);
+        agregar({ de: "vecinos", texto, conBotonesBase: true });
       } finally {
         setCargando(false);
       }
     },
-    [conexion, hablar],
+    [conexion, hablar, agregar],
   );
 
   /** crear_recordatorio, ya confirmado: una pastilla o aviso diario a esa hora (INC-21: todo es diario). */
@@ -110,13 +131,15 @@ export function usePreguntale() {
       hora,
       aviso: { sonido: true, voz: true, vibracion: true },
     });
+    // Texto del Mockup v4 (p. 15): «Listo. Te aviso a las 8:00 p. m. con sonido y voz.»
     const mensaje = args.repetir === "una_vez"
-      ? `Listo. Te aviso a las ${hora}. Se repetirá cada día; puedes quitarlo en Pastillas.`
-      : `Listo. Te aviso cada día a las ${hora}.`;
+      ? `Listo. Te aviso a las ${horaLegible(hora)} con sonido y voz. Se repetirá cada día; puedes quitarlo en Pastillas.`
+      : `Listo. Te aviso a las ${horaLegible(hora)} con sonido y voz.`;
     setHecho(mensaje);
+    agregar({ de: "vecinos", texto: mensaje, respuesta: { texto: mensaje, funcion: "ver_mi_horario", argumentos: {}, confirmar: false, servicios: [], botones: [] } });
     hablar(mensaje);
     return true;
-  }, [hablar]);
+  }, [hablar, agregar]);
 
   /** pedir_ayuda, ya confirmado. Devuelve "celular" si primero hay que pedir el celular. */
   const guardarPedido = useCallback(async (args: Record<string, unknown>): Promise<"ok" | "celular" | "error"> => {
@@ -127,7 +150,7 @@ export function usePreguntale() {
     const falta = await faltaParaEscribir();
     if (falta === "celular") return "celular";
     if (falta === "registro") {
-      setError("Primero marca dónde vives: Mis datos › Mi dirección.");
+      setError("Primero elige tu barrio: Mis datos › Mi barrio.");
       return "error";
     }
     const problema = await escribir(conexion !== "sin internet", () => crearPedido({ categoria, descripcion }));
@@ -137,9 +160,10 @@ export function usePreguntale() {
     }
     const mensaje = "Listo. Tus vecinos ya ven tu pedido.";
     setHecho(mensaje);
+    agregar({ de: "vecinos", texto: mensaje });
     hablar(mensaje);
     return "ok";
-  }, [conexion, hablar]);
+  }, [conexion, hablar, agregar]);
 
   /** llamar: a quién se puede llamar según lo pedido. Nunca marca: la vista muestra un botón. */
   const resolverLlamada = useCallback(async (args: Record<string, unknown>, servicios: ServicioEncontrado[]): Promise<LlamadaPosible[]> => {
@@ -161,6 +185,7 @@ export function usePreguntale() {
   return {
     aceptado,
     aceptar,
+    mensajes,
     respuesta,
     cargando,
     error,
@@ -174,6 +199,7 @@ export function usePreguntale() {
       setRespuesta(null);
       setError(null);
       setHecho(null);
+      setMensajes([]);
     },
   };
 }
