@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "615822252947",
+    "project_id": "kuna---hackathon",
+    "storage_bucket": "kuna---hackathon.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:615822252947:android:1a306587638491bc9a6666",
+        "android_client_info": {
+          "package_name": "com.melllfer.proyectobarrio"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgJijuiJnYRWU5LwduQNVSAAe6la2e6ec"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
