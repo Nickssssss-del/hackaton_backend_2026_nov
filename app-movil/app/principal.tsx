@@ -79,9 +79,19 @@ export default function Principal() {
         </View>
         <View style={estilos.saludo}>
           <Texto variante="titulo" accessibilityRole="header">{saludo}</Texto>
-          <Pressable accessibilityRole="button" accessibilityLabel="Mis datos" onPress={ir("/perfil")} style={estilos.enlace} hitSlop={8}>
-            <Texto variante="etiqueta" color={c.accionTexto}>Mis datos</Texto>
-            <Icono nombre="chevron-right" color={c.accionTexto} tamano={22} />
+          {/* Botón (no enlace con flecha): se ve que se puede tocar y entra rápido a Mis datos. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mis datos"
+            onPress={ir("/perfil")}
+            style={({ pressed }) => [
+              estilos.botonDatos,
+              { backgroundColor: c.accion, opacity: pressed ? 0.85 : 1 },
+            ]}
+            hitSlop={6}
+          >
+            <Icono nombre="account-cog-outline" color={c.sobreColor} tamano={24} />
+            <Texto variante="etiqueta" color={c.sobreColor} ajustar>Mis datos</Texto>
           </Pressable>
         </View>
       </View>
@@ -189,7 +199,16 @@ function BotonRapido({ icono, texto, etiqueta, onPress, ancho = "tercio" }: {
 const estilos = StyleSheet.create({
   cabecera: { flexDirection: "row", alignItems: "center", gap: 10 },
   saludo: { flex: 1 },
-  enlace: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", minHeight: 36 },
+  botonDatos: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 8,
+    minHeight: ALTO_TACTIL,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    marginTop: 4,
+  },
   rapidos: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   rapido: {
     flexGrow: 1,

@@ -2,7 +2,7 @@
  * Vista. C2 · Nueva pastilla (Mockup v4, p. 13).
  * «Dímelo con tu voz» completa los campos (sin internet, ver interpretarPastilla.ts).
  * ¿Qué pastilla? · ¿Cuántas? (− / +, en medios) · ¿A qué hora? (Mañana/Tarde/Noche + − / + de 30 min)
- * · Te aviso con: Sonido, Voz, Vibración. «Guardar» programa el aviso diario y vuelve a C1.
+ * · Te aviso con: Sonido, Voz o Vibración (se elige UNA, pedido del equipo). «Guardar» programa el aviso diario y vuelve a C1.
  */
 import { router } from "expo-router";
 import { useCallback, useState } from "react";
@@ -50,7 +50,7 @@ export default function NuevaPastilla() {
   const [nombre, setNombre] = useState("");
   const [cantidad, setCantidad] = useState(1);
   const [hora, setHora] = useState(HORA_POR_FRANJA.tarde);
-  const [aviso, setAviso] = useState<AvisoPastilla>({ sonido: true, voz: true, vibracion: true });
+  const [aviso, setAviso] = useState<AvisoPastilla>({ sonido: true, voz: false, vibracion: false });
   const [mensaje, setMensaje] = useState<{ tono: "info" | "aviso"; texto: string } | null>(null);
   const [guardando, setGuardando] = useState(false);
 
@@ -144,16 +144,16 @@ export default function NuevaPastilla() {
       />
 
       <View style={estilos.avisos}>
-        <Texto variante="etiqueta">Te aviso con:</Texto>
+        <Texto variante="etiqueta">Te aviso con (elige uno):</Texto>
         {AVISOS.map(({ clave, etiqueta }) => {
           const activo = aviso[clave];
           return (
             <Pressable
               key={clave}
-              accessibilityRole="checkbox"
-              accessibilityState={{ checked: activo }}
+              accessibilityRole="radio"
+              accessibilityState={{ selected: activo }}
               accessibilityLabel={etiqueta}
-              onPress={() => setAviso((a) => ({ ...a, [clave]: !a[clave] }))}
+              onPress={() => setAviso({ sonido: clave === "sonido", voz: clave === "voz", vibracion: clave === "vibracion" })}
               style={[
                 estilos.chip,
                 { backgroundColor: activo ? c.aviso : c.superficie, borderColor: activo ? c.avisoBorde : c.borde },

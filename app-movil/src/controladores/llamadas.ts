@@ -25,6 +25,22 @@ export function esNumeroDeEmergencia(numero: string): boolean {
   return limpiar(numero).length <= 4;
 }
 
+/** Solo mira si ya hay permiso, sin preguntar (para no frenar la llamada en plena emergencia). */
+export async function tienePermisoLlamar(): Promise<boolean> {
+  if (Platform.OS !== "android" || !lanzador) return false;
+  try {
+    return await PermissionsAndroid.check(PermissionsAndroid.PERMISSIONS.CALL_PHONE);
+  } catch {
+    return false;
+  }
+}
+
+/** Abre los Ajustes de la app para que la persona active «Teléfono» si antes dijo «Ahora no». */
+export function abrirAjustesDeLaApp(): void {
+  void Linking.openSettings().catch(() => undefined);
+}
+
+/** Pregunta el permiso (se usa en G1 «¿Estás bien?», ANTES de que haga falta llamar). */
 export async function permisoLlamarDirecto(): Promise<boolean> {
   if (Platform.OS !== "android" || !lanzador) return false;
   try {
@@ -44,7 +60,8 @@ export async function permisoLlamarDirecto(): Promise<boolean> {
 
 export async function llamar(numero: string): Promise<ResultadoLlamada> {
   const tel = `tel:${limpiar(numero)}`;
-  if (!esNumeroDeEmergencia(numero) && lanzador && (await permisoLlamarDirecto())) {
+  // Solo se mira el permiso: si la persona dijo «Ahora no», va directo al marcador sin preguntar otra vez.
+  if (!esNumeroDeEmergencia(numero) && lanzador && (await tienePermisoLlamar())) {
     try {
       // No se espera: la promesa recién se resuelve cuando la persona vuelve a la app.
       void lanzador.startActivityAsync("android.intent.action.CALL", { data: tel }).catch(() => undefined);

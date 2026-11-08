@@ -107,7 +107,13 @@ export default function AyudaCerca() {
             posicion
               ? [
                   { tipo: "yo", lat: posicion.lat, lng: posicion.lng, etiqueta: "Tú" },
-                  ...cercanos.map((l) => ({ tipo: "vecino" as const, lat: l.lat, lng: l.lng, etiqueta: l.nombre })),
+                  ...cercanos.map((l) => ({
+                    tipo: "vecino" as const,
+                    lat: l.lat,
+                    lng: l.lng,
+                    etiqueta: l.nombre,
+                    color: colorIcono(ESTILO[l.tipo].color, tema.oscuro).icono,
+                  })),
                 ]
               : []
           }

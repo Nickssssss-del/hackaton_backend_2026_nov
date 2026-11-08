@@ -10,6 +10,7 @@
  */
 import * as Speech from "expo-speech";
 import { useCallback, useState } from "react";
+import { Platform, Vibration } from "react-native";
 import { usePreferencias } from "./PreferenciasContexto";
 
 const PREFERIDAS = ["es-pe", "es-419", "es-us", "es-mx", "es-co", "es-cl", "es-ar", "es-es"];
@@ -45,6 +46,8 @@ async function elegirVoz(): Promise<{ identificador?: string; idioma: string }> 
 export async function decir(texto: string, opciones: { fuerte?: boolean; alTerminar?: () => void } = {}): Promise<void> {
   const voz = await elegirVoz();
   Speech.stop();
+  // «Oigo poco» (B4): los avisos importantes (voz fuerte) también vibran, por si no se oye.
+  if (opciones.fuerte && siempreFuerte && Platform.OS !== "web") Vibration.vibrate([0, 500, 250, 500]);
   Speech.speak(texto, {
     language: voz.idioma,
     voice: voz.identificador,

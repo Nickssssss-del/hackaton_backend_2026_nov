@@ -6,13 +6,24 @@
 export const TAMANO_TESELA = 256;
 export const URL_TESELAS = "https://tile.openstreetmap.org";
 /**
- * Proveedores de teselas, en orden. Las de tile.openstreetmap.org suelen bloquear apps (403), por
- * eso primero va CARTO (datos de OpenStreetMap, uso libre con atribución) y OSM queda de respaldo.
+ * Proveedores de teselas, en orden; `plantilla` lleva {z}, {x} e {y}.
+ * 1. Esri World Street Map: sin clave, pensado para apps (atribución «© Esri»).
+ * 2. OpenStreetMap: suele bloquear apps (403) aunque se mande User-Agent; queda de respaldo.
+ * 3. CARTO Voyager: desde 2026 pide clave gratis; sin ella puede salir una marca de agua.
+ * Si ninguno carga, la vista dibuja un mapa sencillo y los puntos igual se ven.
  */
-export const PROVEEDORES_TESELAS: readonly { base: string; atribucion: string }[] = [
-  { base: "https://basemaps.cartocdn.com/rastertiles/voyager", atribucion: "© OpenStreetMap · © CARTO" },
-  { base: URL_TESELAS, atribucion: "© OpenStreetMap" },
+export const PROVEEDORES_TESELAS: readonly { plantilla: string; atribucion: string }[] = [
+  {
+    plantilla: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    atribucion: "© Esri · OpenStreetMap y otros",
+  },
+  { plantilla: `${URL_TESELAS}/{z}/{x}/{y}.png`, atribucion: "© OpenStreetMap" },
+  { plantilla: "https://basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png", atribucion: "© OpenStreetMap · © CARTO" },
 ];
+
+export function urlTesela(plantilla: string, z: number, x: number, y: number): string {
+  return plantilla.replace("{z}", String(z)).replace("{x}", String(x)).replace("{y}", String(y));
+}
 
 export interface Coordenada {
   lat: number;
@@ -63,7 +74,7 @@ export function teselasVisibles(
   z: number,
   ancho: number,
   alto: number,
-  base: string = PROVEEDORES_TESELAS[0].base,
+  plantilla: string = PROVEEDORES_TESELAS[0].plantilla,
 ): Tesela[] {
   const izq = centro.x - ancho / 2;
   const arr = centro.y - alto / 2;
@@ -75,7 +86,7 @@ export function teselasVisibles(
       const x = ((tx % max) + max) % max;
       lista.push({
         clave: `${z}/${x}/${ty}`,
-        url: `${base}/${z}/${x}/${ty}.png`,
+        url: urlTesela(plantilla, z, x, ty),
         izquierda: tx * TAMANO_TESELA - izq,
         arriba: ty * TAMANO_TESELA - arr,
       });

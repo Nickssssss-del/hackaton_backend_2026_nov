@@ -11,10 +11,10 @@
  */
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Vibration, View } from "react-native";
+import { Animated, Easing, Platform, Pressable, StyleSheet, Vibration, View } from "react-native";
 import { leerPerfil } from "../../src/controladores/registroVecinos";
 import { useEmergencia } from "../../src/controladores/useEmergencia";
-import { permisoLlamarDirecto } from "../../src/controladores/llamadas";
+import { llamar, permisoLlamarDirecto } from "../../src/controladores/llamadas";
 import { useEscuchar } from "../../src/controladores/useEscuchar";
 import { useRespuestaPorVoz } from "../../src/controladores/useRespuestaPorVoz";
 import { aQuienLlamamos } from "../../src/modelos/cascadaEmergencia";
@@ -127,7 +127,7 @@ export default function EstasBien() {
     Vibration.cancel();
     setPausado(nombre);
     if (demo === "1") return;
-    void Linking.openURL(`tel:${numero}`).catch(() => undefined);
+    void llamar(numero);
   };
 
   const rotacion = giro.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });

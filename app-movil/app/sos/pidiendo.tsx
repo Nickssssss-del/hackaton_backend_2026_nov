@@ -19,7 +19,7 @@
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, AppState, Platform, Pressable, StyleSheet, View } from "react-native";
-import { llamar as llamarNumero } from "../../src/controladores/llamadas";
+import { abrirAjustesDeLaApp, llamar as llamarNumero } from "../../src/controladores/llamadas";
 import { postaMasCercana } from "../../src/controladores/useLugaresCercanos";
 import { useEmergencia } from "../../src/controladores/useEmergencia";
 import { useEmergenciaNube } from "../../src/controladores/useEmergenciaNube";
@@ -58,6 +58,8 @@ export default function PidiendoAyuda() {
   const [smsAbiertos, setSmsAbiertos] = useState<number[]>([]);
   const ubicacionAbierta = smsAbiertos.length > 0;
   const [aviso, setAviso] = useState<string | null>(null);
+  // La llamada a una persona abrió el marcador (no hay permiso de llamar): se ofrece activarlo.
+  const [sinPermiso, setSinPermiso] = useState(false);
   const [vueltaDemo, setVueltaDemo] = useState(0);
   const llamadoPara = useRef<string | null>(null);
   const faseRef = useRef<Fase>(null);
@@ -114,6 +116,10 @@ export default function PidiendoAyuda() {
     const r = await llamarNumero(paso.telefono);
     if (r === "error") setAviso(`No se pudo abrir el teléfono. Marca tú el ${paso.telefono}.`);
     if (r === "marcador" && paso.tipo === "servicio") setAviso(`Toca el botón verde del teléfono para llamar al ${paso.telefono}.`);
+    if (r === "marcador" && paso.tipo !== "servicio" && Platform.OS === "android") {
+      setSinPermiso(true);
+      setAviso(`Toca el botón verde del teléfono para llamar a ${paso.titulo}.`);
+    }
     // En la web no se sale de la app: se pregunta enseguida.
     if (r === "error" || Platform.OS === "web") {
       setFase("pregunta");
@@ -125,7 +131,9 @@ export default function PidiendoAyuda() {
   useEffect(() => {
     if (esDemo || !actual || llamadoPara.current === actual.id) return;
     llamadoPara.current = actual.id;
-    void escuchar(`Llamando a ${actual.titulo}.`, true);
+    // La llamada sale YA. La voz solo habla si hay que tocar el botón verde (105/116/106):
+    // así no se mezcla con el audio de la llamada.
+    if (actual.tipo === "servicio") void escuchar(`Toca el botón verde para llamar a ${actual.titulo}.`, true, true);
     void llamarActual(actual);
   }, [esDemo, actual, llamarActual, escuchar]);
 
@@ -158,7 +166,7 @@ export default function PidiendoAyuda() {
     const accion = accionDemo(actual);
     const t = setTimeout(() => {
       setPasos((p) => (accion === "viene" ? viene(p) : noContesto(p)));
-      if (accion === "viene") void escuchar(`${actual.titulo} viene en camino.`, true);
+      if (accion === "viene") void escuchar(`${actual.titulo} viene en camino.`, true, true);
     }, 2500);
     return () => clearTimeout(t);
   }, [esDemo, actual, escuchar]);
@@ -270,6 +278,13 @@ export default function PidiendoAyuda() {
         <Icono nombre="chevron-right" tamano={28} color={c.confirmado} />
       </Pressable>
       {aviso ? <Mensaje tono="aviso">{aviso}</Mensaje> : null}
+      {sinPermiso ? (
+        <Pressable accessibilityRole="button" onPress={abrirAjustesDeLaApp} style={estilos.enlace}>
+          <Texto variante="etiqueta" color={c.accion} style={estilos.subrayado}>
+            Para que llame sola la próxima vez: Ajustes › Permisos › Teléfono › Permitir
+          </Texto>
+        </Pressable>
+      ) : null}
       <Pressable accessibilityRole="button" onPress={() => router.push("/sos/cerca")} style={[estilos.franja, { backgroundColor: c.accionSuave }]}>
         <Icono nombre="radar" tamano={28} color={c.accionTexto} />
         <Texto variante="etiqueta" color={c.accionTexto} style={{ flex: 1 }}>Postas, bomberos y policía cerca (2 km)</Texto>

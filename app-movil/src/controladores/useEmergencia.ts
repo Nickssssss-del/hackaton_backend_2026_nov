@@ -1,5 +1,5 @@
+import { llamar as llamarNumero } from "./llamadas";
 import * as Location from "expo-location";
-import * as Linking from "expo-linking";
 import * as SMS from "expo-sms";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import baseIncluida from "../../assets/emergencia/base.json";
@@ -238,8 +238,9 @@ export function useEmergencia() {
     return { estado: "mensaje_listo", mensaje: texto, telefonos, smsDisponible };
   }, [brigada, contactos]);
 
+  // Directo si hay permiso CALL_PHONE; si no (o 105/116/106), el marcador con el número listo.
   const llamar = useCallback(async (telefono: string) => {
-    await Linking.openURL(`tel:${telefono.replace(/[^\d+]/g, "")}`);
+    await llamarNumero(telefono);
   }, []);
 
   const puntoSeguro = useCallback(async (): Promise<PuntoSeguroCercano | null> => {

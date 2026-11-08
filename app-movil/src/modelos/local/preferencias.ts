@@ -59,7 +59,15 @@ export async function leerPreferenciasCompletas(): Promise<PreferenciasCompletas
 }
 
 /** Guarda solo los campos recibidos y conserva el resto. */
-export async function guardarPreferencias(cambios: Preferencias): Promise<void> {
+// Los guardados van en fila: dos cambios seguidos (p. ej. letra y caídas) no se pisan entre sí.
+let enFila: Promise<void> = Promise.resolve();
+
+export function guardarPreferencias(cambios: Preferencias): Promise<void> {
+  enFila = enFila.then(() => guardarAhora(cambios), () => guardarAhora(cambios));
+  return enFila;
+}
+
+async function guardarAhora(cambios: Preferencias): Promise<void> {
   const actuales = await leerPreferencias();
   const nuevas: Preferencias = { ...actuales, ...cambios };
   if (cambios.tema !== undefined && cambios.oscuro === undefined) {

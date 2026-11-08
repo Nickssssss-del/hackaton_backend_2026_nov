@@ -1,7 +1,7 @@
 /**
  * Vista. Mapa de OpenStreetMap con puntos (G3 alerta vecinal, Mockup v4 p. 25).
- * - Teselas de tile.openstreetmap.org (con User-Agent propio, como pide su política) y la
- *   atribución «© OpenStreetMap». Sin librería nativa de mapas ni clave.
+ * - Teselas de Esri (sin clave); si no cargan en 8 s o fallan, OpenStreetMap y luego CARTO
+ *   (modelos/mapaOSM.ts). Siempre con su atribución. Sin librería nativa de mapas ni clave.
  * - Puntos: «Tú» (azul), la persona que pide ayuda (rojo, late) y otros puntos opcionales.
  * - Línea punteada de «Tú» a la persona, y un anillo opcional con la distancia aproximada
  *   (antes de «Voy a ayudar» la base no entrega la ubicación exacta).
@@ -19,6 +19,8 @@ const CABECERAS = { "User-Agent": "Vecinos/1.0 (app comunitaria, Hackaton UTP 20
 export interface PuntoMapa extends Coordenada {
   tipo: "yo" | "ayuda" | "vecino";
   etiqueta?: string;
+  /** Color del punto (p. ej. el de cada tipo de lugar en «Ayuda cerca de ti»). */
+  color?: string;
 }
 
 type Props = {
@@ -32,7 +34,8 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
   const { tema } = useTema();
   const [ancho, setAncho] = useState(0);
   const [fallos, setFallos] = useState(0);
-  // 0 = CARTO, 1 = OpenStreetMap; si los dos fallan, el mapa dibujado.
+  const [cargadas, setCargadas] = useState(0);
+  // Índice en PROVEEDORES_TESELAS (Esri → OSM → CARTO); si todos fallan, el mapa dibujado.
   const [proveedor, setProveedor] = useState(0);
   const fuente = PROVEEDORES_TESELAS[Math.min(proveedor, PROVEEDORES_TESELAS.length - 1)];
   const pulso = useRef(new Animated.Value(0)).current;
@@ -54,19 +57,30 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
     };
     const local = (p: { x: number; y: number }) => ({ left: p.x - centro.x + ancho / 2, top: p.y - centro.y + alto / 2 });
     return {
-      teselas: teselasVisibles(centro, z, ancho, alto, fuente.base),
+      teselas: teselasVisibles(centro, z, ancho, alto, fuente.plantilla),
       marcas: puntos.map((p, k) => ({ ...p, ...local(px[k]) })),
       anilloPx: anilloM ? anilloM / metrosPorPixel(puntos[0].lat, z) : 0,
     };
-  }, [ancho, alto, puntos, anilloM, fuente.base]);
+  }, [ancho, alto, puntos, anilloM, fuente.plantilla]);
 
   const muchosFallos = vista ? fallos >= Math.max(1, Math.ceil(vista.teselas.length / 2)) : false;
   useEffect(() => {
     if (muchosFallos && proveedor < PROVEEDORES_TESELAS.length) {
       setProveedor((p) => p + 1);
       setFallos(0);
+      setCargadas(0);
     }
   }, [muchosFallos, proveedor]);
+  // Si en 8 s no cargó ninguna tesela (red lenta o servidor que no responde), se prueba el siguiente.
+  const hayVista = Boolean(vista);
+  useEffect(() => {
+    if (!hayVista || cargadas > 0 || proveedor >= PROVEEDORES_TESELAS.length) return;
+    const t = setTimeout(() => {
+      setProveedor((p) => p + 1);
+      setFallos(0);
+    }, 8000);
+    return () => clearTimeout(t);
+  }, [hayVista, cargadas, proveedor]);
   const sinTeselas = proveedor >= PROVEEDORES_TESELAS.length || muchosFallos;
   const yo = vista?.marcas.find((m) => m.tipo === "yo");
   const ayuda = vista?.marcas.find((m) => m.tipo === "ayuda");
@@ -86,7 +100,8 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
       accessibilityRole="image"
       accessibilityLabel={descripcion}
     >
-      {!vista || sinTeselas ? <FondoDibujado oscuro={tema.oscuro} /> : null}
+      {/* Siempre debajo: mientras cargan las teselas (o si no cargan) se ve un mapa sencillo, no un hueco. */}
+      <FondoDibujado oscuro={tema.oscuro} />
       {ancho > 0 && puntos.length === 0 ? (
         <View style={estilos.sinUbicacion} pointerEvents="none">
           <Texto variante="etiqueta" centrado>Aún no tengo la ubicación. Activa el GPS del teléfono.</Texto>
@@ -95,8 +110,9 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
       {vista && !sinTeselas
         ? vista.teselas.map((t) => (
             <Image
-              key={t.clave}
+              key={`${proveedor}-${t.clave}`}
               source={{ uri: t.url, headers: CABECERAS }}
+              onLoad={() => setCargadas((n) => n + 1)}
               onError={() => setFallos((f) => f + 1)}
               style={[estilos.tesela, { left: t.izquierda, top: t.arriba }]}
             />
@@ -141,7 +157,7 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
           </View>
         ) : (
           <View key={k} style={[estilos.marcaChica, { left: m.left - 11, top: m.top - 11 }]} pointerEvents="none">
-            <View style={[estilos.puntoChico, { backgroundColor: m.tipo === "yo" ? "#1F4E9C" : "#186B3A" }]} />
+            <View style={[estilos.puntoChico, { backgroundColor: m.color ?? (m.tipo === "yo" ? "#1F4E9C" : "#186B3A") }]} />
             {m.tipo === "yo" ? (
               <Texto variante="etiqueta" style={estilos.etiquetaTu} color="#1F4E9C">
                 {m.etiqueta ?? "Tú"}

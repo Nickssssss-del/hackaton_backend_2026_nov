@@ -10,12 +10,15 @@ import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { Opciones } from "../../src/vistas/componentes/Opciones";
 import { Pantalla } from "../../src/vistas/componentes/Pantalla";
 import { SITUACIONES } from "../../src/vistas/componentes/estiloSituaciones";
-import { ajustarVozPorSituaciones } from "../../src/controladores/useEscuchar";
+import { aplicarSituaciones } from "../../src/controladores/efectosSituaciones";
+import { usePreferencias } from "../../src/controladores/PreferenciasContexto";
+import { EfectosSituaciones } from "../../src/vistas/componentes/EfectosSituaciones";
 
 
 export default function AlgoTePasa() {
   const [seleccion, setSeleccion] = useState<Situacion[]>([]);
   const [guardando, setGuardando] = useState(false);
+  const prefs = usePreferencias();
 
   useEffect(() => {
     void leerSituaciones().then(setSeleccion);
@@ -31,8 +34,8 @@ export default function AlgoTePasa() {
 
   const guardar = async () => {
     setGuardando(true);
-    ajustarVozPorSituaciones(seleccion);
     await guardarSituaciones(seleccion);
+    await aplicarSituaciones(seleccion, prefs);
     setGuardando(false);
     router.back();
   };
@@ -57,6 +60,7 @@ export default function AlgoTePasa() {
         seleccion={seleccion}
         onCambiar={cambiar}
       />
+      <EfectosSituaciones seleccion={seleccion} />
     </Pantalla>
   );
 }

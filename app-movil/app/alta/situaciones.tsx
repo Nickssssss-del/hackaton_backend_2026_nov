@@ -6,7 +6,9 @@
  */
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
-import { ajustarVozPorSituaciones } from "../../src/controladores/useEscuchar";
+import { aplicarSituaciones } from "../../src/controladores/efectosSituaciones";
+import { usePreferencias } from "../../src/controladores/PreferenciasContexto";
+import { EfectosSituaciones } from "../../src/vistas/componentes/EfectosSituaciones";
 import { alternarSituacion, guardarSituaciones, leerSituaciones, type Situacion } from "../../src/modelos/local/situaciones";
 import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { SITUACIONES } from "../../src/vistas/componentes/estiloSituaciones";
@@ -18,6 +20,7 @@ import { Texto } from "../../src/vistas/componentes/Texto";
 export default function AltaSituaciones() {
   const [seleccion, setSeleccion] = useState<Situacion[]>([]);
   const [guardando, setGuardando] = useState(false);
+  const prefs = usePreferencias();
 
   useEffect(() => {
     void leerSituaciones().then(setSeleccion);
@@ -30,8 +33,8 @@ export default function AltaSituaciones() {
 
   const seguir = async () => {
     setGuardando(true);
-    ajustarVozPorSituaciones(seleccion);
     await guardarSituaciones(seleccion);
+    await aplicarSituaciones(seleccion, prefs);
     setGuardando(false);
     router.push("/alta/listo");
   };
@@ -63,6 +66,7 @@ export default function AltaSituaciones() {
         seleccion={seleccion}
         onCambiar={cambiar}
       />
+      <EfectosSituaciones seleccion={seleccion} />
     </Pantalla>
   );
 }

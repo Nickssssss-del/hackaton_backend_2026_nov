@@ -1,5 +1,5 @@
 /**
- * Vista. Grupo de opciones (Mujer/Hombre/No decir, Mañana/Tarde/Noche, filtros, categorías).
+ * Vista. Grupo de opciones (Mujer/Hombre, Mañana/Tarde/Noche, filtros, categorías).
  * Selección única o múltiple. La opción elegida se marca con color y borde, no solo con color.
  */
 import { Pressable, StyleSheet, View } from "react-native";
