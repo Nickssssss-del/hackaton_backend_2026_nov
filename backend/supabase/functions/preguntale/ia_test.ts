@@ -1,7 +1,7 @@
 // Pruebas sin red de llamarIA(): fetch es un doble que responde como Groq.
 // Correr: deno test backend/supabase/functions/preguntale/
 import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1";
-import { llamarIA, llamarIAConRespaldo, URL_POR_DEFECTO } from "./ia.ts";
+import { codigoDeError, llamarIA, llamarIAConRespaldo, URL_POR_DEFECTO } from "./ia.ts";
 
 function respuestaGroq(cuerpo: unknown, status = 200): Response {
   return new Response(JSON.stringify(cuerpo), { status, headers: { "Content-Type": "application/json" } });
@@ -198,4 +198,46 @@ Deno.test("con respaldo: si las dos fallan, se lanza el error del respaldo", asy
     "IA_HTTP_502",
   );
   assertEquals(llamadas.length, 2);
+});
+
+// --- Esquemas compatibles con Gemini y código de error seguro ---
+
+Deno.test("los esquemas enviados no llevan maxLength (Gemini lo rechaza)", async () => {
+  let body = "";
+  const enviar = (_u: string | URL | Request, i?: RequestInit) => {
+    body = i?.body as string;
+    return Promise.resolve(respuestaGroq({ choices: [{ message: { content: "Hola." } }] }));
+  };
+  await llamarIA("hola", { apiKey: "k", modelo: "m", url: URL_POR_DEFECTO, enviar });
+
+  assert(!JSON.stringify(JSON.parse(body).tools).includes('"maxLength":'), "el body no debe tener maxLength");
+  // El resto del esquema se conserva.
+  const pedir = JSON.parse(body).tools.find((t: { function: { name: string } }) => t.function.name === "pedir_ayuda");
+  assertEquals(pedir.function.parameters.properties.descripcion.type, "string");
+  assertEquals(pedir.function.parameters.required, ["categoria"]);
+});
+
+Deno.test("una herramienta sin propiedades se envía sin parameters; las demás lo conservan", async () => {
+  let body = "";
+  const enviar = (_u: string | URL | Request, i?: RequestInit) => {
+    body = i?.body as string;
+    return Promise.resolve(respuestaGroq({ choices: [{ message: { content: "Hola." } }] }));
+  };
+  await llamarIA("hola", { apiKey: "k", modelo: "m", url: URL_POR_DEFECTO, enviar });
+
+  const tools: { function: { name: string; parameters?: { type: string } } }[] = JSON.parse(body).tools;
+  const horario = tools.find((t) => t.function.name === "ver_mi_horario")!;
+  assertEquals("parameters" in horario.function, false);
+  assertEquals(Object.keys(horario.function).sort(), ["description", "name"]);
+  for (const t of tools.filter((t) => t.function.name !== "ver_mi_horario")) {
+    assertEquals(t.function.parameters?.type, "object", t.function.name);
+  }
+});
+
+Deno.test("codigoDeError devuelve solo un código, nunca el mensaje con URL o texto", () => {
+  assertEquals(codigoDeError(new Error("IA_HTTP_400")), "IA_HTTP_400");
+  assertEquals(codigoDeError(new DOMException("Signal timed out.", "TimeoutError")), "TimeoutError");
+  assertEquals(codigoDeError(new TypeError("error sending request for url (https://principal.test/v1)")), "TypeError");
+  assertEquals(codigoDeError(new Error("busca un gasfitero en Calle Lima")), "Error");
+  assertEquals(codigoDeError("algo raro"), "desconocido");
 });

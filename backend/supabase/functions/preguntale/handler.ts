@@ -10,6 +10,7 @@ import {
   validarLlamada,
   validarTexto,
 } from "./herramientas.ts";
+import { codigoDeError } from "./ia.ts";
 
 export interface LlamadaIA {
   nombre: unknown;
@@ -114,7 +115,7 @@ export function crearHandler(deps: Dependencias) {
       llamada = await deps.llamarIA(entrada.texto);
     } catch (error) {
       // Nunca se registra el texto ni la ubicación de quien pregunta.
-      console.error("preguntale: IA_NO_DISPONIBLE", error instanceof Error ? error.name : typeof error);
+      console.error("preguntale: IA_NO_DISPONIBLE", codigoDeError(error));
       return json(200, noEntiende(NO_PUDE));
     }
 

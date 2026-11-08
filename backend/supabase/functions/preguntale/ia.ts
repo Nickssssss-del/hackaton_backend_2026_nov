@@ -12,21 +12,30 @@ const SISTEMA =
   "Las horas van en formato de 24 horas: las 8 de la noche son 20:00. " +
   "Si lo que pide no encaja con ninguna herramienta, no llames ninguna y responde con una frase corta.";
 
-// Groq puede rechazar pattern y format en los esquemas; se quitan solo aquí.
-// La validación real (hora HH:MM, uuid) la sigue haciendo validarLlamada en herramientas.ts.
-function sinPatternNiFormat(valor: unknown): unknown {
-  if (Array.isArray(valor)) return valor.map(sinPatternNiFormat);
+// Groq y Gemini (compatible con OpenAI) pueden rechazar pattern, format y maxLength; se quitan solo
+// en lo que se envía. La validación real (hora HH:MM, uuid, largos) la sigue haciendo validarLlamada
+// en herramientas.ts. Ninguna propiedad de las herramientas se llama así, por eso basta filtrar claves.
+const SIN_ENVIAR = new Set(["pattern", "format", "maxLength"]);
+
+function esquemaParaEnviar(valor: unknown): unknown {
+  if (Array.isArray(valor)) return valor.map(esquemaParaEnviar);
   if (typeof valor !== "object" || valor === null) return valor;
   return Object.fromEntries(
     Object.entries(valor)
-      .filter(([clave]) => clave !== "pattern" && clave !== "format")
-      .map(([clave, v]) => [clave, sinPatternNiFormat(v)]),
+      .filter(([clave]) => !SIN_ENVIAR.has(clave))
+      .map(([clave, v]) => [clave, esquemaParaEnviar(v)]),
   );
 }
 
+// Sin propiedades (ver_mi_horario) se omite parameters: es opcional en OpenAI y en Gemini
+// (FunctionDeclaration.parameters: «Optional», https://aistudio.google.com/api-reference/caching).
 const TOOLS = HERRAMIENTAS.map((h) => ({
   type: "function",
-  function: { name: h.nombre, description: h.descripcion, parameters: sinPatternNiFormat(h.parametros) },
+  function: {
+    name: h.nombre,
+    description: h.descripcion,
+    ...(Object.keys(h.parametros.properties).length > 0 ? { parameters: esquemaParaEnviar(h.parametros) } : {}),
+  },
 }));
 
 interface Opciones {
@@ -97,8 +106,8 @@ export function respaldoDesdeEntorno(): Proveedor | null {
   return apiKey && modelo && url ? { apiKey, modelo, url } : null;
 }
 
-/** Solo un código: nunca el mensaje entero, que puede traer URLs u otros datos. */
-function codigoDeError(error: unknown): string {
+/** Solo un código: nunca el mensaje entero, que puede traer URLs u otros datos. Lo usa también handler.ts. */
+export function codigoDeError(error: unknown): string {
   if (!(error instanceof Error)) return "desconocido";
   return /^[A-Z][A-Z0-9_]*$/.test(error.message) ? error.message : error.name;
 }

@@ -116,7 +116,9 @@ Confirmado en la documentación oficial de Google: https://aistudio.google.com/d
 - **Modelo:** el ejemplo oficial usa `gemini-3.8-flash`.
 - **Advertencia de la página:** el soporte de las librerías de OpenAI «todavía está en beta».
 
-**Sin verificar:** si Gemini acepta todas las palabras de los esquemas que envía `llamarIA()` (por ejemplo `enum` y `maxLength`; `pattern` y `format` ya se quitan). Hay que probar una llamada real antes de la demo. Si el proveedor rechaza la petición, la función responde «No pude responder ahora».
+**Esquemas que se envían:** `llamarIA()` quita `pattern`, `format` y `maxLength`, porque Gemini rechazaba las herramientas con ellos, y omite `parameters` en las herramientas sin propiedades (`ver_mi_horario`). La referencia oficial marca `FunctionDeclaration.parameters` como opcional (https://aistudio.google.com/api-reference/caching). La validación real sigue en `herramientas.ts`, sin cambios.
+
+**Sin verificar:** una llamada real a Gemini y a Groq con estos esquemas, por ejemplo con `enum`. Hay que probarla antes de la demo. Si el proveedor rechaza la petición, la función responde «No pude responder ahora».
 
 ## Estructura y comandos
 
