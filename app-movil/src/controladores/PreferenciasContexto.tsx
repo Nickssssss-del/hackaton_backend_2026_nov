@@ -1,48 +1,90 @@
 /**
- * Contexto de preferencias globales (sonidos, etc.).
- * Evita pasar props por toda la app.
+ * Controlador. Preferencias globales: tamaño de letra, modo oscuro, modo de uso y sonidos.
+ * Se cargan antes de mostrar la primera pantalla y se guardan al cambiar (AsyncStorage).
  */
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { leerPreferencias } from "../modelos/local/preferencias";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  guardarPreferencias,
+  leerPreferenciasCompletas,
+  type ModoUso,
+  type PreferenciasCompletas,
+  type TamanoLetra,
+} from "../modelos/local/preferencias";
 
-interface PreferenciasContextoType {
-  sonidos: boolean;
-  setSonidos: (activar: boolean) => void;
+const ORDEN_TAMANOS: TamanoLetra[] = ["normal", "grande", "enorme"];
+
+interface PreferenciasContextoTipo extends PreferenciasCompletas {
   cargando: boolean;
+  setTamano: (tamano: TamanoLetra) => void;
+  /** Botón Aa: Normal → Grande → Enorme → Normal. */
+  siguienteTamano: () => void;
+  setOscuro: (activar: boolean) => void;
+  setModo: (modo: ModoUso) => void;
+  setSonidos: (activar: boolean) => void;
 }
 
-const PreferenciasContexto = createContext<PreferenciasContextoType>({
+const VALORES_INICIALES: PreferenciasCompletas = {
+  tamano: "normal",
+  oscuro: false,
+  modo: null,
   sonidos: true,
-  setSonidos: () => {},
+};
+
+const PreferenciasContexto = createContext<PreferenciasContextoTipo>({
+  ...VALORES_INICIALES,
   cargando: true,
+  setTamano: () => undefined,
+  siguienteTamano: () => undefined,
+  setOscuro: () => undefined,
+  setModo: () => undefined,
+  setSonidos: () => undefined,
 });
 
 export function PreferenciasProveedor({ children }: { children: ReactNode }) {
-  const [sonidos, setSonidosState] = useState(true);
+  const [valores, setValores] = useState<PreferenciasCompletas>(VALORES_INICIALES);
   const [cargando, setCargando] = useState(true);
 
   useEffect(() => {
     let activo = true;
-    leerPreferencias().then((p) => {
-      if (activo) {
-        setSonidosState(p.sonidos ?? true);
-        setCargando(false);
-      }
-    });
-    return () => { activo = false; };
+    leerPreferenciasCompletas()
+      .then((p) => {
+        if (activo) setValores(p);
+      })
+      .finally(() => {
+        if (activo) setCargando(false);
+      });
+    return () => {
+      activo = false;
+    };
   }, []);
 
-  const setSonidos = async (activar: boolean) => {
-    setSonidosState(activar);
-    const { guardarPreferencias } = await import("../modelos/local/preferencias");
-    await guardarPreferencias({ sonidos: activar });
-  };
+  const actualizar = useCallback((cambios: Partial<PreferenciasCompletas>) => {
+    setValores((previos) => ({ ...previos, ...cambios }));
+    void guardarPreferencias({
+      ...(cambios.tamano !== undefined ? { tamano: cambios.tamano } : {}),
+      ...(cambios.oscuro !== undefined ? { oscuro: cambios.oscuro, tema: cambios.oscuro ? "oscuro" : "claro" } : {}),
+      ...(cambios.modo ? { modo: cambios.modo } : {}),
+      ...(cambios.sonidos !== undefined ? { sonidos: cambios.sonidos } : {}),
+    });
+  }, []);
 
-  return (
-    <PreferenciasContexto.Provider value={{ sonidos, setSonidos, cargando }}>
-      {children}
-    </PreferenciasContexto.Provider>
+  const valor = useMemo<PreferenciasContextoTipo>(
+    () => ({
+      ...valores,
+      cargando,
+      setTamano: (tamano) => actualizar({ tamano }),
+      siguienteTamano: () => {
+        const i = ORDEN_TAMANOS.indexOf(valores.tamano);
+        actualizar({ tamano: ORDEN_TAMANOS[(i + 1) % ORDEN_TAMANOS.length] });
+      },
+      setOscuro: (oscuro) => actualizar({ oscuro }),
+      setModo: (modo) => actualizar({ modo }),
+      setSonidos: (sonidos) => actualizar({ sonidos }),
+    }),
+    [valores, cargando, actualizar],
   );
+
+  return <PreferenciasContexto.Provider value={valor}>{children}</PreferenciasContexto.Provider>;
 }
 
 export function usePreferencias() {

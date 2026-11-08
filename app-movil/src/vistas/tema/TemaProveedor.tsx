@@ -1,31 +1,44 @@
-import { createContext, useMemo, useRef, useState, type ReactNode } from "react";
-import { temas, type TemaNombre, type TokensTema } from "./tokens";
+/**
+ * Vista. Tema derivado de las preferencias (oscuro y tamaño de letra).
+ * La emergencia fuerza su propio tema y al salir vuelve a las preferencias.
+ */
+import { createContext, useCallback, useMemo, useState, type ReactNode } from "react";
+import { usePreferencias } from "../../controladores/PreferenciasContexto";
+import { crearTema, type TemaNombre, type TokensTema } from "./tokens";
 
 export const TemaContext = createContext<{
   tema: TokensTema;
+  /** Compatibilidad con pantallas anteriores: "oscuro" o "claro" cambia la preferencia guardada. */
   cambiarTema: (nombre: TemaNombre) => void;
   activarEmergencia: () => void;
   salirEmergencia: () => void;
 }>({
-  tema: temas.claro,
+  tema: crearTema("claro", false, "normal"),
   cambiarTema: () => undefined,
   activarEmergencia: () => undefined,
   salirEmergencia: () => undefined,
 });
 
 export function TemaProveedor({ children }: { children: ReactNode }) {
-  const [nombre, setNombre] = useState<TemaNombre>("claro");
-  const anterior = useRef<TemaNombre>("claro");
-  const activarEmergencia = () => {
-    anterior.current = nombre === "emergencia" ? anterior.current : nombre;
-    setNombre("emergencia");
-  };
-  const salirEmergencia = () => {
-    setNombre(anterior.current === "emergencia" ? "claro" : anterior.current);
-  };
+  const { oscuro, tamano, setOscuro } = usePreferencias();
+  const [enEmergencia, setEnEmergencia] = useState(false);
+
+  const cambiarTema = useCallback(
+    (nombre: TemaNombre) => {
+      if (nombre === "emergencia") setEnEmergencia(true);
+      else setOscuro(nombre === "oscuro");
+    },
+    [setOscuro],
+  );
+
   const valor = useMemo(
-    () => ({ tema: temas[nombre], cambiarTema: setNombre, activarEmergencia, salirEmergencia }),
-    [nombre],
+    () => ({
+      tema: crearTema(enEmergencia ? "emergencia" : oscuro ? "oscuro" : "claro", oscuro, tamano),
+      cambiarTema,
+      activarEmergencia: () => setEnEmergencia(true),
+      salirEmergencia: () => setEnEmergencia(false),
+    }),
+    [enEmergencia, oscuro, tamano, cambiarTema],
   );
   return <TemaContext.Provider value={valor}>{children}</TemaContext.Provider>;
 }

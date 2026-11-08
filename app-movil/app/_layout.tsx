@@ -5,10 +5,12 @@ import { SplashScreen, Stack } from "expo-router";
 import { ProveedorConsulta } from "../src/controladores/ProveedorConsulta";
 import { useSesion } from "../src/controladores/useSesion";
 import { TemaProveedor } from "../src/vistas/tema/TemaProveedor";
-import { PreferenciasProveedor } from "../src/controladores/PreferenciasContexto";
+import { PreferenciasProveedor, usePreferencias } from "../src/controladores/PreferenciasContexto";
+import { useTema } from "../src/vistas/tema/useTema";
 import { useFonts } from "expo-font";
 import { AtkinsonHyperlegible_400Regular, AtkinsonHyperlegible_700Bold } from "@expo-google-fonts/atkinson-hyperlegible";
-import { useEffect } from "react";
+import { StatusBar } from "expo-status-bar";
+import { useEffect, type ReactNode } from "react";
 
 export default function DisenoRaiz() {
   useSesion();
@@ -17,16 +19,42 @@ export default function DisenoRaiz() {
     AtkinsonHyperlegible_700Bold,
   });
 
-  useEffect(() => {
-    if (fuentesCargadas) void SplashScreen.hideAsync();
-  }, [fuentesCargadas]);
-
   if (!fuentesCargadas) return null;
   return (
-    <TemaProveedor>
-      <PreferenciasProveedor>
-        <ProveedorConsulta>
-          <Stack>
+    <PreferenciasProveedor>
+      <TemaProveedor>
+        <EsperarPreferencias>
+          <ProveedorConsulta>
+            <Pantallas />
+          </ProveedorConsulta>
+        </EsperarPreferencias>
+      </TemaProveedor>
+    </PreferenciasProveedor>
+  );
+}
+
+/** No muestra nada hasta tener letra y tema guardados, para evitar un parpadeo claro → oscuro. */
+function EsperarPreferencias({ children }: { children: ReactNode }) {
+  const { cargando } = usePreferencias();
+  useEffect(() => {
+    if (!cargando) void SplashScreen.hideAsync();
+  }, [cargando]);
+  if (cargando) return null;
+  return <>{children}</>;
+}
+
+function Pantallas() {
+  const { tema } = useTema();
+  return (
+    <>
+      <StatusBar style={tema.oscuro ? "light" : "dark"} />
+          <Stack
+            screenOptions={{
+              contentStyle: { backgroundColor: tema.colores.fondo },
+              headerStyle: { backgroundColor: tema.colores.superficie },
+              headerTintColor: tema.colores.texto,
+            }}
+          >
           <Stack.Screen name="index" options={{ title: "Vecinos" }} />
           <Stack.Screen name="servicio/[id]" options={{ title: "Servicio" }} />
           <Stack.Screen name="publicar" options={{ title: "Publicar servicio" }} />
@@ -41,9 +69,8 @@ export default function DisenoRaiz() {
           <Stack.Screen name="inicio" options={{ headerShown: false }} />
           <Stack.Screen name="buscar" options={{ title: "Buscar servicios" }} />
           <Stack.Screen name="mis-datos" options={{ title: "Mis datos" }} />
+          <Stack.Screen name="dev/catalogo" options={{ headerShown: false }} />
           </Stack>
-        </ProveedorConsulta>
-      </PreferenciasProveedor>
-    </TemaProveedor>
+    </>
   );
 }
