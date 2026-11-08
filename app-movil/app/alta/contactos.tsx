@@ -10,6 +10,7 @@
  *   (el aviso con GPS en segundo plano aún no está construido; INC-07).
  * Contactos y preferencia: solo en el teléfono.
  */
+// El controlador es TSX en este proyecto, aunque no contiene JSX utilizable aquí.
 import { activarAvisoSalida, desactivarAvisoSalida, mensajeSalida } from "../../src/controladores/salidaDeCasa";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
