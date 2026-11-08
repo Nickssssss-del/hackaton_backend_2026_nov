@@ -29,7 +29,8 @@
       ]
     ],
     "android": {
-      "package": "com.melllfer.proyectobarrio"
+      "package": "com.melllfer.proyectobarrio",
+      "googleServicesFile": "./google-services.json"
     }
   }
 }
