@@ -239,7 +239,7 @@ if ($Apk) {
   Terminar 0
 }
 if ($SoloServidor) {
-  Paso "7. Servidor (la app ya está instalada). Abre 'Proyecto Barrio' en el dispositivo."
+  Paso "7. Servidor (la app ya está instalada). Abre 'Kuna' en el dispositivo."
   Write-Host "  Para detener: Ctrl + C"
   Write-Host "  Si en el teléfono aparece la pantalla de Expo, toca 'http://localhost:8081' o escríbelo."
   npx expo start --dev-client --localhost 2>&1 | Out-Host
@@ -250,7 +250,7 @@ if ($Limpiar) {
   Push-Location android; .\gradlew.bat clean 2>&1 | Out-Host; Pop-Location
 }
 Paso "7. Compilar, instalar y abrir (la primera vez: 10-30 minutos)"
-Write-Host "  Al terminar, la app 'Proyecto Barrio' se abre sola. Deja esta ventana abierta: es el servidor."
+Write-Host "  Al terminar, la app 'Kuna' se abre sola. Deja esta ventana abierta: es el servidor."
 Write-Host "  Para detener: Ctrl + C"
 # "| Out-Host" hace que la salida de Gradle quede también en el registro.
 npx expo run:android 2>&1 | Out-Host
