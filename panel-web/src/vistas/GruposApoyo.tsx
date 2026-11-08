@@ -14,7 +14,7 @@ export function GruposApoyo() {
         Grupos de apoyo
       </h2>
       <p className="mt-1 text-stone-700">
-        Los vecinos ven la marca «Verificado» en los grupos que confirmó el equipo.
+        Grupos de ayuda entre vecinos. La marca «Verificado» aparece en los que confirmó el equipo.
       </p>
 
       <Mensajes cargando={cargando} error={error} aviso={aviso} onRecargar={() => void recargar()} />

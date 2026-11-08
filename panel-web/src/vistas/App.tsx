@@ -7,13 +7,17 @@ import { Acceso } from "./Acceso";
 import { Bloqueos } from "./Bloqueos";
 import { ComunidadOculta } from "./ComunidadOculta";
 import { EmergenciasActivas } from "./EmergenciasActivas";
+import { EmergenciasCerradas } from "./EmergenciasCerradas";
 import { GruposApoyo } from "./GruposApoyo";
+import { Resumen } from "./Resumen";
 import { ServiciosOcultos } from "./ServiciosOcultos";
 
 const PANTALLAS = [
+  { id: "resumen", titulo: "Resumen del día", Vista: Resumen },
   { id: "ocultos", titulo: "Servicios ocultos", Vista: ServiciosOcultos },
   { id: "grupos", titulo: "Grupos de apoyo", Vista: GruposApoyo },
   { id: "emergencias", titulo: "Emergencias activas", Vista: EmergenciasActivas },
+  { id: "cerradas", titulo: "Emergencias cerradas", Vista: EmergenciasCerradas },
   { id: "comunidad", titulo: "Comunidad oculta", Vista: ComunidadOculta },
   { id: "bloqueos", titulo: "Bloqueos", Vista: Bloqueos },
 ] as const;
@@ -22,7 +26,7 @@ type Pantalla = (typeof PANTALLAS)[number]["id"];
 
 export function App() {
   const sesion = useSesion();
-  const [pantalla, setPantalla] = useState<Pantalla>("ocultos");
+  const [pantalla, setPantalla] = useState<Pantalla>("resumen");
 
   if (sesion.estado === "cargando") {
     return <p className="p-6 text-stone-600">Cargando…</p>;

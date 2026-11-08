@@ -55,6 +55,34 @@ export async function idDeLaSesion(): Promise<string | null> {
   return data.user?.id ?? null;
 }
 
+/**
+ * Igual que public.nombre_corto: un solo nombre se deja entero;
+ * con apellido, primer nombre e inicial («Ana Q.»). Vacío o nulo no tiene corto.
+ */
+export function nombreCorto(nombre: string | null): string | null {
+  if (nombre == null) return null;
+  const recortado = nombre.replace(/^ +| +$/g, "");
+  if (recortado === "") return null;
+  const segunda = recortado.split(" ")[1] ?? "";
+  if (segunda === "") return recortado;
+  const inicial = (recortado.replace(/\s+/g, " ").split(" ")[1] ?? "").slice(0, 1).toUpperCase();
+  return `${recortado.split(" ")[0]} ${inicial}.`;
+}
+
+/** Solo id y nombre. El celular y la zona no salen de la base. */
+export async function nombresCortos(ids: string[]): Promise<Map<string, string>> {
+  const unicos = [...new Set(ids)];
+  if (unicos.length === 0) return new Map();
+  const { data, error } = await cliente().from("perfiles").select("id, nombre").in("id", unicos);
+  if (error) throw error;
+  const mapa = new Map<string, string>();
+  for (const fila of (data ?? []) as { id: string; nombre: string | null }[]) {
+    const corto = nombreCorto(fila.nombre);
+    if (corto) mapa.set(fila.id, corto);
+  }
+  return mapa;
+}
+
 /** Ids de los usuarios bloqueados, para marcar «bloqueado» en otras pantallas. */
 export async function listarIdsBloqueados(): Promise<Set<string>> {
   const { data, error } = await cliente().from("bloqueos").select("user_id");

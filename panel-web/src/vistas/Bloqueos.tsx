@@ -7,14 +7,22 @@ import { fecha, idCorto, motivoComunidad } from "./etiquetas";
 import { FormularioBloqueo } from "./FormularioBloqueo";
 import { Mensajes } from "./Mensajes";
 
+/** El mismo idCorto que Emergencias cerradas, y el nombre corto al lado si la base lo devolvió. */
+function etiqueta(id: string, nombres: Map<string, string>): string {
+  const identificador = idCorto(id);
+  const corto = nombres.get(id);
+  return corto ? `${corto} · ${identificador}` : identificador;
+}
+
 export function Bloqueos() {
   const b = useBloqueos();
   const [bloqueando, setBloqueando] = useState<string | null>(null);
   const ocupado = b.enCurso !== null;
   const listo = !b.cargando && !b.error;
+  const personaDe = (id: string) => etiqueta(id, b.nombres);
 
   const confirmarDesbloqueo = (userId: string) => {
-    if (window.confirm(`¿Desbloquear a ${idCorto(userId)}? Podrá volver a usar la app.`)) void b.quitarBloqueo(userId);
+    if (window.confirm(`¿Desbloquear a ${personaDe(userId)}? Podrá volver a usar la app.`)) void b.quitarBloqueo(userId);
   };
 
   const confirmarDescarte = (id: string) => {
@@ -32,6 +40,11 @@ export function Bloqueos() {
       </p>
 
       <Mensajes cargando={b.cargando} error={b.error} aviso={b.aviso} onRecargar={() => void b.recargar()} />
+      {b.sinNombres ? (
+        <p className="mt-3 rounded-xl bg-stone-100 p-4">
+          No se pudieron leer los nombres. Se muestra solo el identificador.
+        </p>
+      ) : null}
 
       <h3 className="mt-6 text-lg font-semibold">Usuarios bloqueados</h3>
       {listo && b.bloqueos.length === 0 ? <p className="mt-3 rounded-xl bg-stone-100 p-4">No hay bloqueos.</p> : null}
@@ -42,12 +55,12 @@ export function Bloqueos() {
             className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white p-4"
           >
             <div>
-              <h4 className="font-semibold">{idCorto(bloqueo.user_id)}</h4>
+              <h4 className="font-semibold">{personaDe(bloqueo.user_id)}</h4>
               {bloqueo.motivo ? <p>{bloqueo.motivo}</p> : null}
               <p className="text-sm text-stone-600">
                 {fecha(bloqueo.creado_en)}
                 {bloqueo.creado_por
-                  ? ` · bloqueado por ${bloqueo.creado_por === b.miId ? "ti" : idCorto(bloqueo.creado_por)}`
+                  ? ` · bloqueado por ${bloqueo.creado_por === b.miId ? "ti" : personaDe(bloqueo.creado_por)}`
                   : ""}
               </p>
             </div>
@@ -55,7 +68,7 @@ export function Bloqueos() {
               type="button"
               disabled={ocupado}
               onClick={() => confirmarDesbloqueo(bloqueo.user_id)}
-              aria-label={`Desbloquear a ${idCorto(bloqueo.user_id)}`}
+              aria-label={`Desbloquear a ${personaDe(bloqueo.user_id)}`}
               className="rounded-lg border border-stone-400 px-4 py-2 font-medium disabled:opacity-60"
             >
               {b.enCurso === bloqueo.user_id ? "Guardando…" : "Desbloquear"}
@@ -72,7 +85,7 @@ export function Bloqueos() {
       <ul className="mt-3 space-y-3">
         {b.reportes.map((reporte) => {
           const yaBloqueado = b.bloqueados.has(reporte.usuario_id);
-          const persona = idCorto(reporte.usuario_id);
+          const persona = personaDe(reporte.usuario_id);
           return (
             <li key={reporte.id} className="rounded-xl border border-stone-200 bg-white p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
