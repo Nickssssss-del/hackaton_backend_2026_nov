@@ -67,6 +67,7 @@ function Pantallas() {
           <Stack.Screen name="pronto" options={{ headerShown: false }} />
           <Stack.Screen name="pastillas" options={{ headerShown: false }} />
           <Stack.Screen name="ayuda-vecinos" options={{ headerShown: false }} />
+          <Stack.Screen name="servicios" options={{ headerShown: false }} />
           <Stack.Screen name="sos" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="servicio/[id]" options={{ title: "Servicio" }} />
           <Stack.Screen name="publicar" options={{ title: "Publicar servicio" }} />

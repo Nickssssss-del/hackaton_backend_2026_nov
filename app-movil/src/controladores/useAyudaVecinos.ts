@@ -49,7 +49,12 @@ export function sinBase(): string | null {
   return tieneConfiguracionSupabase() ? null : "Esta copia de la app no está conectada al servidor. Pídele al equipo el archivo .env.";
 }
 
-async function escribir(internetReal: boolean, ejecutar: () => Promise<void>): Promise<string | null> {
+/**
+ * Escribe en la base con el perfil guardado en el teléfono (leído al momento, así toma el celular
+ * recién escrito). Devuelve un mensaje honesto si no se pudo; null si salió bien.
+ * Lo usan también Servicios (E3 visto bueno, E4 publicar).
+ */
+export async function escribir(internetReal: boolean, ejecutar: () => Promise<void>): Promise<string | null> {
   const faltaServidor = sinBase();
   if (faltaServidor) return faltaServidor;
   const perfil = await leerPerfilLocal();

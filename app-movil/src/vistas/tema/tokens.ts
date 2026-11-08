@@ -127,10 +127,12 @@ export const ALTO_BOTON_PRINCIPAL = 60;
  * Mi negocio verde azulado, Ayuda vecinal rojo…). En oscuro, el ícono se aclara y el fondo
  * del círculo se oscurece para mantener contraste.
  */
-export type ColorIcono = "azul" | "naranja" | "morado" | "turquesa" | "rojo" | "verde" | "gris";
+export type ColorIcono = "azul" | "naranja" | "amarillo" | "morado" | "turquesa" | "rojo" | "verde" | "gris";
 
 const ICONO_CLARO: Record<ColorIcono, { icono: string; fondo: string }> = {
   azul: { icono: "#1F4E9C", fondo: "#E6EEF9" },
+  // Panaderías y vistos buenos (Mockup v4, pp. 16–18): fondo amarillo con ícono marrón dorado.
+  amarillo: { icono: "#9A5B0F", fondo: "#FFF1C2" },
   naranja: { icono: "#C2701F", fondo: "#FBEBDC" },
   morado: { icono: "#7A52B3", fondo: "#EFE8F7" },
   turquesa: { icono: "#186868", fondo: "#DFF0EF" },
@@ -141,6 +143,7 @@ const ICONO_CLARO: Record<ColorIcono, { icono: string; fondo: string }> = {
 
 const ICONO_OSCURO: Record<ColorIcono, { icono: string; fondo: string }> = {
   azul: { icono: "#8FB3EC", fondo: "#1E2A3D" },
+  amarillo: { icono: "#F2C46D", fondo: "#3B3114" },
   naranja: { icono: "#F0A860", fondo: "#3A2A1A" },
   morado: { icono: "#C2A6EE", fondo: "#2D2340" },
   turquesa: { icono: "#72C9C2", fondo: "#173332" },

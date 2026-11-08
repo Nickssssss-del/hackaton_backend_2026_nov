@@ -59,6 +59,8 @@ export interface ServicioPublico {
   votosConfiable: number;
   votosVieneDomicilio: number;
   comentarioDestacado?: string;
+  /** Texto del comentario destacado sin el autor (E3 los muestra por separado). */
+  comentarioTexto?: string;
   comentarioAutor?: string;
   esMio: boolean;
   /** Disponible en emergencias. */

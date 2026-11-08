@@ -6,8 +6,7 @@
  * - Pastillas → C1 (/pastillas). Pregúntale a Vecinos y Comunidad → pantalla «Llega pronto».
  * - Necesito/Quiero ayudar y Ayuda vecinal → F1 (/ayuda-vecinos).
  * - Emergencia → G1 (/sos). La emergencia anterior (/emergencia) sigue disponible.
- * - Servicios, Crear servicio y Mi negocio →
- *   pantallas anteriores, que ya funcionan con Supabase.
+ * - Servicios → E1 (/servicios), Crear servicio → E4 (/servicios/publicar), Mi negocio → /servicios/mios.
  */
 import { router, useFocusEffect, type Href } from "expo-router";
 import { useCallback, useState } from "react";
@@ -106,7 +105,7 @@ export default function Principal() {
       </View>
 
       {esVecino ? (
-        <TarjetaAcceso tono="listo" icono="plus" titulo="Crear servicio" onPress={ir("/publicar")} />
+        <TarjetaAcceso tono="listo" icono="plus" titulo="Crear servicio" onPress={ir("/servicios/publicar")} />
       ) : (
         <TarjetaAcceso
           tono="aviso"
@@ -133,7 +132,7 @@ export default function Principal() {
       </View>
 
       <View style={estilos.fila}>
-        <TarjetaAcceso vertical icono="storefront-outline" colorIcono="naranja" titulo="Servicios" onPress={ir("/buscar")} />
+        <TarjetaAcceso vertical icono="storefront-outline" colorIcono="naranja" titulo="Servicios" onPress={ir("/servicios")} />
         <TarjetaAcceso
           vertical
           icono="account-multiple-outline"
@@ -145,7 +144,7 @@ export default function Principal() {
 
       {esVecino ? (
         <View style={estilos.fila}>
-          <TarjetaAcceso vertical icono="message-outline" colorIcono="turquesa" titulo="Mi negocio" onPress={ir("/mis-servicios")} />
+          <TarjetaAcceso vertical icono="message-outline" colorIcono="turquesa" titulo="Mi negocio" onPress={ir("/servicios/mios")} />
           <TarjetaAcceso vertical icono="pulse" colorIcono="rojo" titulo="Ayuda vecinal" onPress={ir("/ayuda-vecinos")} />
         </View>
       ) : null}

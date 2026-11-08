@@ -63,3 +63,33 @@ La emergencia anterior (`app/emergencia/**`) sigue intacta hasta que la nueva es
 ## D-08 · Agenda de contactos: API `legacy` (Fase 2)
 
 En `expo-contacts` 58, `getContactsAsync` importado desde `"expo-contacts"` **lanza un error al ejecutarse**: está obsoleto. El registro nuevo usa `expo-contacts/legacy`. Las pantallas anteriores `app/registro/contactos.tsx` y `app/mis-datos/contactos.tsx` todavía lo importan de la forma obsoleta, así que su agenda falla. **Mis datos → Contactos** sigue usando esa pantalla vieja: se corrige en la Fase 3.
+
+## D-09 · Servicios v4: categorías, «Sube tu negocio» y foto (Fase 5, 8-nov-2026)
+
+Pantallas nuevas en `app/servicios/`: E1 `index` («¿Qué buscas?»), E2 `lista`, E3 `[id]` (detalle), `[id]/comentar`, `[id]/reportar`, E4 `publicar` y `mios` (Mis servicios). Inicio (B1/B2) y Más opciones ya apuntan aquí. Las pantallas anteriores (`buscar`, `servicio/`, `publicar/`, `mis-servicios`) siguen en el código sin enlaces nuevos, hasta que se aprueben retirarlas.
+
+- **Categorías sin cambiar la base** (`src/modelos/categoriasServicio.ts`). Cada tarjeta de E1 agrupa oficios que ya existen en `servicios.oficio`:
+
+  | Tarjeta E1 | Oficios |
+  |---|---|
+  | Agua y luz | `gasfitero`, `electricista` |
+  | Menú del día | `restaurante`, `cafeteria` |
+  | Bodegas | `bodega`, `mercado` |
+  | Panaderías | `panaderia` |
+  | Farmacias | `farmacia` |
+  | Oficios | todos los demás |
+
+- **«Decir qué busco»**: lo dicho se lleva a una categoría por palabras clave («pan» → Panaderías); si no se reconoce, se busca por texto. Sin micrófono aparece un campo para escribir.
+- **«Cerca de ti»**: negocios a 30 min a pie o menos, del más cercano al más lejano. Sin ubicación guardada se pide marcar la dirección.
+- **Abierto / Cerrado** solo se muestra si el negocio tiene horario; si no lo tiene, no se inventa.
+- **E4 tipos**: Bodega, Panadería, Gasfitero, Menú (`restaurante`), Farmacia y **Otro**, que abre la lista completa de oficios.
+- **«Mis vecinos pueden verlo»** empieza en **No** y es el consentimiento: al publicar se muestran el nombre y el **celular del perfil** (`mostrar_telefono = true`), para que funcione «Llamar». Sin aceptar, Publicar dice «Falta aceptar». La dirección no se publica; la ubicación va redondeada a 3 decimales (como antes).
+- **Agregar foto**: todavía no hay dónde guardarla (Storage es propuesta del borrador SQL) ni librería de cámara instalada. El botón avisa «Las fotos llegan pronto» y E3 muestra el ícono del tipo de negocio sobre su color. **Pendiente:** `expo-image-picker` + Storage, con aprobación (cambio nativo).
+- **Celular solo al escribir** (D-03): publicar, visto bueno, comentar y reportar llevan a `/perfil/celular` si falta, y al volver se envía solo (salvo reportar, que se vuelve a tocar).
+
+## D-10 · Visto bueno con un toque y «Comentar con mi voz» (Fase 5, 8-nov-2026)
+
+- La base exige un motivo en `vistos_buenos`. El **toque en el pulgar** de E3 guarda el motivo `confiable`.
+- **«Comentar con mi voz»** guarda un visto bueno **con comentario** (140 letras, sin enlaces) y deja elegir el motivo. «Mis vecinos ven mi comentario» empieza en **Sí** (la persona eligió comentar); en No, el comentario no se muestra.
+- Como la base acepta un solo visto bueno por persona y negocio, **hoy se comenta una sola vez**. La tabla propia de comentarios es propuesta del borrador SQL; cuando exista, «Comentar» se separa del visto bueno.
+- E3 muestra el comentario destacado de la vista `servicios_publicos` (autor y texto por separado: campo nuevo `comentarioTexto`).

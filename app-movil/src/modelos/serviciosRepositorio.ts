@@ -109,6 +109,7 @@ function mapearServicio(fila: FilaServicioPublico): ServicioPublico {
     votosConfiable: numero(fila.votos_confiable),
     votosVieneDomicilio: numero(fila.votos_viene_domicilio),
     comentarioDestacado: comentario && autor ? `${comentario} — ${autor}` : comentario,
+    comentarioTexto: comentario,
     comentarioAutor: autor,
     disponibleEmergencia: Boolean(fila.disponible_emergencia),
     contacto: textoOpcional(fila.contacto),
