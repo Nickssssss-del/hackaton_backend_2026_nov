@@ -1,6 +1,6 @@
 # Reglas del backend
 
-1. El backend es solo Supabase. Sin servidor propio, sin Realtime y sin PostGIS.
+1. El backend es solo Supabase. Sin servidor propio y sin PostGIS. Sí usa Realtime, Edge Functions, Storage y notificaciones push.
 2. RLS activado en todas las tablas. Nunca lo desactives para que algo funcione.
 3. No existe un campo `rol`. Los administradores están en la tabla `admins`, que la app no lee ni escribe.
 4. La app solo lee las vistas `servicios_publicos` y `pedidos_cercanos`. Nunca lee las tablas `servicios`, `vistos_buenos` ni perfiles ajenos.
