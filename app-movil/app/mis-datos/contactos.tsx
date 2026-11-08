@@ -163,7 +163,7 @@ export default function PantallaMisDatosContactos() {
 }
 
 const estilos = StyleSheet.create({
-  pagina: { flex: 1, gap: 14, padding: 16 },
+  pagina: { flexGrow: 1, gap: 14, padding: 16 },
   campo: { minHeight: 52, fontSize: 18, borderRadius: 8, paddingHorizontal: 12, backgroundColor: "#F4F1EA" },
   opcion: { minHeight: 52, justifyContent: "center", padding: 12, borderRadius: 10, backgroundColor: "#F4F1EA" },
   texto: { fontSize: 18 },

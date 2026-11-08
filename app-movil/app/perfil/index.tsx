@@ -94,6 +94,13 @@ export default function MisDatos() {
         subtitulo="Perfil, ficha y borrar mis datos"
         onPress={() => router.push("/mis-datos")}
       />
+      <TarjetaAcceso
+        icono="play-circle-outline"
+        colorIcono="rojo"
+        titulo="Probar la emergencia"
+        subtitulo="Demo: no llama a nadie"
+        onPress={() => router.push({ pathname: "/sos", params: { demo: "1" } })}
+      />
     </Pantalla>
   );
 }

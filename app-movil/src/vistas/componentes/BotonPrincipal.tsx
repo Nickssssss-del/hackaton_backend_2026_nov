@@ -9,7 +9,7 @@ import { useTema } from "../tema/useTema";
 import { Icono, type NombreIcono } from "./Icono";
 import { Texto } from "./Texto";
 
-export type VarianteBoton = "tocar" | "listo" | "emergencia" | "secundario" | "neutro";
+export type VarianteBoton = "tocar" | "listo" | "emergencia" | "secundario" | "secundarioListo" | "neutro";
 
 type Props = {
   children: string;
@@ -42,6 +42,7 @@ export function BotonPrincipal({
     listo: { fondo: c.confirmado, texto: c.sobreColor, borde: c.confirmado },
     emergencia: { fondo: c.peligro, texto: c.sobreColor, borde: c.peligro },
     secundario: { fondo: c.superficie, texto: tema.oscuro ? c.texto : c.accion, borde: c.accion },
+    secundarioListo: { fondo: c.superficie, texto: tema.oscuro ? c.texto : c.confirmado, borde: c.confirmado },
     neutro: { fondo: c.superficie, texto: c.texto, borde: c.borde },
   };
   const elegido = desactivado

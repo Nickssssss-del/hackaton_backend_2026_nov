@@ -18,9 +18,11 @@ type Props = {
   volver?: boolean | (() => void);
   /** Texto que lee el botón Escuchar. */
   textoEscuchar?: string;
+  /** Acción propia del altavoz (pantallas anteriores que leen un texto armado al momento). */
+  alEscuchar?: () => void;
 };
 
-export function BarraSuperior({ volver, textoEscuchar }: Props) {
+export function BarraSuperior({ volver, textoEscuchar, alEscuchar }: Props) {
   const { tema } = useTema();
   const { tamano, siguienteTamano, oscuro, setOscuro } = usePreferencias();
   const voz = useEscuchar();
@@ -61,7 +63,7 @@ export function BarraSuperior({ volver, textoEscuchar }: Props) {
           color={colorAccion}
           icono="volume-high"
           etiqueta="Escuchar esta pantalla"
-          onPress={() => void voz.escuchar(textoEscuchar ?? "", true)}
+          onPress={alEscuchar ?? (() => void voz.escuchar(textoEscuchar ?? "", true))}
           estilo={circulo}
         />
       </View>

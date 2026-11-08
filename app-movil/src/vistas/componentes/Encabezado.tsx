@@ -1,22 +1,9 @@
-import { Pressable, StyleSheet, Text, View } from "react-native";
+/**
+ * Vista. Encabezado de las pantallas anteriores al Mockup v4. Ahora usa la barra común CC-01
+ * (Volver, Aa, luna y altavoz) para que haya un solo «Volver» y se vea igual en toda la app.
+ */
+import { BarraSuperior } from "./BarraSuperior";
 
 export function Encabezado({ onVolver, escuchar }: { onVolver: () => void; escuchar?: () => void }) {
-  return (
-    <View style={estilos.fila}>
-      <Pressable onPress={onVolver} style={estilos.boton}>
-        <Text style={estilos.texto}>← Volver</Text>
-      </Pressable>
-      {escuchar ? (
-        <Pressable onPress={escuchar} style={estilos.boton}>
-          <Text style={estilos.texto}>Escuchar</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
+  return <BarraSuperior volver={onVolver} alEscuchar={escuchar} />;
 }
-
-const estilos = StyleSheet.create({
-  fila: { minHeight: 52, flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  boton: { minHeight: 52, justifyContent: "center", paddingHorizontal: 8 },
-  texto: { fontSize: 18, fontWeight: "700" },
-});

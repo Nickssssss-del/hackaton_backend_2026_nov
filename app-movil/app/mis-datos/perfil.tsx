@@ -152,19 +152,16 @@ export default function PantallaMiPerfil() {
         {guardando ? "Guardando…" : guardado ? "Guardado" : "Guardar cambios"}
       </Boton>
 
-      <Boton variante="secundario" onPress={() => router.back()} style={{ marginTop: 8 }}>
-        Volver
-      </Boton>
     </ScrollView>
   );
 }
 
 const estilos = StyleSheet.create({
-  pagina: { flex: 1, gap: 14, padding: 16 },
+  pagina: { flexGrow: 1, gap: 14, padding: 16 },
   campo: { gap: 6 },
   etiqueta: { fontSize: 18 },
   aviso: { fontSize: 18, color: "#D91023" },
-  listaZonas: { gap: 8, maxHeight: 200 },
+  listaZonas: { gap: 8 },
   opcionZona: { minHeight: 52, justifyContent: "center", padding: 12, borderRadius: 10 },
   textoZona: { fontSize: 18 },
 });

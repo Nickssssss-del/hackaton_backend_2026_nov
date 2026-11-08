@@ -7,7 +7,7 @@ import { Image, StyleSheet, View, type ImageSourcePropType } from "react-native"
 import { RADIO } from "../tema/tokens";
 import { useTema } from "../tema/useTema";
 
-export type TipoIlustracion = "barrio" | "mapa" | "listo" | "modoSencillo" | "modoCompleto";
+export type TipoIlustracion = "barrio" | "mapa" | "listo" | "modoSencillo" | "modoCompleto" | "despertador";
 
 const IMAGENES: Record<TipoIlustracion, { fuente: ImageSourcePropType; proporcion: number }> = {
   barrio: { fuente: require("../../../assets/ilustraciones/bienvenida.png"), proporcion: 780 / 436 },
@@ -15,6 +15,7 @@ const IMAGENES: Record<TipoIlustracion, { fuente: ImageSourcePropType; proporcio
   listo: { fuente: require("../../../assets/ilustraciones/todo-listo.png"), proporcion: 780 / 664 },
   modoSencillo: { fuente: require("../../../assets/ilustraciones/modo-sencillo.png"), proporcion: 780 / 334 },
   modoCompleto: { fuente: require("../../../assets/ilustraciones/modo-completo.png"), proporcion: 780 / 337 },
+  despertador: { fuente: require("../../../assets/ilustraciones/despertador.png"), proporcion: 380 / 320 },
 };
 
 /** `alto` se mantiene por compatibilidad; la imagen conserva la proporción del mockup. */

@@ -2,11 +2,13 @@
   Vecinos · Compilar, instalar y abrir la app en Android (teléfono por USB o emulador de Android Studio).
 
   Uso, desde PowerShell:
-    cd C:\GitHub\hackaton_backend_2026_nov\app-movil
+    cd C:\v\app-movil
     powershell -ExecutionPolicy Bypass -File .\scripts\correr-android.ps1
 
   Opciones:
     -SoloServidor   No compila: solo abre el servidor (cuando la app ya está instalada).
+    -Apk            Genera un APK independiente (no necesita PC ni servidor), lo instala en el
+                    dispositivo conectado y lo copia al Escritorio como Vecinos.apk. Para presentar.
     -Limpiar        Ejecuta "gradlew clean" antes de compilar (no usa prebuild).
     -RutaCorta      Compila desde V:\app-movil (subst V: = carpeta del repositorio) para evitar el límite de 260 caracteres.
                     Para quitar la unidad V: después:  subst V: /D
@@ -16,6 +18,7 @@
 #>
 param(
   [switch]$SoloServidor,
+  [switch]$Apk,
   [switch]$Limpiar,
   [switch]$RutaCorta
 )
@@ -142,7 +145,10 @@ if (-not ($lista | Where-Object { $_ -match "\sdevice$" })) {
 }
 adb devices 2>&1 | Out-Host
 Bien "Dispositivo listo"
-adb reverse tcp:8081 tcp:8081 | Out-Null
+adb reverse tcp:8081 tcp:8081 2>&1 | Out-Host
+# La app de desarrollo busca el servidor en "localhost": con adb reverse llega por el cable USB
+# (evita el error "Failed to connect to /192.168.x.x:8081" cuando el Wi-Fi o el firewall lo bloquean).
+$env:REACT_NATIVE_PACKAGER_HOSTNAME = "localhost"
 
 # ---------------------------------------------------------------- 6. Dependencias y código
 Paso "6. Dependencias y revisión de TypeScript"
@@ -152,10 +158,35 @@ if ($LASTEXITCODE -ne 0) { Mal "TypeScript encontró errores (ver arriba)."; Ter
 Bien "TypeScript sin errores"
 
 # ---------------------------------------------------------------- 7. Compilar o servir
+if ($Apk) {
+  Paso "7. APK independiente (release). La primera vez: 10-30 minutos"
+  $abi = "$(adb shell getprop ro.product.cpu.abi 2>$null)".Trim()
+  if (-not $abi) { $abi = "arm64-v8a" }
+  Write-Host "  Arquitectura del dispositivo: $abi"
+  Push-Location android
+  .\gradlew.bat assembleRelease "-PreactNativeArchitectures=$abi" 2>&1 | Out-Host
+  $codigoApk = $LASTEXITCODE
+  Pop-Location
+  $apkSalida = Join-Path $app "android\app\build\outputs\apk\release\app-release.apk"
+  if ($codigoApk -ne 0 -or -not (Test-Path $apkSalida)) { Mal "No se generó el APK. El detalle quedó en: $log"; Terminar 1 }
+  $destino = Join-Path ([Environment]::GetFolderPath("Desktop")) "Vecinos.apk"
+  Copy-Item $apkSalida $destino -Force
+  Bien "APK listo: $destino"
+  adb install -r $apkSalida 2>&1 | Out-Host
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host "  La instalación falló. Si dice INSTALL_FAILED_UPDATE_INCOMPATIBLE, ejecuta:"
+    Write-Host "    adb uninstall com.melllfer.proyectobarrio   y vuelve a correr con -Apk"
+    Terminar 1
+  }
+  adb shell monkey -p com.melllfer.proyectobarrio -c android.intent.category.LAUNCHER 1 2>&1 | Out-Null
+  Bien "Instalado y abierto. Funciona sin PC: también puedes pasar Vecinos.apk a otro teléfono."
+  Terminar 0
+}
 if ($SoloServidor) {
   Paso "7. Servidor (la app ya está instalada). Abre 'Proyecto Barrio' en el dispositivo."
   Write-Host "  Para detener: Ctrl + C"
-  npx expo start --dev-client 2>&1 | Out-Host
+  Write-Host "  Si en el teléfono aparece la pantalla de Expo, toca 'http://localhost:8081' o escríbelo."
+  npx expo start --dev-client --localhost 2>&1 | Out-Host
   Terminar 0
 }
 if ($Limpiar) {

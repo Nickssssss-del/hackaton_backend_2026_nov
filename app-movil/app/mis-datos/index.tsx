@@ -273,7 +273,7 @@ export default function PantallaMisDatos() {
 }
 
 const estilos = StyleSheet.create({
-  pagina: { flex: 1, gap: 16, padding: 16 },
+  pagina: { flexGrow: 1, gap: 16, padding: 16 },
   filaGrande: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", minHeight: 52, gap: 12 },
   etiqueta: { fontSize: 18, flex: 1 },
   valor: { fontSize: 18, color: "#4A4A4A" },

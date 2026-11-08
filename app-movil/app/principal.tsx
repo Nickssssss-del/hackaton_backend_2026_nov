@@ -3,17 +3,22 @@
  * Mockup v4, pp. 8–9. Un solo componente; el conjunto de tarjetas cambia según el modo.
  *
  * Destinos mientras se construyen los módulos C–G:
- * - Pastillas, Pregúntale a Vecinos y Comunidad → pantalla «Llega pronto».
- * - Necesito/Quiero ayudar, Servicios, Crear servicio, Mi negocio, Ayuda vecinal y Emergencia →
- *   pantallas anteriores, que ya funcionan con Supabase (la emergencia anterior se mantiene
- *   hasta probar la nueva en un teléfono).
+ * - Pastillas → C1 (/pastillas). Pregúntale a Vecinos y Comunidad → pantalla «Llega pronto».
+ * - Necesito/Quiero ayudar y Ayuda vecinal → F1 (/ayuda-vecinos).
+ * - Emergencia → G1 (/sos). La emergencia anterior (/emergencia) sigue disponible.
+ * - Servicios, Crear servicio y Mi negocio →
+ *   pantallas anteriores, que ya funcionan con Supabase.
  */
 import { router, useFocusEffect, type Href } from "expo-router";
 import { useCallback, useState } from "react";
-import { Image, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { usePreferencias } from "../src/controladores/PreferenciasContexto";
 import { leerPerfil } from "../src/controladores/registroVecinos";
+import { cantidadLegible, estadosDelDia, horaLegible, leerPastillas, leerTomadasHoy, type Pastilla } from "../src/modelos/local/pastillas";
 import { useEscuchar } from "../src/controladores/useEscuchar";
+import { elegirAvatar } from "../src/modelos/avatar";
+import type { Genero } from "../src/modelos/tipos";
+import { Avatar } from "../src/vistas/componentes/Avatar";
 import { BotonPrincipal } from "../src/vistas/componentes/BotonPrincipal";
 import { Icono, type NombreIcono } from "../src/vistas/componentes/Icono";
 import { Pantalla } from "../src/vistas/componentes/Pantalla";
@@ -30,11 +35,22 @@ export default function Principal() {
   const { modo, tamano, siguienteTamano, oscuro, setOscuro } = usePreferencias();
   const voz = useEscuchar();
   const [nombre, setNombre] = useState("");
+  const [datosAvatar, setDatosAvatar] = useState<{ edad?: number; genero?: Genero }>({});
+  const avatar = elegirAvatar({ ...datosAvatar, modo });
+  const [proxima, setProxima] = useState<Pastilla | null>(null);
   const esVecino = modo === "completo";
 
   useFocusEffect(
     useCallback(() => {
-      void leerPerfil().then((perfil) => setNombre(perfil.nombre?.trim().split(/\s+/)[0] ?? ""));
+      void leerPerfil().then((perfil) => {
+        setNombre(perfil.nombre?.trim().split(/\s+/)[0] ?? "");
+        setDatosAvatar({ edad: perfil.edad, genero: perfil.genero });
+      });
+      void Promise.all([leerPastillas(), leerTomadasHoy()]).then(([lista, hoy]) => {
+        const estados = estadosDelDia(lista, hoy);
+        const ordenadas = [...lista].sort((a, b) => a.hora.localeCompare(b.hora));
+        setProxima(ordenadas.find((p) => estados[p.id] === "actual") ?? ordenadas.find((p) => estados[p.id] === "pendiente") ?? ordenadas[0] ?? null);
+      });
     }, []),
   );
 
@@ -48,19 +64,16 @@ export default function Principal() {
       sinBarra
       textoEscuchar={textoEscuchar}
       pie={
-        <BotonPrincipal variante="emergencia" icono="alert-outline" onPress={ir("/emergencia")}>
+        <BotonPrincipal variante="emergencia" icono="alert-outline" onPress={ir("/sos")}>
           Emergencia
         </BotonPrincipal>
       }
     >
       {/* Cabecera: avatar, saludo y Mis datos › */}
       <View style={estilos.cabecera}>
-        <Image
-          source={esVecino ? require("../assets/ilustraciones/avatar-carlos.png") : require("../assets/ilustraciones/avatar-rosa.png")}
-          style={estilos.avatar}
-          accessibilityElementsHidden
-          importantForAccessibility="no"
-        />
+        <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+          <Avatar tipo={avatar} />
+        </View>
         <View style={estilos.saludo}>
           <Texto variante="titulo" accessibilityRole="header">{saludo}</Texto>
           <Pressable accessibilityRole="button" accessibilityLabel="Mis datos" onPress={ir("/perfil")} style={estilos.enlace} hitSlop={8}>
@@ -100,8 +113,8 @@ export default function Principal() {
           icono="pill"
           colorIcono="naranja"
           titulo="Horario de pastillas"
-          subtitulo="Aún no tienes pastillas"
-          onPress={ir({ pathname: "/pronto", params: { modulo: "pastillas" } })}
+          subtitulo={proxima ? `Próxima: ${horaLegible(proxima.hora)} · ${proxima.nombre} · ${cantidadLegible(proxima.cantidad)}` : "Aún no tienes pastillas"}
+          onPress={ir("/pastillas")}
         />
       )}
 
@@ -115,8 +128,8 @@ export default function Principal() {
       />
 
       <View style={estilos.fila}>
-        <TarjetaAcceso vertical tono="tocar" icono="heart-outline" titulo="Necesito ayuda" onPress={ir("/ayuda/pedir")} />
-        <TarjetaAcceso vertical tono="listo" icono="account-group-outline" titulo="Quiero ayudar" onPress={ir("/ayuda")} />
+        <TarjetaAcceso vertical tono="tocar" icono="heart-outline" titulo="Necesito ayuda" onPress={ir("/ayuda-vecinos")} />
+        <TarjetaAcceso vertical tono="listo" icono="account-group-outline" titulo="Quiero ayudar" onPress={ir({ pathname: "/ayuda-vecinos", params: { pestana: "ayudar" } })} />
       </View>
 
       <View style={estilos.fila}>
@@ -133,7 +146,7 @@ export default function Principal() {
       {esVecino ? (
         <View style={estilos.fila}>
           <TarjetaAcceso vertical icono="message-outline" colorIcono="turquesa" titulo="Mi negocio" onPress={ir("/mis-servicios")} />
-          <TarjetaAcceso vertical icono="pulse" colorIcono="rojo" titulo="Ayuda vecinal" onPress={ir("/ayuda")} />
+          <TarjetaAcceso vertical icono="pulse" colorIcono="rojo" titulo="Ayuda vecinal" onPress={ir("/ayuda-vecinos")} />
         </View>
       ) : null}
 
@@ -166,7 +179,6 @@ function BotonRapido({ icono, texto, etiqueta, onPress }: {
 
 const estilos = StyleSheet.create({
   cabecera: { flexDirection: "row", alignItems: "center", gap: 10 },
-  avatar: { width: 56, height: 56, borderRadius: 28 },
   saludo: { flex: 1 },
   enlace: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", minHeight: 36 },
   rapidos: { flexDirection: "row", gap: 8 },

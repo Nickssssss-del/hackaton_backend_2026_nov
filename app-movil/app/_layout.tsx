@@ -11,6 +11,7 @@ import { useFonts } from "expo-font";
 import { AtkinsonHyperlegible_400Regular, AtkinsonHyperlegible_700Bold } from "@expo-google-fonts/atkinson-hyperlegible";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, type ReactNode } from "react";
+import { AbrirAvisoDePastilla } from "../src/controladores/AbrirAvisoDePastilla";
 
 export default function DisenoRaiz() {
   useSesion();
@@ -48,8 +49,12 @@ function Pantallas() {
   return (
     <>
       <StatusBar style={tema.oscuro ? "light" : "dark"} />
+      <AbrirAvisoDePastilla />
           <Stack
             screenOptions={{
+              // Cada pantalla trae su barra (Volver, Aa, luna, altavoz): sin encabezado del sistema,
+              // así no aparecen dos «Volver».
+              headerShown: false,
               contentStyle: { backgroundColor: tema.colores.fondo },
               headerStyle: { backgroundColor: tema.colores.superficie },
               headerTintColor: tema.colores.texto,
@@ -60,6 +65,9 @@ function Pantallas() {
           <Stack.Screen name="principal" options={{ headerShown: false }} />
           <Stack.Screen name="perfil" options={{ headerShown: false }} />
           <Stack.Screen name="pronto" options={{ headerShown: false }} />
+          <Stack.Screen name="pastillas" options={{ headerShown: false }} />
+          <Stack.Screen name="ayuda-vecinos" options={{ headerShown: false }} />
+          <Stack.Screen name="sos" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="servicio/[id]" options={{ title: "Servicio" }} />
           <Stack.Screen name="publicar" options={{ title: "Publicar servicio" }} />
           <Stack.Screen name="publicar/detalles" options={{ title: "Detalles del servicio" }} />

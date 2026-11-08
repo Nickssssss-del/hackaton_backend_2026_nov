@@ -130,7 +130,7 @@ export default function PantallaMisDatosFicha() {
 }
 
 const estilos = StyleSheet.create({
-  pagina: { flex: 1, gap: 12, padding: 16 },
+  pagina: { flexGrow: 1, gap: 12, padding: 16 },
   subtitulo: { fontSize: 20, fontWeight: "700", marginTop: 8 },
   casilla: { minHeight: 52, justifyContent: "center", padding: 12, borderRadius: 10, backgroundColor: "#F4F1EA" },
   texto: { fontSize: 18, lineHeight: 26 },
