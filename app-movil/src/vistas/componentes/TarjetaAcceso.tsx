@@ -23,6 +23,8 @@ type Props = {
   seleccionada?: boolean;
   onPress: () => void;
   children?: ReactNode;
+  /** Contenido sobre la fila principal (p. ej. la ilustración de A2). */
+  encima?: ReactNode;
   estilo?: ViewStyle;
   accessibilityLabel?: string;
 };
@@ -37,6 +39,7 @@ export function TarjetaAcceso({
   seleccionada,
   onPress,
   children,
+  encima,
   estilo,
   accessibilityLabel,
 }: Props) {
@@ -61,36 +64,39 @@ export function TarjetaAcceso({
       onPress={onPress}
       style={({ pressed }) => [
         estilos.tarjeta,
-        vertical ? estilos.vertical : estilos.horizontal,
+        encima ? estilos.columna : vertical ? estilos.vertical : estilos.horizontal,
         { backgroundColor: fondo, borderColor: borde, borderWidth: seleccionada ? 3 : 1.5, opacity: pressed ? 0.85 : 1 },
         estilo,
       ]}
     >
-      {icono ? (
-        <View style={[estilos.icono, { backgroundColor: lleno ? "transparent" : c.accionSuave }]}>
-          <Icono nombre={icono} color={lleno ? c.sobreColor : c.accion} tamano={26} />
-        </View>
-      ) : null}
-      <View style={vertical ? estilos.textosVertical : estilos.textos}>
-        <Texto variante="etiqueta" color={colorTexto} centrado={vertical}>{titulo}</Texto>
-        {subtitulo ? (
-          <Texto variante="ayuda" color={lleno || tono === "aviso" ? colorTexto : c.textoSecundario} centrado={vertical}>
-            {subtitulo}
-          </Texto>
+      {encima}
+      <View style={encima ? estilos.horizontal : estilos.contenidoPlano}>
+        {icono ? (
+          <View style={[estilos.icono, { backgroundColor: lleno ? "transparent" : c.accionSuave }]}>
+            <Icono nombre={icono} color={lleno ? c.sobreColor : c.accion} tamano={26} />
+          </View>
         ) : null}
-        {children}
+        <View style={vertical ? estilos.textosVertical : estilos.textos}>
+          <Texto variante="etiqueta" color={colorTexto} centrado={vertical}>{titulo}</Texto>
+          {subtitulo ? (
+            <Texto variante="ayuda" color={lleno || tono === "aviso" ? colorTexto : c.textoSecundario} centrado={vertical}>
+              {subtitulo}
+            </Texto>
+          ) : null}
+          {children}
+        </View>
+        {!vertical && accion === "flecha" ? <Icono nombre="chevron-right" color={colorTexto} tamano={28} /> : null}
+        {!vertical && accion === "microfono" ? (
+          <View style={[estilos.mic, { backgroundColor: c.confirmado }]}>
+            <Icono nombre="microphone" color={c.sobreColor} tamano={24} />
+          </View>
+        ) : null}
+        {seleccionada ? (
+          <View style={[estilos.check, { backgroundColor: c.accion }]}>
+            <Icono nombre="check" color={c.sobreColor} tamano={18} />
+          </View>
+        ) : null}
       </View>
-      {!vertical && accion === "flecha" ? <Icono nombre="chevron-right" color={colorTexto} tamano={28} /> : null}
-      {!vertical && accion === "microfono" ? (
-        <View style={[estilos.mic, { backgroundColor: c.confirmado }]}>
-          <Icono nombre="microphone" color={c.sobreColor} tamano={24} />
-        </View>
-      ) : null}
-      {seleccionada ? (
-        <View style={[estilos.check, { backgroundColor: c.accion }]}>
-          <Icono nombre="check" color={c.sobreColor} tamano={18} />
-        </View>
-      ) : null}
     </Pressable>
   );
 }
@@ -98,6 +104,8 @@ export function TarjetaAcceso({
 const estilos = StyleSheet.create({
   tarjeta: { borderRadius: RADIO.l, padding: 14, minHeight: 72 },
   horizontal: { flexDirection: "row", alignItems: "center", gap: 12 },
+  columna: { gap: 12 },
+  contenidoPlano: { display: "contents" },
   vertical: { alignItems: "center", justifyContent: "center", gap: 8, flex: 1 },
   icono: { width: 48, height: 48, borderRadius: 24, alignItems: "center", justifyContent: "center" },
   textos: { flex: 1, gap: 2 },

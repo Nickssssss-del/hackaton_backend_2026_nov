@@ -39,7 +39,7 @@ export function CampoConVoz({ etiqueta, valor, onCambiar, ayuda, maxLength = 140
           accessibilityLabelledBy={`etq-${etiqueta}`}
           value={valor}
           onChangeText={onCambiar}
-          placeholder={ayuda}
+          placeholder={ayuda ? `Ej.: ${ayuda}` : undefined}
           placeholderTextColor={c.textoSecundario}
           maxLength={maxLength}
           keyboardType={teclado}
@@ -74,9 +74,10 @@ export function CampoConVoz({ etiqueta, valor, onCambiar, ayuda, maxLength = 140
 
 const estilos = StyleSheet.create({
   bloque: { gap: 6 },
-  fila: { flexDirection: "row", alignItems: "center", gap: 10 },
+  fila: { flexDirection: "row", alignItems: "center", gap: 10, width: "100%" },
   campo: {
     flex: 1,
+    minWidth: 0,
     minHeight: ALTO_BOTON_PRINCIPAL,
     borderRadius: RADIO.m,
     borderWidth: 2,
@@ -84,6 +85,7 @@ const estilos = StyleSheet.create({
     paddingVertical: 8,
   },
   microfono: {
+    flexShrink: 0,
     width: ALTO_BOTON_PRINCIPAL,
     height: ALTO_BOTON_PRINCIPAL,
     borderRadius: ALTO_BOTON_PRINCIPAL / 2,

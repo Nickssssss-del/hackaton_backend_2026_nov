@@ -14,6 +14,8 @@ export interface Preferencias {
   /** Se elige en A2 y se cambia en Mis datos. */
   modo?: ModoUso;
   sonidos?: boolean;
+  /** A5 / B3: avisar a los contactos al salir de casa. Por defecto No (requiere consentimiento). */
+  avisarAlSalir?: boolean;
   /** Campos de la versión anterior. Se leen solo para migrar. */
   tema?: "claro" | "emergencia" | "oscuro";
   escalaLetra?: number;
@@ -24,6 +26,7 @@ export interface PreferenciasCompletas {
   oscuro: boolean;
   modo: ModoUso | null;
   sonidos: boolean;
+  avisarAlSalir: boolean;
 }
 
 function tamanoDesdeEscala(escala?: number): TamanoLetra {
@@ -43,6 +46,7 @@ export async function leerPreferenciasCompletas(): Promise<PreferenciasCompletas
     oscuro: p.oscuro ?? p.tema === "oscuro",
     modo: p.modo ?? null,
     sonidos: p.sonidos ?? true,
+    avisarAlSalir: p.avisarAlSalir ?? false,
   };
 }
 

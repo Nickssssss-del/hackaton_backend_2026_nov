@@ -25,6 +25,8 @@ export function BarraSuperior({ volver, textoEscuchar }: Props) {
   const { tamano, siguienteTamano, oscuro, setOscuro } = usePreferencias();
   const voz = useEscuchar();
   const alVolver = typeof volver === "function" ? volver : () => router.back();
+  // En oscuro, el azul de acción sobre fondo oscuro no tiene contraste: se usa el texto claro.
+  const colorAccion = tema.oscuro ? tema.colores.texto : tema.colores.accion;
 
   const pastilla = [estilos.pastilla, { backgroundColor: tema.colores.superficie, borderColor: tema.colores.borde }];
   const circulo = [estilos.circulo, { backgroundColor: tema.colores.superficie, borderColor: tema.colores.borde }];
@@ -33,8 +35,8 @@ export function BarraSuperior({ volver, textoEscuchar }: Props) {
     <View style={estilos.fila}>
       {volver ? (
         <Pressable accessibilityRole="button" accessibilityLabel="Volver" onPress={alVolver} style={pastilla} hitSlop={6}>
-          <Icono nombre="chevron-left" color={tema.colores.accion} tamano={22} />
-          <Texto variante="etiqueta" color={tema.colores.accion}>Volver</Texto>
+          <Icono nombre="chevron-left" color={colorAccion} tamano={22} />
+          <Texto variante="etiqueta" color={colorAccion}>Volver</Texto>
         </Pressable>
       ) : (
         <View />
@@ -46,15 +48,17 @@ export function BarraSuperior({ volver, textoEscuchar }: Props) {
           onPress={siguienteTamano}
           style={circulo}
         >
-          <Texto variante="etiqueta" color={tema.colores.accion} maxFontSizeMultiplier={1}>Aa</Texto>
+          <Texto variante="etiqueta" color={colorAccion} maxFontSizeMultiplier={1}>Aa</Texto>
         </Pressable>
         <BotonCircular
+          color={colorAccion}
           icono={oscuro ? "white-balance-sunny" : "moon-waning-crescent"}
           etiqueta={oscuro ? "Modo oscuro: Sí. Toca para quitarlo." : "Modo oscuro: No. Toca para activarlo."}
           onPress={() => setOscuro(!oscuro)}
           estilo={circulo}
         />
         <BotonCircular
+          color={colorAccion}
           icono="volume-high"
           etiqueta="Escuchar esta pantalla"
           onPress={() => void voz.escuchar(textoEscuchar ?? "", true)}
@@ -65,16 +69,16 @@ export function BarraSuperior({ volver, textoEscuchar }: Props) {
   );
 }
 
-function BotonCircular({ icono, etiqueta, onPress, estilo }: {
+function BotonCircular({ icono, etiqueta, onPress, estilo, color }: {
   icono: NombreIcono;
+  color: string;
   etiqueta: string;
   onPress: () => void;
   estilo: object;
 }) {
-  const { tema } = useTema();
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={etiqueta} onPress={onPress} style={estilo}>
-      <Icono nombre={icono} color={tema.colores.accion} tamano={22} />
+      <Icono nombre={icono} color={color} tamano={22} />
     </Pressable>
   );
 }

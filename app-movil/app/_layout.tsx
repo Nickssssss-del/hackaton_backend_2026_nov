@@ -55,7 +55,8 @@ function Pantallas() {
               headerTintColor: tema.colores.texto,
             }}
           >
-          <Stack.Screen name="index" options={{ title: "Vecinos" }} />
+          <Stack.Screen name="index" options={{ headerShown: false }} />
+          <Stack.Screen name="alta" options={{ headerShown: false }} />
           <Stack.Screen name="servicio/[id]" options={{ title: "Servicio" }} />
           <Stack.Screen name="publicar" options={{ title: "Publicar servicio" }} />
           <Stack.Screen name="publicar/detalles" options={{ title: "Detalles del servicio" }} />

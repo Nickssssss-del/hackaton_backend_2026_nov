@@ -46,6 +46,33 @@ export async function guardarPerfilNube(perfil: PerfilLocal): Promise<void> {
   if (error) throw error;
 }
 
+/**
+ * Registro v4 (A3): sube SOLO la zona y las coordenadas redondeadas a 3 decimales
+ * (matriz técnica: «A la nube: 3 decimales»). Nombre, edad, género, dirección y
+ * contactos se quedan en el teléfono. Si no hay zona, no se envían coordenadas:
+ * el trigger validar_zona_perfil rechazaría coordenadas fuera de la zona.
+ */
+export async function guardarUbicacionNube(lat: number, lng: number): Promise<string | null> {
+  const { data, error: sesionError } = await obtenerSupabase().auth.getUser();
+  if (sesionError) throw sesionError;
+  const id = data.user?.id;
+  if (!id) throw new Error("SIN_SESION");
+
+  const zonas = await listarZonasPublicas();
+  const conGeometria = zonas.filter(
+    (zona): zona is ZonaPublica & { latCentro: number; lngCentro: number; radioM: number } =>
+      typeof zona.latCentro === "number" && typeof zona.lngCentro === "number" && typeof zona.radioM === "number",
+  );
+  const zonaId = asignarZona(lat, lng, conGeometria);
+  if (!zonaId) return null;
+
+  const { error } = await obtenerSupabase()
+    .from("perfiles")
+    .upsert({ id, zona_id: zonaId, lat: redondear3(lat), lng: redondear3(lng) });
+  if (error) throw error;
+  return zonaId;
+}
+
 export async function perfilEstaCompleto(): Promise<boolean> {
   const { data, error } = await obtenerSupabase().auth.getUser();
   if (error) throw error;

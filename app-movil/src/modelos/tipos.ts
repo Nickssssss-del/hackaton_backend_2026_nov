@@ -216,6 +216,19 @@ export interface PerfilLocal {
   celular?: string;
   lat?: number;
   lng?: number;
+  /** Registro Mockup v4 (A4). Solo en el celular, nunca se envía a la nube. */
+  edad?: number;
+  genero?: Genero;
+  /** Registro Mockup v4 (A3.1). Solo en el celular. */
+  direccion?: DireccionLocal;
+}
+
+export type Genero = "mujer" | "hombre" | "no_decir";
+
+export interface DireccionLocal {
+  calle: string;
+  numero: string;
+  referencia: string;
 }
 
 export interface ContactoEmergencia {
