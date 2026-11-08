@@ -13,6 +13,9 @@ import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { usePreferencias } from "../src/controladores/PreferenciasContexto";
 import { leerPerfil } from "../src/controladores/registroVecinos";
+import { ajustarVozPorSituaciones } from "../src/controladores/useEscuchar";
+import { leerSituaciones, type Situacion } from "../src/modelos/local/situaciones";
+import { SITUACIONES } from "../src/vistas/componentes/estiloSituaciones";
 import { cantidadLegible, estadosDelDia, horaLegible, leerPastillas, leerTomadasHoy, type Pastilla } from "../src/modelos/local/pastillas";
 import { useEscuchar } from "../src/controladores/useEscuchar";
 import { elegirAvatar, type TipoAvatar } from "../src/modelos/avatar";
@@ -23,7 +26,7 @@ import { Icono, type NombreIcono } from "../src/vistas/componentes/Icono";
 import { Pantalla } from "../src/vistas/componentes/Pantalla";
 import { TarjetaAcceso } from "../src/vistas/componentes/TarjetaAcceso";
 import { Texto } from "../src/vistas/componentes/Texto";
-import { ALTO_TACTIL, RADIO, TAMANOS_LETRA } from "../src/vistas/tema/tokens";
+import { ALTO_TACTIL, colorIcono, RADIO, TAMANOS_LETRA } from "../src/vistas/tema/tokens";
 import { useTema } from "../src/vistas/tema/useTema";
 
 const ir = (ruta: Href) => () => router.push(ruta);
@@ -37,6 +40,7 @@ export default function Principal() {
   const [datosAvatar, setDatosAvatar] = useState<{ edad?: number; genero?: Genero; avatar?: TipoAvatar }>({});
   const avatar = elegirAvatar({ ...datosAvatar, modo });
   const [proxima, setProxima] = useState<Pastilla | null>(null);
+  const [situaciones, setSituaciones] = useState<Situacion[]>([]);
   const esVecino = modo === "completo";
 
   useFocusEffect(
@@ -44,6 +48,10 @@ export default function Principal() {
       void leerPerfil().then((perfil) => {
         setNombre(perfil.nombre?.trim().split(/\s+/)[0] ?? "");
         setDatosAvatar({ edad: perfil.edad, genero: perfil.genero, avatar: perfil.avatar });
+      });
+      void leerSituaciones().then((lista) => {
+        setSituaciones(lista);
+        ajustarVozPorSituaciones(lista);
       });
       void Promise.all([leerPastillas(), leerTomadasHoy()]).then(([lista, hoy]) => {
         const estados = estadosDelDia(lista, hoy);
@@ -75,12 +83,18 @@ export default function Principal() {
         </View>
         <View style={estilos.saludo}>
           <Texto variante="titulo" accessibilityRole="header">{saludo}</Texto>
+          {/* Debajo del nombre, en una línea: lo que le pasa a la persona (B4). */}
+          <LineaQueMePasa situaciones={situaciones} />
           <Pressable accessibilityRole="button" accessibilityLabel="Mis datos" onPress={ir("/perfil")} style={estilos.enlace} hitSlop={8}>
             <Texto variante="etiqueta" color={c.accionTexto}>Mis datos</Texto>
             <Icono nombre="chevron-right" color={c.accionTexto} tamano={22} />
           </Pressable>
         </View>
       </View>
+
+      {/* Lo que me pasa (B4). Modo sencillo: lo PRIMERO del Inicio (pedido del equipo).
+          Modo completo: va entre las tarjetas principales, más abajo. */}
+      {esVecino ? null : <LoQueMePasa situaciones={situaciones} />}
 
       {/* Accesos rápidos: A+ (tamaño actual), Oscuro, Escuchar */}
       <View style={estilos.rapidos}>
@@ -125,6 +139,8 @@ export default function Principal() {
         accion="microfono"
         onPress={ir("/preguntale")}
       />
+
+      {esVecino ? <LoQueMePasa situaciones={situaciones} /> : null}
 
       <View style={estilos.fila}>
         <TarjetaAcceso vertical tono="tocar" icono="heart-outline" titulo="Necesito ayuda" onPress={ir("/ayuda-vecinos")} />
@@ -193,4 +209,53 @@ const estilos = StyleSheet.create({
     gap: 2,
   },
   fila: { flexDirection: "row", gap: 10 },
+});
+
+/** «Vivo solo · Oigo poco» bajo el saludo, con sus íconos. Toca para cambiar. Nada si no eligió. */
+function LineaQueMePasa({ situaciones }: { situaciones: Situacion[] }) {
+  const { tema } = useTema();
+  const elegidas = SITUACIONES.filter((s) => s.valor !== "ninguna" && situaciones.includes(s.valor));
+  if (elegidas.length === 0) return null;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Lo que te pasa: ${elegidas.map((s) => s.etiqueta).join(", ")}. Toca para cambiar.`}
+      onPress={() => router.push("/perfil/situaciones")}
+      hitSlop={6}
+      style={estilosPasa.linea}
+    >
+      {elegidas.map((s, k) => (
+        <View key={s.valor} style={estilosPasa.itemLinea}>
+          <Icono nombre={s.icono} tamano={20} color={colorIcono(s.color, tema.oscuro).icono} />
+          <Texto variante="etiqueta" color={tema.colores.textoSecundario}>
+            {s.etiqueta}
+            {k < elegidas.length - 1 ? " ·" : ""}
+          </Texto>
+        </View>
+      ))}
+    </Pressable>
+  );
+}
+
+/** Si aún no eligió nada: la tarjeta «¿Algo de esto te pasa?». Si ya eligió, se ve bajo el nombre. */
+function LoQueMePasa({ situaciones }: { situaciones: Situacion[] }) {
+  const elegidas = SITUACIONES.filter((s) => s.valor !== "ninguna" && situaciones.includes(s.valor));
+  if (situaciones.includes("ninguna")) return null;
+  if (elegidas.length === 0) {
+    return (
+      <TarjetaAcceso
+        icono="hand-heart-outline"
+        colorIcono="morado"
+        titulo="¿Algo de esto te pasa?"
+        subtitulo="Vivo solo, oigo poco, veo poco…"
+        onPress={() => router.push("/perfil/situaciones")}
+      />
+    );
+  }
+  return null;
+}
+
+const estilosPasa = StyleSheet.create({
+  linea: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: 8, rowGap: 2 },
+  itemLinea: { flexDirection: "row", alignItems: "center", gap: 4 },
 });

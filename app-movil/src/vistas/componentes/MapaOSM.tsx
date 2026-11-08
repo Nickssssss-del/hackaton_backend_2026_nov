@@ -9,7 +9,7 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Image, Platform, StyleSheet, View } from "react-native";
-import { aPixel, metrosPorPixel, teselasVisibles, zoomParaVer, type Coordenada } from "../../modelos/mapaOSM";
+import { aPixel, metrosPorPixel, PROVEEDORES_TESELAS, teselasVisibles, zoomParaVer, type Coordenada } from "../../modelos/mapaOSM";
 import { RADIO } from "../tema/tokens";
 import { useTema } from "../tema/useTema";
 import { Texto } from "./Texto";
@@ -32,6 +32,9 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
   const { tema } = useTema();
   const [ancho, setAncho] = useState(0);
   const [fallos, setFallos] = useState(0);
+  // 0 = CARTO, 1 = OpenStreetMap; si los dos fallan, el mapa dibujado.
+  const [proveedor, setProveedor] = useState(0);
+  const fuente = PROVEEDORES_TESELAS[Math.min(proveedor, PROVEEDORES_TESELAS.length - 1)];
   const pulso = useRef(new Animated.Value(0)).current;
   const alto = Math.round(ancho * 0.78);
 
@@ -51,13 +54,20 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
     };
     const local = (p: { x: number; y: number }) => ({ left: p.x - centro.x + ancho / 2, top: p.y - centro.y + alto / 2 });
     return {
-      teselas: teselasVisibles(centro, z, ancho, alto),
+      teselas: teselasVisibles(centro, z, ancho, alto, fuente.base),
       marcas: puntos.map((p, k) => ({ ...p, ...local(px[k]) })),
       anilloPx: anilloM ? anilloM / metrosPorPixel(puntos[0].lat, z) : 0,
     };
-  }, [ancho, alto, puntos, anilloM]);
+  }, [ancho, alto, puntos, anilloM, fuente.base]);
 
-  const sinTeselas = vista ? fallos >= Math.max(1, Math.ceil(vista.teselas.length / 2)) : false;
+  const muchosFallos = vista ? fallos >= Math.max(1, Math.ceil(vista.teselas.length / 2)) : false;
+  useEffect(() => {
+    if (muchosFallos && proveedor < PROVEEDORES_TESELAS.length) {
+      setProveedor((p) => p + 1);
+      setFallos(0);
+    }
+  }, [muchosFallos, proveedor]);
+  const sinTeselas = proveedor >= PROVEEDORES_TESELAS.length || muchosFallos;
   const yo = vista?.marcas.find((m) => m.tipo === "yo");
   const ayuda = vista?.marcas.find((m) => m.tipo === "ayuda");
   const camino =
@@ -76,7 +86,12 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
       accessibilityRole="image"
       accessibilityLabel={descripcion}
     >
-      {vista && sinTeselas ? <FondoDibujado oscuro={tema.oscuro} /> : null}
+      {!vista || sinTeselas ? <FondoDibujado oscuro={tema.oscuro} /> : null}
+      {ancho > 0 && puntos.length === 0 ? (
+        <View style={estilos.sinUbicacion} pointerEvents="none">
+          <Texto variante="etiqueta" centrado>Aún no tengo la ubicación. Activa el GPS del teléfono.</Texto>
+        </View>
+      ) : null}
       {vista && !sinTeselas
         ? vista.teselas.map((t) => (
             <Image
@@ -138,7 +153,7 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
 
       {vista && !sinTeselas ? (
         <View style={estilos.atribucion} pointerEvents="none">
-          <Texto variante="ayuda" style={estilos.atribucionTexto}>© OpenStreetMap</Texto>
+          <Texto variante="ayuda" style={estilos.atribucionTexto}>{fuente.atribucion}</Texto>
         </View>
       ) : null}
     </View>
@@ -177,4 +192,5 @@ const estilos = StyleSheet.create({
   calleH: { position: "absolute", left: 0, right: 0, height: 22 },
   calleV: { position: "absolute", top: 0, bottom: 0, width: 22 },
   manzana: { position: "absolute", width: "22%", height: "16%", borderRadius: 8 },
+  sinUbicacion: { position: "absolute", left: 12, right: 12, top: "40%", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 12, padding: 10 },
 });

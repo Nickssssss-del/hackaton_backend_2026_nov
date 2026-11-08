@@ -9,17 +9,9 @@ import { guardarSituaciones, leerSituaciones, alternarSituacion, type Situacion 
 import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { Opciones } from "../../src/vistas/componentes/Opciones";
 import { Pantalla } from "../../src/vistas/componentes/Pantalla";
-import type { NombreIcono } from "../../src/vistas/componentes/Icono";
-import type { ColorIcono } from "../../src/vistas/tema/tokens";
+import { SITUACIONES } from "../../src/vistas/componentes/estiloSituaciones";
+import { ajustarVozPorSituaciones } from "../../src/controladores/useEscuchar";
 
-const SITUACIONES: { valor: Situacion; etiqueta: string; icono: NombreIcono; color: ColorIcono }[] = [
-  { valor: "vivo_solo", etiqueta: "Vivo solo", icono: "account-outline", color: "morado" },
-  { valor: "oigo_poco", etiqueta: "Oigo poco", icono: "ear-hearing", color: "turquesa" },
-  { valor: "veo_poco", etiqueta: "Veo poco", icono: "eye-outline", color: "azul" },
-  { valor: "camino_poco", etiqueta: "Camino poco", icono: "walk", color: "naranja" },
-  { valor: "tomo_pastillas", etiqueta: "Tomo pastillas", icono: "pill", color: "verde" },
-  { valor: "ninguna", etiqueta: "Ninguna", icono: "close", color: "gris" },
-];
 
 export default function AlgoTePasa() {
   const [seleccion, setSeleccion] = useState<Situacion[]>([]);
@@ -39,6 +31,7 @@ export default function AlgoTePasa() {
 
   const guardar = async () => {
     setGuardando(true);
+    ajustarVozPorSituaciones(seleccion);
     await guardarSituaciones(seleccion);
     setGuardando(false);
     router.back();

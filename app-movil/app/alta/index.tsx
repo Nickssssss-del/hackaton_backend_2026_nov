@@ -33,8 +33,9 @@ export default function Bienvenida() {
             key={item.clave}
             style={[
               estilos.item,
-              // Con letra Enorme, «Emergencia» no cabe en media fila: un color por fila.
-              { flexBasis: tema.tamano === "enorme" ? "100%" : "45%" },
+              // Cada color mide lo que su palabra (nunca se corta «Emergencia»); si no caben dos
+              // por fila, baja a la siguiente. Con letra Enorme, uno por fila.
+              { flexBasis: tema.tamano === "enorme" ? "100%" : "auto" },
               { backgroundColor: tema.colores.superficie, borderColor: tema.colores.borde },
             ]}
           >

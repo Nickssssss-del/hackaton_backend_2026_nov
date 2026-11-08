@@ -1,5 +1,5 @@
 /**
- * Vista. A5 · ¿A quién llamamos si te pasa algo? · Paso 3 de 3 (Mockup v4, p. 6).
+ * Vista. A5 · ¿A quién llamamos si te pasa algo? · Paso 3 de 4 (Mockup v4, p. 6).
  * - «Dime a quién llamamos»: la persona dice «Ana, mi hija»; se busca el número en la agenda.
  *   Si no está (o no hay permiso), se abre el formulario con el nombre ya escrito.
  * - «Escribir un número»: nombre y celular (9 dígitos, empieza en 9).
@@ -161,14 +161,14 @@ export default function AQuienLlamamos() {
       titulo={editando ? "Mis contactos" : "¿A quién llamamos si te pasa algo?"}
       volver
       encabezado={editando ? undefined : <IndicadorPasos paso={3} />}
-      textoEscuchar={`${editando ? "Mis contactos." : "Paso 3 de 3."} ¿A quién llamamos si te pasa algo? Toca Dime a quién llamamos y di, por ejemplo, Ana, mi hija. O toca Escribir un número. Tienes ${contactos.length} de 2 personas.`}
+      textoEscuchar={`${editando ? "Mis contactos." : "Paso 3 de 4."} ¿A quién llamamos si te pasa algo? Toca Dime a quién llamamos y di, por ejemplo, Ana, mi hija. O toca Escribir un número. Tienes ${contactos.length} de 2 personas.`}
       pie={
         <BotonPrincipal
-          variante="listo"
-          icono="check"
-          onPress={() => (editando ? router.back() : router.push("/alta/listo"))}
+          variante={editando ? "listo" : "tocar"}
+          icono={editando ? "check" : "chevron-right"}
+          onPress={() => (editando ? router.back() : router.push("/alta/situaciones"))}
         >
-          {editando ? "Guardar" : "Listo"}
+          {editando ? "Guardar" : "Seguir"}
         </BotonPrincipal>
       }
     >

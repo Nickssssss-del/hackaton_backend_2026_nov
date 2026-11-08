@@ -2,7 +2,7 @@
  * Vista. C1 · Horario de pastillas (Mockup v4, p. 12).
  * Tomas del día en orden de hora: tomada (verde), actual (amarilla), pendiente (blanca).
  * «Ya la tomé» marca la toma de hoy (tocar otra vez la desmarca). «Agregar pastilla» → C2.
- * «Demo: así te aviso» → C3 de demostración. «Probar el aviso en 10 segundos» manda un aviso real
+ * (Sin «Demo: así te aviso», pedido del equipo.) «Probar el aviso en 10 segundos» manda un aviso real
  * del sistema (sirve para comprobar sonido y vibración, incluso con la app cerrada).
  */
 import { router, useFocusEffect } from "expo-router";
@@ -98,16 +98,6 @@ export default function HorarioPastillas() {
       pie={
         <>
           <BotonPrincipal icono="plus" onPress={() => router.push("/pastillas/nueva")}>Agregar pastilla</BotonPrincipal>
-          {pastillas.length > 0 ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Demo: así te aviso"
-              onPress={() => router.push({ pathname: "/pastillas/aviso", params: { id: pastillas[0].id, demo: "1" } })}
-              style={[estilos.demo, { borderColor: c.textoSecundario }]}
-            >
-              <Texto variante="etiqueta" color={c.textoSecundario}>Demo: así te aviso</Texto>
-            </Pressable>
-          ) : null}
         </>
       }
     >
@@ -213,12 +203,4 @@ const estilos = StyleSheet.create({
   cantidad: { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
   quitar: { width: ALTO_TACTIL, height: ALTO_TACTIL, alignItems: "center", justifyContent: "center" },
   confirmar: { gap: 10 },
-  demo: {
-    minHeight: ALTO_TACTIL,
-    borderWidth: 2,
-    borderStyle: "dashed",
-    borderRadius: RADIO.m,
-    alignItems: "center",
-    justifyContent: "center",
-  },
 });

@@ -1,5 +1,5 @@
 /**
- * Vista. A3.2 · ¿Cuál es tu barrio? (Paso 1 de 3).
+ * Vista. A3.2 · ¿Cuál es tu barrio? (Paso 1 de 4).
  * Lista de zonas de la base (tabla zonas: nombre y distrito). Aparece cuando el GPS no dejó zona
  * (la persona está fuera de las zonas, no dio permiso o eligió «Decir mi dirección»), y desde
  * Mis datos › Mi barrio para cambiarla. Sin zona no se ven Servicios, Comunidad ni Ayuda.
@@ -61,7 +61,7 @@ export default function TuBarrio() {
       titulo={editando ? "Mi barrio" : "¿Cuál es tu barrio?"}
       volver
       encabezado={editando ? undefined : <IndicadorPasos paso={1} />}
-      textoEscuchar={`${editando ? "Mi barrio" : "Paso 1 de 3. ¿Cuál es tu barrio?"}. Elige uno: ${nombres}.`}
+      textoEscuchar={`${editando ? "Mi barrio" : "Paso 1 de 4. ¿Cuál es tu barrio?"}. Elige uno: ${nombres}.`}
       pie={
         <BotonPrincipal variante={editando ? "listo" : "tocar"} icono={editando ? "check" : undefined} cargando={guardando} motivoDesactivado={elegida ? null : "Elige tu barrio"} onPress={() => void seguir()}>
           {editando ? "Guardar" : "Seguir"}

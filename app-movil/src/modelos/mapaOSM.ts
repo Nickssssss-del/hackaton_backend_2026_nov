@@ -5,6 +5,14 @@
 
 export const TAMANO_TESELA = 256;
 export const URL_TESELAS = "https://tile.openstreetmap.org";
+/**
+ * Proveedores de teselas, en orden. Las de tile.openstreetmap.org suelen bloquear apps (403), por
+ * eso primero va CARTO (datos de OpenStreetMap, uso libre con atribución) y OSM queda de respaldo.
+ */
+export const PROVEEDORES_TESELAS: readonly { base: string; atribucion: string }[] = [
+  { base: "https://basemaps.cartocdn.com/rastertiles/voyager", atribucion: "© OpenStreetMap · © CARTO" },
+  { base: URL_TESELAS, atribucion: "© OpenStreetMap" },
+];
 
 export interface Coordenada {
   lat: number;
@@ -50,7 +58,13 @@ export interface Tesela {
 }
 
 /** Teselas que cubren un recuadro centrado en `centro` (píxel global), con su posición en el recuadro. */
-export function teselasVisibles(centro: { x: number; y: number }, z: number, ancho: number, alto: number): Tesela[] {
+export function teselasVisibles(
+  centro: { x: number; y: number },
+  z: number,
+  ancho: number,
+  alto: number,
+  base: string = PROVEEDORES_TESELAS[0].base,
+): Tesela[] {
   const izq = centro.x - ancho / 2;
   const arr = centro.y - alto / 2;
   const max = 2 ** z;
@@ -61,7 +75,7 @@ export function teselasVisibles(centro: { x: number; y: number }, z: number, anc
       const x = ((tx % max) + max) % max;
       lista.push({
         clave: `${z}/${x}/${ty}`,
-        url: `${URL_TESELAS}/${z}/${x}/${ty}.png`,
+        url: `${base}/${z}/${x}/${ty}.png`,
         izquierda: tx * TAMANO_TESELA - izq,
         arriba: ty * TAMANO_TESELA - arr,
       });

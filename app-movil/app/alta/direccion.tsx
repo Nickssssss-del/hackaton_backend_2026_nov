@@ -1,5 +1,5 @@
 /**
- * Vista. A3.1 · Tu dirección · Paso 1 de 3 (Mockup v4, p. 4).
+ * Vista. A3.1 · Tu dirección · Paso 1 de 4 (Mockup v4, p. 4).
  * Calle o avenida, Número y Referencia, cada uno con micrófono.
  * «Seguir» queda desactivado mostrando cuántos datos faltan («Falta 1 dato»).
  * «Omitir» continúa sin dirección. Todo se guarda solo en el teléfono. Si el GPS no dejó zona,
@@ -87,7 +87,7 @@ export default function TuDireccion() {
       titulo={editando ? "Mi dirección" : "Tu dirección"}
       volver
       encabezado={editando ? undefined : <IndicadorPasos paso={1} />}
-      textoEscuchar={`${editando ? "Mi dirección" : "Paso 1 de 3. Tu dirección"}. Di o escribe la calle o avenida, el número y una referencia.`}
+      textoEscuchar={`${editando ? "Mi dirección" : "Paso 1 de 4. Tu dirección"}. Di o escribe la calle o avenida, el número y una referencia.`}
       pie={
         editando ? (
           <BotonPrincipal
