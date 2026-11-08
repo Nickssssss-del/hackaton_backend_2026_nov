@@ -1,7 +1,7 @@
 // Pruebas sin red de llamarIA(): fetch es un doble que responde como Groq.
 // Correr: deno test backend/supabase/functions/preguntale/
 import { assert, assertEquals, assertRejects } from "jsr:@std/assert@1";
-import { llamarIA, URL_POR_DEFECTO } from "./ia.ts";
+import { llamarIA, llamarIAConRespaldo, URL_POR_DEFECTO } from "./ia.ts";
 
 function respuestaGroq(cuerpo: unknown, status = 200): Response {
   return new Response(JSON.stringify(cuerpo), { status, headers: { "Content-Type": "application/json" } });
@@ -97,4 +97,105 @@ Deno.test("llamarIA lanza error si Groq responde con error HTTP", async () => {
 Deno.test("llamarIA lanza error si falta la clave", async () => {
   const enviar = () => Promise.resolve(respuestaGroq({}));
   await assertRejects(() => llamarIA("x", { apiKey: "", modelo: "m", url: URL_POR_DEFECTO, enviar }));
+});
+
+// --- llamarIAConRespaldo: la principal y el respaldo responden por URL distinta ---
+
+const PRINCIPAL = { apiKey: "clave-principal", modelo: "modelo-principal", url: "https://principal.test/v1/chat/completions" };
+const RESPALDO = { apiKey: "clave-respaldo", modelo: "modelo-respaldo", url: "https://respaldo.test/v1/chat/completions" };
+
+/** fetch falso: cada URL responde con lo que se le indique y se registra cada llamada. */
+function fetchFalso(respuestas: Record<string, () => Response | Promise<Response>>) {
+  const llamadas: { url: string; init: RequestInit }[] = [];
+  const enviar = (u: string | URL | Request, i?: RequestInit) => {
+    const url = String(u);
+    llamadas.push({ url, init: i ?? {} });
+    return Promise.resolve(respuestas[url]());
+  };
+  return { enviar, llamadas };
+}
+
+Deno.test("con respaldo: si la principal responde bien, no se llama al respaldo", async () => {
+  const avisos: string[] = [];
+  const { enviar, llamadas } = fetchFalso({
+    [PRINCIPAL.url]: () => respuestaGroq(conLlamada("ver_mi_horario", "{}")),
+    [RESPALDO.url]: () => respuestaGroq(conLlamada("pedir_ayuda", '{"categoria":"salud"}')),
+  });
+  const llamada = await llamarIAConRespaldo("mi horario", {
+    principal: PRINCIPAL, respaldo: RESPALDO, enviar, avisar: (m) => avisos.push(m),
+  });
+  assertEquals(llamada, { nombre: "ver_mi_horario", argumentos: {} });
+  assertEquals(llamadas.map((l) => l.url), [PRINCIPAL.url]);
+  assertEquals(avisos, []);
+});
+
+Deno.test("con respaldo: si la principal da 429, responde el respaldo con su clave y su modelo", async () => {
+  const avisos: string[] = [];
+  const { enviar, llamadas } = fetchFalso({
+    [PRINCIPAL.url]: () => respuestaGroq({ error: { message: "límite" } }, 429),
+    [RESPALDO.url]: () => respuestaGroq(conLlamada("buscar_servicio", '{"oficio":"gasfitero"}')),
+  });
+  const llamada = await llamarIAConRespaldo("busca un gasfitero en Calle Lima 245", {
+    principal: PRINCIPAL, respaldo: RESPALDO, enviar, avisar: (m) => avisos.push(m),
+  });
+
+  assertEquals(llamada, { nombre: "buscar_servicio", argumentos: { oficio: "gasfitero" } });
+  assertEquals(llamadas.map((l) => l.url), [PRINCIPAL.url, RESPALDO.url]);
+  const alRespaldo = llamadas[1].init;
+  assertEquals((alRespaldo.headers as Record<string, string>).Authorization, "Bearer clave-respaldo");
+  assertEquals(JSON.parse(alRespaldo.body as string).model, "modelo-respaldo");
+  assertEquals(avisos, ["IA principal falló: IA_HTTP_429, usando respaldo"]);
+});
+
+Deno.test("con respaldo: el aviso no lleva el texto, la ubicación ni las claves", async () => {
+  const avisos: string[] = [];
+  const { enviar } = fetchFalso({
+    [PRINCIPAL.url]: () => Promise.reject(new TypeError("error sending request for url (https://principal.test/…)")),
+    [RESPALDO.url]: () => respuestaGroq(conLlamada("ver_mi_horario", "{}")),
+  });
+  await llamarIAConRespaldo("vivo en Calle Lima 245, -14.068", {
+    principal: PRINCIPAL, respaldo: RESPALDO, enviar, avisar: (m) => avisos.push(m),
+  });
+  assertEquals(avisos, ["IA principal falló: TypeError, usando respaldo"]);
+  const aviso = avisos.join(" ");
+  for (const secreto of ["Calle Lima", "-14.068", "clave-principal", "clave-respaldo", "principal.test"]) {
+    assert(!aviso.includes(secreto), `el aviso no debe incluir ${secreto}`);
+  }
+});
+
+Deno.test("con respaldo: si la principal no elige herramienta (null), no se usa el respaldo", async () => {
+  const { enviar, llamadas } = fetchFalso({
+    [PRINCIPAL.url]: () => respuestaGroq({ choices: [{ message: { content: "No sé." } }] }),
+    [RESPALDO.url]: () => respuestaGroq(conLlamada("ver_mi_horario", "{}")),
+  });
+  const llamada = await llamarIAConRespaldo("asdfgh", { principal: PRINCIPAL, respaldo: RESPALDO, enviar, avisar: () => {} });
+  assertEquals(llamada, null);
+  assertEquals(llamadas.map((l) => l.url), [PRINCIPAL.url]);
+});
+
+Deno.test("sin respaldo configurado: el error de la principal se lanza como hoy", async () => {
+  const avisos: string[] = [];
+  const { enviar, llamadas } = fetchFalso({
+    [PRINCIPAL.url]: () => respuestaGroq({ error: {} }, 503),
+  });
+  await assertRejects(
+    () => llamarIAConRespaldo("hola", { principal: PRINCIPAL, respaldo: null, enviar, avisar: (m) => avisos.push(m) }),
+    Error,
+    "IA_HTTP_503",
+  );
+  assertEquals(llamadas.length, 1);
+  assertEquals(avisos, []);
+});
+
+Deno.test("con respaldo: si las dos fallan, se lanza el error del respaldo", async () => {
+  const { enviar, llamadas } = fetchFalso({
+    [PRINCIPAL.url]: () => respuestaGroq({ error: {} }, 500),
+    [RESPALDO.url]: () => respuestaGroq({ error: {} }, 502),
+  });
+  await assertRejects(
+    () => llamarIAConRespaldo("hola", { principal: PRINCIPAL, respaldo: RESPALDO, enviar, avisar: () => {} }),
+    Error,
+    "IA_HTTP_502",
+  );
+  assertEquals(llamadas.length, 2);
 });

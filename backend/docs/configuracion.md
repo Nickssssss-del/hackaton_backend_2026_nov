@@ -37,7 +37,12 @@ Busca la sección de secretos del proyecto de Supabase. Van ahí, nunca en la ap
 
 | Secreto | Para qué | Cómo anotarlo |
 | --- | --- | --- |
-| Clave de la IA | Modelo con llamado a funciones. Por ejemplo Claude Haiku 5.5 o Gemini Flash. La IA no responde con texto libre: devuelve qué función usar y la app la ejecuta. | `<CLAVE_DE_IA>`. El nombre exacto del secreto: por confirmar con Luana. |
+| `IA_API_KEY` | Clave de la IA principal de `preguntale`, cualquier API compatible con OpenAI y con llamado a funciones. La IA no responde con texto libre: devuelve qué función usar y la app la ejecuta. | `<CLAVE_DE_IA>`. Obligatorio. |
+| `IA_MODELO` | Modelo de la IA principal. | Opcional. Por defecto `openai/gpt-oss-20b`. |
+| `IA_URL` | Endpoint de la IA principal. | Opcional. Por defecto Groq: `https://api.groq.com/openai/v1/chat/completions`. |
+| `IA_RESPALDO_API_KEY` | Clave de la IA de respaldo. Se usa una sola vez y solo si la principal falla (429, 5xx, más de 5 s o red). | `<CLAVE_DE_IA_RESPALDO>`. Opcional. |
+| `IA_RESPALDO_MODELO` | Modelo de la IA de respaldo. | Sin valor por defecto. Sin él no hay respaldo. |
+| `IA_RESPALDO_URL` | Endpoint de la IA de respaldo, por ejemplo Gemini: `https://generativelanguage.googleapis.com/v1beta/openai/chat/completions`. | Sin valor por defecto. Sin él no hay respaldo. |
 | Token de Expo Push | Para que `alerta-vecinos` hable con la API de Expo Push. | `<TOKEN_DE_EXPO_PUSH>`. El nombre exacto del secreto: por confirmar con Luana. |
 
 Cambiar de modelo de IA no pide una APK nueva: se cambia el secreto o la función en el servidor.
@@ -71,7 +76,7 @@ Límites de ese plan que importan:
 | Qué pasa | Qué hacer |
 | --- | --- |
 | El SMS de registro no llega | Seguir con la cuenta invisible y verificar el celular después. En desarrollo, usar los números de prueba con código fijo. |
-| Se acaba el cupo de la IA | La app responde con un texto fijo y los botones de siempre. El modelo se cambia en la Edge Function, sin nueva APK. |
+| Se acaba el cupo de la IA | Si hay IA de respaldo configurada, `preguntale` la usa sola. Si no, o si también falla, la app responde con un texto fijo y los botones de siempre. El modelo se cambia con los secretos, sin nueva APK. |
 
 ## 7. Lista de verificación
 
@@ -82,7 +87,8 @@ Límites de ese plan que importan:
 - [ ] El panel entra con email y contraseña, y el administrador está definido con `es_admin()`.
 - [ ] Firebase está en el plan Spark, con Cloud Messaging.
 - [ ] La clave `<CLAVE_SERVIDOR_FIREBASE>` está en las credenciales de Android de Expo, no en el repositorio.
-- [ ] `<CLAVE_DE_IA>` y `<TOKEN_DE_EXPO_PUSH>` están en los secretos de Supabase.
+- [ ] `IA_API_KEY` y `<TOKEN_DE_EXPO_PUSH>` están en los secretos de Supabase.
+- [ ] Si se quiere IA de respaldo: `IA_RESPALDO_API_KEY`, `IA_RESPALDO_MODELO` e `IA_RESPALDO_URL` están los tres.
 - [ ] `pg_cron` está activo para la limpieza cada 10 minutos.
 - [ ] Realtime incluye `emergencias`, `eslabones`, `enlaces` y `vecinos_que_van`.
 - [ ] El bucket `fotos` existe, es privado y lo creó el script 07.

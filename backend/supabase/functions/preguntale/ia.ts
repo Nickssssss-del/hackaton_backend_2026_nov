@@ -34,7 +34,19 @@ interface Opciones {
   modelo?: string;
   url?: string;
   enviar?: typeof fetch;
+  timeoutMs?: number;
 }
+
+/** Un proveedor completo: con respaldo no hay valores por defecto. */
+export interface Proveedor {
+  apiKey: string;
+  modelo: string;
+  url: string;
+}
+
+// Principal 5 s + respaldo 8 s: la respuesta no pasa de ~13 s.
+const TIEMPO_PRINCIPAL_MS = 5_000;
+const TIEMPO_RESPALDO_MS = 8_000;
 
 /** Devuelve la función que eligió la IA, o null si no eligió ninguna o sus argumentos no se pueden leer. */
 export async function llamarIA(
@@ -44,6 +56,7 @@ export async function llamarIA(
     modelo = Deno.env.get("IA_MODELO") ?? "openai/gpt-oss-20b",
     url = Deno.env.get("IA_URL") || URL_POR_DEFECTO,
     enviar = fetch,
+    timeoutMs = TIEMPO_RESPALDO_MS,
   }: Opciones = {},
 ): Promise<LlamadaIA | null> {
   if (!apiKey) throw new Error("FALTA_IA_API_KEY");
@@ -61,7 +74,7 @@ export async function llamarIA(
       tool_choice: "auto",
     }),
     // La app espera una respuesta rápida o los botones de siempre.
-    signal: AbortSignal.timeout(8_000),
+    signal: AbortSignal.timeout(timeoutMs),
   });
   if (!respuesta.ok) throw new Error(`IA_HTTP_${respuesta.status}`);
 
@@ -73,5 +86,49 @@ export async function llamarIA(
     return { nombre: llamada.name, argumentos: JSON.parse(llamada.arguments) };
   } catch {
     return null;
+  }
+}
+
+/** Respaldo desde los secretos. Sin clave, modelo o URL no hay respaldo (no tiene valores por defecto). */
+export function respaldoDesdeEntorno(): Proveedor | null {
+  const apiKey = Deno.env.get("IA_RESPALDO_API_KEY");
+  const modelo = Deno.env.get("IA_RESPALDO_MODELO");
+  const url = Deno.env.get("IA_RESPALDO_URL");
+  return apiKey && modelo && url ? { apiKey, modelo, url } : null;
+}
+
+/** Solo un código: nunca el mensaje entero, que puede traer URLs u otros datos. */
+function codigoDeError(error: unknown): string {
+  if (!(error instanceof Error)) return "desconocido";
+  return /^[A-Z][A-Z0-9_]*$/.test(error.message) ? error.message : error.name;
+}
+
+interface OpcionesRespaldo {
+  principal?: Opciones;
+  respaldo?: Proveedor | null;
+  enviar?: typeof fetch;
+  avisar?: (mensaje: string) => void;
+}
+
+/**
+ * Llama a la IA principal (5 s). Si lanza error (HTTP no OK, tiempo agotado o red) y hay respaldo,
+ * reintenta una vez con el respaldo (8 s). Si la principal responde sin elegir herramienta (null),
+ * esa es la respuesta: no se usa el respaldo. Sin respaldo, o si también falla, se lanza el error.
+ */
+export async function llamarIAConRespaldo(
+  texto: string,
+  {
+    principal = {},
+    respaldo = respaldoDesdeEntorno(),
+    enviar = fetch,
+    avisar = (mensaje) => console.warn(mensaje),
+  }: OpcionesRespaldo = {},
+): Promise<LlamadaIA | null> {
+  try {
+    return await llamarIA(texto, { ...principal, enviar, timeoutMs: TIEMPO_PRINCIPAL_MS });
+  } catch (error) {
+    if (!respaldo) throw error;
+    avisar(`IA principal falló: ${codigoDeError(error)}, usando respaldo`);
+    return await llamarIA(texto, { ...respaldo, enviar, timeoutMs: TIEMPO_RESPALDO_MS });
   }
 }
