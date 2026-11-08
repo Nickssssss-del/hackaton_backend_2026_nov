@@ -114,30 +114,58 @@ export function validarNombreNegocio(nombre: string): string | null {
   return revisarTexto(limpio, false);
 }
 
+/** Datos que pide E4. Horario, precio y descripción son opcionales (vienen del formulario anterior). */
+export interface DatosNegocio {
+  id?: string;
+  oficio: Oficio;
+  nombre: string;
+  /** «Mis vecinos pueden verlo» → servicios.visible_vecinos (script 07). En No, solo lo ve el dueño. */
+  visible: boolean;
+  /** "HH:MM" de apertura y cierre, o null si no tiene horario fijo. */
+  horario: { abre: string; cierra: string } | null;
+  precioDesde: number | null;
+  descripcion: string;
+}
+
 /**
- * E4. Publica (o edita, con `id`) el negocio. Al publicar se muestran el nombre y el celular del
- * perfil: es lo que la persona acepta con «Mis vecinos pueden verlo» (decisión D-09).
+ * E4. Publica (o edita, con `id`) el negocio. Se muestran el nombre del negocio y el celular del
+ * perfil para «Llamar» (mostrar_telefono). «Mis vecinos pueden verlo» es visible_vecinos: en No, el
+ * negocio se guarda pero los vecinos no lo ven.
  */
 export function usePublicarNegocio() {
   const cliente = useQueryClient();
   const conexion = useConexion();
   const mutacion = useMutation({
-    mutationFn: async ({ id, oficio, nombre }: { id?: string; oficio: Oficio; nombre: string }) => {
-      const invalido = validarNombreNegocio(nombre);
+    mutationFn: async (d: DatosNegocio) => {
+      const invalido = validarNombreNegocio(d.nombre);
       if (invalido) throw new Error(invalido);
+      const descripcion = d.descripcion.trim();
+      const problemaDescripcion = revisarTexto(descripcion, false);
+      if (problemaDescripcion) throw new Error(problemaDescripcion);
+      if (d.precioDesde !== null && (!Number.isFinite(d.precioDesde) || d.precioDesde < 0 || d.precioDesde > 999999)) {
+        throw new Error("Revisa el precio.");
+      }
       const perfil = await leerPerfilLocal();
       const contacto = perfil?.celular?.trim() || undefined;
+      const comunes = {
+        oficio: d.oficio,
+        nombreNegocio: d.nombre.trim(),
+        contacto,
+        mostrarTelefono: true,
+        visibleVecinos: d.visible,
+        horaApertura: d.horario?.abre ?? null,
+        horaCierre: d.horario?.cierra ?? null,
+        precioDesde: d.precioDesde,
+        descripcion: descripcion || null,
+      };
       const problema = await escribir(conexion !== "sin internet", async () => {
-        if (id) {
-          await actualizarServicio(id, { oficio, nombreNegocio: nombre.trim(), contacto, mostrarTelefono: true });
+        if (d.id) {
+          await actualizarServicio(d.id, comunes);
           return;
         }
         const ultima = await leerUltimaUbicacion();
         await crearServicio({
-          oficio,
-          nombreNegocio: nombre.trim(),
-          contacto,
-          mostrarTelefono: true,
+          ...comunes,
           mostrarDireccion: false,
           disponibleEmergencia: false,
           lat: ultima ? redondear3(ultima.lat) : undefined,

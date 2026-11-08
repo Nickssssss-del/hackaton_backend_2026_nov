@@ -2,9 +2,11 @@
  * Vista. E4 · Sube tu negocio (Mockup v4, p. 19). Con `id`, cambia un negocio propio.
  * - Tipo: Bodega, Panadería, Gasfitero, Menú, Farmacia u Otro (Otro abre la lista de oficios).
  * - Nombre con voz o teclado.
- * - Agregar foto: todavía no hay dónde guardarla (Storage en el borrador); se avisa con honestidad.
- * - «Mis vecinos pueden verlo» empieza en No: es el consentimiento para mostrar el nombre y el
- *   celular. Sin él, Publicar muestra «Falta aceptar» (D-09).
+ * - Agregar foto: el bucket `fotos` ya existe (script 07), pero subirla necesita una librería de
+ *   cámara (cambio nativo que el equipo debe aprobar). Se avisa con honestidad.
+ * - «Mis vecinos pueden verlo» es servicios.visible_vecinos (script 07). En No el negocio se guarda
+ *   pero solo lo ve su dueño; se puede activar después en Mis servicios.
+ * - Más datos (opcional): horario (abre y cierra, para «Abierto/Cerrado»), precio desde y descripción.
  * El celular se pide recién al publicar (D-03).
  */
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
@@ -14,9 +16,11 @@ import { faltaParaEscribir } from "../../src/controladores/useAyudaVecinos";
 import { useServicios } from "../../src/controladores/useServicios";
 import { usePublicarNegocio, validarNombreNegocio } from "../../src/controladores/useServiciosV4";
 import { ETIQUETA_OFICIO, OTROS_OFICIOS, TIPOS_NEGOCIO_V4 } from "../../src/modelos/categoriasServicio";
+import { horaDesdeMinutos, horaLegible, minutosDe } from "../../src/modelos/local/pastillas";
 import type { Oficio } from "../../src/modelos/tipos";
 import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { CampoConVoz } from "../../src/vistas/componentes/CampoConVoz";
+import { Contador } from "../../src/vistas/componentes/Contador";
 import { estiloOficio } from "../../src/vistas/componentes/estiloCategoriaServicio";
 import { Icono } from "../../src/vistas/componentes/Icono";
 import { Ilustracion } from "../../src/vistas/componentes/Ilustracion";
@@ -41,7 +45,12 @@ export default function SubeTuNegocio() {
   const [tipo, setTipo] = useState<Tipo | null>(null);
   const [otroOficio, setOtroOficio] = useState<Oficio | null>(null);
   const [nombre, setNombre] = useState("");
-  const [acepta, setAcepta] = useState(false);
+  const [acepta, setAcepta] = useState(true);
+  const [conHorario, setConHorario] = useState(false);
+  const [abre, setAbre] = useState("08:00");
+  const [cierra, setCierra] = useState("20:00");
+  const [precio, setPrecio] = useState("");
+  const [descripcion, setDescripcion] = useState("");
   const [avisoFoto, setAvisoFoto] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const negocio = usePublicarNegocio();
@@ -61,7 +70,14 @@ export default function SubeTuNegocio() {
       setOtroOficio(oficio);
     }
     setNombre(mio.nombreNegocio ?? "");
-    setAcepta(true);
+    setAcepta(mio.visibleVecinos);
+    if (mio.horaApertura && mio.horaCierre) {
+      setConHorario(true);
+      setAbre(mio.horaApertura.slice(0, 5));
+      setCierra(mio.horaCierre.slice(0, 5));
+    }
+    setPrecio(mio.precioDesde !== undefined ? String(mio.precioDesde) : "");
+    setDescripcion(mio.descripcion ?? "");
   }, [id, servicios.todos]);
 
   const oficio: Oficio | null = tipo === "mas" ? otroOficio : tipo;
@@ -79,12 +95,21 @@ export default function SubeTuNegocio() {
       setAviso("Primero marca dónde vives: Mis datos › Mi dirección.");
       return;
     }
+    const precioNumero = precio.trim() ? Number(precio.replace(",", ".")) : null;
     try {
-      await negocio.publicar({ id, oficio, nombre });
+      await negocio.publicar({
+        id,
+        oficio,
+        nombre,
+        visible: acepta,
+        horario: conHorario ? { abre, cierra } : null,
+        precioDesde: precioNumero,
+        descripcion,
+      });
     } catch {
       // El mensaje se muestra con negocio.error.
     }
-  }, [id, oficio, nombre, negocio]);
+  }, [id, oficio, nombre, negocio, acepta, conHorario, abre, cierra, precio, descripcion]);
 
   const publicarRef = useRef(publicar);
   publicarRef.current = publicar;
@@ -116,7 +141,9 @@ export default function SubeTuNegocio() {
         }
       >
         <Ilustracion tipo="listo" />
-        <Mensaje tono="listo">{`${nombre.trim()} ya aparece en Servicios.`}</Mensaje>
+        <Mensaje tono="listo">
+          {acepta ? `${nombre.trim()} ya aparece en Servicios.` : `${nombre.trim()} quedó guardado. Solo tú lo ves hasta que actives «Mis vecinos pueden verlo».`}
+        </Mensaje>
         <Texto>Nunca pidas dinero ni claves por adelantado.</Texto>
       </Pantalla>
     );
@@ -129,15 +156,15 @@ export default function SubeTuNegocio() {
       : "Falta el tipo"
     : problemaNombre
       ? problemaNombre
-      : !acepta
-        ? "Falta aceptar"
+      : precio.trim() && !Number.isFinite(Number(precio.replace(",", ".")))
+        ? "Revisa el precio"
         : null;
 
   return (
     <Pantalla
       titulo={editando ? "Cambiar mi negocio" : "Sube tu negocio"}
       volver
-      textoEscuchar="Sube tu negocio. Elige el tipo: bodega, panadería, gasfitero, menú, farmacia u otro. Di o escribe el nombre. Si aceptas que tus vecinos lo vean, toca Publicar."
+      textoEscuchar="Sube tu negocio. Elige el tipo: bodega, panadería, gasfitero, menú, farmacia u otro. Di o escribe el nombre. Si quieres, agrega tu horario, desde qué precio y una descripción. Luego toca Publicar."
       pie={
         <BotonPrincipal variante="listo" icono="check" cargando={negocio.enviando} motivoDesactivado={motivo} onPress={() => void publicar()}>
           {editando ? "Guardar cambios" : "Publicar"}
@@ -208,8 +235,52 @@ export default function SubeTuNegocio() {
         <Mensaje tono="info">Las fotos llegan pronto. Por ahora tus vecinos verán el dibujo de tu tipo de negocio.</Mensaje>
       ) : null}
 
+      <Texto variante="subtitulo">Más datos (si quieres)</Texto>
+      <InterruptorSiNo etiqueta="Tiene horario fijo" valor={conHorario} onCambiar={setConHorario} />
+      {conHorario ? (
+        <>
+          <Texto variante="etiqueta">Abre</Texto>
+          <Contador
+            nombre="Hora en que abre"
+            valor={horaLegible(abre)}
+            puedeMenos={minutosDe(abre) > 0}
+            puedeMas={minutosDe(abre) < minutosDe(cierra) - 30}
+            onMenos={() => setAbre(horaDesdeMinutos(Math.max(0, minutosDe(abre) - 30)))}
+            onMas={() => setAbre(horaDesdeMinutos(minutosDe(abre) + 30))}
+          />
+          <Texto variante="etiqueta">Cierra</Texto>
+          <Contador
+            nombre="Hora en que cierra"
+            valor={horaLegible(cierra)}
+            puedeMenos={minutosDe(cierra) > minutosDe(abre) + 30}
+            puedeMas={minutosDe(cierra) < 23 * 60 + 30}
+            onMenos={() => setCierra(horaDesdeMinutos(minutosDe(cierra) - 30))}
+            onMas={() => setCierra(horaDesdeMinutos(Math.min(23 * 60 + 30, minutosDe(cierra) + 30)))}
+          />
+          <Texto variante="ayuda">Así tus vecinos sabrán si está abierto.</Texto>
+        </>
+      ) : null}
+      <CampoConVoz
+        etiqueta="Desde qué precio (soles)"
+        ayuda="10"
+        valor={precio}
+        onCambiar={(t) => setPrecio(t.replace(/[^\d.,]/g, ""))}
+        maxLength={9}
+        teclado="decimal-pad"
+        sinVoz
+      />
+      <CampoConVoz
+        etiqueta="Descripción"
+        ayuda="Pan fresco desde las 6 de la mañana"
+        valor={descripcion}
+        onCambiar={setDescripcion}
+        maxLength={140}
+      />
+
       <InterruptorSiNo etiqueta="Mis vecinos pueden verlo" valor={acepta} onCambiar={setAcepta} />
-      <Texto variante="ayuda">Verán el nombre y tu celular para llamarte.</Texto>
+      <Texto variante="ayuda">
+        {acepta ? "Verán el nombre y tu celular para llamarte." : "Se guardará, pero solo tú lo verás. Puedes mostrarlo después."}
+      </Texto>
 
       {aviso ? <Mensaje tono="aviso">{aviso}</Mensaje> : null}
       {negocio.error ? <Mensaje tono="aviso">{negocio.error}</Mensaje> : null}

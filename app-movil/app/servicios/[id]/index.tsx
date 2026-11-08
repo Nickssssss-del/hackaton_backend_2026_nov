@@ -4,19 +4,23 @@
  * - Llamar (verde): abre el marcador con el celular que el negocio publicó.
  * - Ir (azul): indicaciones a pie en Google Maps.
  * - Visto bueno con un toque (amarillo, con el total). La primera vez pide el celular (D-03).
- * Debajo, el comentario destacado. Pie: «Comentar con mi voz» → visto bueno con comentario.
+ * Debajo, el comentario destacado del visto bueno y los comentarios de vecinos (vista
+ * comentarios_visibles, script 07). Pie: «Comentar con mi voz» → tabla comentarios.
+ * Si el negocio tiene foto en el bucket `fotos`, se muestra en lugar del dibujo.
  * Si el negocio es mío: Editar y Borrar (en «Mis servicios»), sin visto bueno ni reporte.
  */
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { Linking, Pressable, StyleSheet, View } from "react-native";
 import { faltaParaEscribir } from "../../../src/controladores/useAyudaVecinos";
+import { useComentarios } from "../../../src/controladores/useComunidad";
 import { useServicios } from "../../../src/controladores/useServicios";
 import { textoMinutos, urlComoLlegar, useVistoBueno, useYaDiVistoBueno } from "../../../src/controladores/useServiciosV4";
 import { distanciaMetros, minutosAPie } from "../../../src/modelos/geo";
 import { etiquetaOficio, nombreServicio } from "../../../src/modelos/categoriasServicio";
 import { BotonPrincipal } from "../../../src/vistas/componentes/BotonPrincipal";
 import { estiloOficio } from "../../../src/vistas/componentes/estiloCategoriaServicio";
+import { FotoGuardada } from "../../../src/vistas/componentes/FotoGuardada";
 import { Icono, type NombreIcono } from "../../../src/vistas/componentes/Icono";
 import { Insignia } from "../../../src/vistas/componentes/Insignia";
 import { Mensaje } from "../../../src/vistas/componentes/Mensaje";
@@ -33,6 +37,7 @@ export default function DetalleNegocio() {
   const servicio = servicios.todos.find((s) => s.id === id);
   const vb = useVistoBueno();
   const { yaDi, marcar } = useYaDiVistoBueno(id);
+  const com = useComentarios(id ? { servicioId: id } : null);
   const [aviso, setAviso] = useState<string | null>(null);
   const esperaCelular = useRef(false);
 
@@ -123,14 +128,17 @@ export default function DetalleNegocio() {
         )
       }
     >
-      {/* Dibujo del negocio: su ícono sobre el color de la categoría (sin foto todavía, D-09). */}
-      <View
-        style={[estilos.dibujo, { backgroundColor: tono.fondo }]}
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Icono nombre={estilo.icono} tamano={84} color={tono.icono} />
-      </View>
+      {/* Foto del negocio (bucket `fotos`) o, si no tiene, su ícono sobre el color de la categoría. */}
+      <FotoGuardada ruta={servicio.fotoPath} descripcion={`Foto de ${nombre}`} />
+      {servicio.fotoPath ? null : (
+        <View
+          style={[estilos.dibujo, { backgroundColor: tono.fondo }]}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+        >
+          <Icono nombre={estilo.icono} tamano={84} color={tono.icono} />
+        </View>
+      )}
 
       <Texto variante="titulo" accessibilityRole="header">{nombre}</Texto>
       <View style={estilos.insignias}>
@@ -186,6 +194,21 @@ export default function DetalleNegocio() {
           <Texto variante="etiqueta" color={c.accionTexto}>{servicio.comentarioAutor ?? "Un vecino"}</Texto>
           <Texto>{`“${servicio.comentarioTexto}”`}</Texto>
         </View>
+      ) : null}
+
+      {com.comentarios.length > 0 ? (
+        <>
+          <Texto variante="etiqueta">{`Comentarios de vecinos (${com.comentarios.length})`}</Texto>
+          {com.comentarios.slice(0, 5).map((k) => (
+            <View key={k.id} style={[estilos.comentario, { backgroundColor: c.superficie, borderColor: c.borde }]}>
+              <Texto variante="etiqueta" color={c.accionTexto}>{k.esMio ? "Tú" : k.autorCorto}</Texto>
+              <Texto>{`“${k.texto}”`}</Texto>
+            </View>
+          ))}
+        </>
+      ) : null}
+      {servicio.esMio && !servicio.visibleVecinos ? (
+        <Mensaje tono="aviso">Tus vecinos no ven este negocio. Actívalo en «Cambiar mi negocio» › Mis vecinos pueden verlo.</Mensaje>
       ) : null}
 
       {servicio.esMio ? (

@@ -1,9 +1,10 @@
 /**
  * Modelo. Categorías de Servicios del Mockup v4 (E1, p. 16) y tipos de negocio de E4 (p. 19).
  *
- * La base no cambia: cada categoría agrupa oficios que ya existen en `servicios.oficio`
- * (CHECK de la tabla). Así «Agua y luz» muestra gasfiteros y electricistas, y «Oficios» todo lo
- * que no cae en las otras cinco.
+ * Cada categoría agrupa valores de `servicios.oficio` (CHECK del script 07). El script 07 agregó
+ * 'menu' (Menú del día) y 'pago_servicios' (lugares donde pagar agua y luz; la app no cobra).
+ * «Agua y luz» muestra esos lugares y también gasfiteros y electricistas; «Menú del día» incluye
+ * 'menu' y los restaurantes y cafeterías anteriores; «Oficios», todo lo demás.
  */
 import { OFICIOS, type Oficio, type ServicioPublico } from "./tipos";
 
@@ -17,15 +18,15 @@ export interface CategoriaServicio {
   palabras: readonly string[];
 }
 
-const AGUA_LUZ: readonly Oficio[] = ["gasfitero", "electricista"];
-const MENU: readonly Oficio[] = ["restaurante", "cafeteria"];
+const AGUA_LUZ: readonly Oficio[] = ["pago_servicios", "gasfitero", "electricista"];
+const MENU: readonly Oficio[] = ["menu", "restaurante", "cafeteria"];
 const BODEGAS: readonly Oficio[] = ["bodega", "mercado"];
 const PANADERIAS: readonly Oficio[] = ["panaderia"];
 const FARMACIAS: readonly Oficio[] = ["farmacia"];
 const AGRUPADOS = new Set<Oficio>([...AGUA_LUZ, ...MENU, ...BODEGAS, ...PANADERIAS, ...FARMACIAS]);
 
 export const CATEGORIAS_SERVICIO: readonly CategoriaServicio[] = [
-  { valor: "agua_luz", etiqueta: "Agua y luz", oficios: AGUA_LUZ, palabras: ["agua", "luz", "gasfit", "caño", "tubo", "electric", "enchufe", "foco"] },
+  { valor: "agua_luz", etiqueta: "Agua y luz", oficios: AGUA_LUZ, palabras: ["agua", "luz", "recibo", "pagar", "gasfit", "caño", "tubo", "electric", "enchufe", "foco"] },
   { valor: "menu", etiqueta: "Menú del día", oficios: MENU, palabras: ["menú", "menu", "almuerzo", "comida", "comer", "restaurante", "cafe", "café", "desayuno"] },
   { valor: "bodegas", etiqueta: "Bodegas", oficios: BODEGAS, palabras: ["bodega", "mercado", "abarrote", "arroz", "azúcar", "azucar", "leche", "huevo"] },
   { valor: "panaderias", etiqueta: "Panaderías", oficios: PANADERIAS, palabras: ["pan", "panader", "pastel", "torta"] },
@@ -61,7 +62,8 @@ export const ETIQUETA_OFICIO: Record<Oficio, string> = {
   cafeteria: "Cafetería",
   bodega: "Bodega",
   panaderia: "Panadería",
-  restaurante: "Menú",
+  restaurante: "Restaurante",
+  menu: "Menú del día",
   mercado: "Mercado",
   farmacia: "Farmacia",
   gasfitero: "Gasfitero",
@@ -80,6 +82,7 @@ export const ETIQUETA_OFICIO: Record<Oficio, string> = {
   mototaxi: "Mototaxi",
   cuidado_personas: "Cuidado de personas",
   clases_particulares: "Clases particulares",
+  pago_servicios: "Pago de agua y luz",
   otro: "Otro",
 };
 
@@ -97,7 +100,7 @@ export const TIPOS_NEGOCIO_V4: readonly { valor: Oficio | "mas"; etiqueta: strin
   { valor: "bodega", etiqueta: "Bodega" },
   { valor: "panaderia", etiqueta: "Panadería" },
   { valor: "gasfitero", etiqueta: "Gasfitero" },
-  { valor: "restaurante", etiqueta: "Menú" },
+  { valor: "menu", etiqueta: "Menú" },
   { valor: "farmacia", etiqueta: "Farmacia" },
   { valor: "mas", etiqueta: "Otro" },
 ];

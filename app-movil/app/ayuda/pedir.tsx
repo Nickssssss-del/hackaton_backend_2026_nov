@@ -23,6 +23,8 @@ const ICONOS_CATEGORIA: Record<CategoriaPedido, string> = {
   compras: "🛒",
   transporte: "🚌",
   salud: "🏥",
+  desastre_natural: "🌧️",
+  apoyo: "🤝",
 };
 
 function formatearCategoria(cat: CategoriaPedido): string {

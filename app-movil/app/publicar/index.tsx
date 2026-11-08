@@ -19,6 +19,7 @@ const ICONOS_OFICIO: Record<Oficio, string> = {
   bodega: "🏪",
   panaderia: "🍞",
   restaurante: "🍽️",
+  menu: "🍲",
   mercado: "🛒",
   farmacia: "💊",
   gasfitero: "🔧",
@@ -37,6 +38,7 @@ const ICONOS_OFICIO: Record<Oficio, string> = {
   mototaxi: "🛵",
   cuidado_personas: "🤝",
   clases_particulares: "📚",
+  pago_servicios: "💡",
   otro: "🔧",
 };
 

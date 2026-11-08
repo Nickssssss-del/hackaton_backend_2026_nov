@@ -6,10 +6,14 @@
  * «Más opciones» lleva a la pantalla anterior (perfil, ficha y borrar mis datos), que se conserva.
  * Además: Mis datos personales (nombre, edad, género → A4 en edición), Mi avatar y
  * «Cerrar sesión en este teléfono» (con confirmación; borra solo lo guardado en el teléfono).
+ * «Vecinos cerca me ven si pido ayuda» se guarda también en perfiles.alerta_vecinal (script 07),
+ * y «Confirmar mi celular» lleva a /perfil/verificar (lo exigen ayudar y las alertas vecinales).
  */
 import { router } from "expo-router";
 import { useState } from "react";
 import { cerrarSesionLocal } from "../../src/controladores/registroVecinos";
+import { sincronizarAlertaVecinal, useEstadoCuenta } from "../../src/controladores/useCuenta";
+import { Mensaje } from "../../src/vistas/componentes/Mensaje";
 import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { Pressable, StyleSheet, View } from "react-native";
 import { usePreferencias } from "../../src/controladores/PreferenciasContexto";
@@ -29,6 +33,19 @@ export default function MisDatos() {
   const prefs = usePreferencias();
   const [confirmarSalida, setConfirmarSalida] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
+  const cuenta = useEstadoCuenta();
+  const [avisoAlerta, setAvisoAlerta] = useState<string | null>(null);
+
+  const cambiarAlertaVecinal = (activar: boolean) => {
+    prefs.setVisibleParaVecinos(activar);
+    setAvisoAlerta(null);
+    void sincronizarAlertaVecinal(activar).then((problema) => {
+      if (problema) setAvisoAlerta(`Se guardó en tu teléfono. ${problema}`);
+      else if (activar && !cuenta.celularVerificado) {
+        setAvisoAlerta("Para recibir alertas de tus vecinos, también confirma tu celular.");
+      }
+    });
+  };
 
   const salir = async () => {
     setSaliendo(true);
@@ -83,7 +100,15 @@ export default function MisDatos() {
       <InterruptorSiNo
         etiqueta="Vecinos cerca me ven si pido ayuda"
         valor={prefs.visibleParaVecinos}
-        onCambiar={prefs.setVisibleParaVecinos}
+        onCambiar={cambiarAlertaVecinal}
+      />
+      {avisoAlerta ? <Mensaje tono="aviso">{avisoAlerta}</Mensaje> : null}
+      <TarjetaAcceso
+        icono={cuenta.celularVerificado ? "cellphone-check" : "cellphone-message"}
+        colorIcono={cuenta.celularVerificado ? "verde" : "azul"}
+        titulo={cuenta.celularVerificado ? "Celular confirmado" : "Confirmar mi celular"}
+        subtitulo={cuenta.celularVerificado ? "Puedes ayudar y recibir alertas" : "Para ayudar y recibir alertas de vecinos"}
+        onPress={() => router.push("/perfil/verificar")}
       />
 
       <TarjetaAcceso

@@ -1,8 +1,11 @@
 /**
  * Modelo. Lee pedidos_cercanos. Crear inserta en pedidos_ayuda.
- * Yo ayudo llama a la función yo_ayudo(p_pedido_id).
+ * Yo ayudo llama a la función yo_ayudo(p_pedido_id), que desde el script 07 devuelve un booleano
+ * y exige celular verificado (CELULAR_NO_VERIFICADO). Quien pidió ve a su ayudante en la vista
+ * ayudas_recibidas (opción A1 del contrato del Módulo 2).
  */
 import type {
+  AyudaRecibida,
   CategoriaPedido,
   CrearPedidoDTO,
   FilaPedidoCercano,
@@ -15,6 +18,8 @@ const CATEGORIAS: readonly CategoriaPedido[] = [
   "compras",
   "transporte",
   "salud",
+  "desastre_natural",
+  "apoyo",
 ];
 
 export async function listarPedidosCercanos(): Promise<PedidoCercano[]> {
@@ -31,15 +36,28 @@ export async function crearPedido(dto: CrearPedidoDTO): Promise<void> {
   if (error) throw error;
 }
 
-export async function yoAyudo(pedidoId: string): Promise<{ nombre: string; celular: string }> {
+/** Ofrece ayuda. No entrega datos de quien pidió: devuelve true si quedó registrada. */
+export async function yoAyudo(pedidoId: string): Promise<boolean> {
   const { data, error } = await obtenerSupabase().rpc("yo_ayudo", { p_pedido_id: pedidoId });
   if (error) throw error;
-  const fila = Array.isArray(data) ? data[0] : data;
-  const registro = (fila ?? {}) as { nombre?: string; celular?: string };
-  return {
-    nombre: registro.nombre ?? "",
-    celular: registro.celular ?? "",
-  };
+  return data === true;
+}
+
+/** Vecinos que se ofrecieron a mis pedidos (vista ayudas_recibidas), del más reciente al más antiguo. */
+export async function listarAyudasRecibidas(): Promise<AyudaRecibida[]> {
+  const { data, error } = await obtenerSupabase()
+    .from("ayudas_recibidas")
+    .select("id, pedido_id, categoria, ayudante_nombre, ayudante_celular, creado_en")
+    .order("creado_en", { ascending: false });
+  if (error) throw error;
+  return (data ?? []).map((fila: Record<string, unknown>) => ({
+    id: texto(fila.id),
+    pedidoId: texto(fila.pedido_id),
+    categoria: categoria(fila.categoria),
+    ayudanteNombre: texto(fila.ayudante_nombre),
+    ayudanteCelular: texto(fila.ayudante_celular),
+    creadoEn: texto(fila.creado_en),
+  }));
 }
 
 export async function actualizarPedido(

@@ -25,6 +25,7 @@ const ICONO_OFICIO: Partial<Record<Oficio, Estilo>> = {
   electricista: { icono: "lightning-bolt-outline", color: "azul" },
   cafeteria: { icono: "coffee-outline", color: "naranja" },
   mercado: { icono: "cart-outline", color: "turquesa" },
+  pago_servicios: { icono: "cash-multiple", color: "azul" },
 };
 
 export function estiloOficio(oficio: string): Estilo {

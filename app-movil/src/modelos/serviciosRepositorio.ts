@@ -37,6 +37,8 @@ export async function crearServicio(dto: CrearServicioDTO): Promise<void> {
     lat: dto.lat === undefined ? null : redondear3(dto.lat),
     lng: dto.lng === undefined ? null : redondear3(dto.lng),
     disponible_emergencia: dto.disponibleEmergencia,
+    ...(dto.visibleVecinos === undefined ? {} : { visible_vecinos: dto.visibleVecinos }),
+    ...(dto.fotoPath === undefined ? {} : { foto_path: dto.fotoPath }),
   });
   if (error) throw error;
 }
@@ -74,6 +76,8 @@ export async function actualizarServicio(id: string, dto: Partial<CrearServicioD
     lat: dto.lat === undefined ? undefined : redondear3(dto.lat),
     lng: dto.lng === undefined ? undefined : redondear3(dto.lng),
     disponible_emergencia: dto.disponibleEmergencia,
+    visible_vecinos: dto.visibleVecinos,
+    foto_path: dto.fotoPath,
   }).eq("id", id);
   if (error) throw error;
 }
@@ -82,8 +86,6 @@ export async function eliminarServicio(id: string): Promise<void> {
   const { error } = await obtenerSupabase().from("servicios").delete().eq("id", id);
   if (error) throw error;
 }
-
-// TODO Fase 4: usar reportesRepositorio.
 
 function mapearServicio(fila: FilaServicioPublico): ServicioPublico {
   const comentario = textoOpcional(fila.comentario_destacado);
@@ -115,6 +117,9 @@ function mapearServicio(fila: FilaServicioPublico): ServicioPublico {
     contacto: textoOpcional(fila.contacto),
     direccion: textoOpcional(fila.direccion),
     esMio: Boolean(fila.es_mio),
+    // Antes del script 07 la vista no traía la columna: se toma como visible.
+    visibleVecinos: fila.visible_vecinos !== false,
+    fotoPath: textoOpcional(fila.foto_path),
   };
 }
 

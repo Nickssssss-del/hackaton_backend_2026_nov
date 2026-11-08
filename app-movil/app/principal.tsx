@@ -3,7 +3,7 @@
  * Mockup v4, pp. 8–9. Un solo componente; el conjunto de tarjetas cambia según el modo.
  *
  * Destinos mientras se construyen los módulos C–G:
- * - Pastillas → C1 (/pastillas). Pregúntale a Vecinos y Comunidad → pantalla «Llega pronto».
+ * - Pastillas → C1 (/pastillas). Pregúntale a Vecinos → D1 (/preguntale). Comunidad → F2 (/comunidad).
  * - Necesito/Quiero ayudar y Ayuda vecinal → F1 (/ayuda-vecinos).
  * - Emergencia → G1 (/sos). La emergencia anterior (/emergencia) sigue disponible.
  * - Servicios → E1 (/servicios), Crear servicio → E4 (/servicios/publicar), Mi negocio → /servicios/mios.
@@ -123,7 +123,7 @@ export default function Principal() {
         titulo="Pregúntale a Vecinos"
         subtitulo="Habla o escribe"
         accion="microfono"
-        onPress={ir({ pathname: "/pronto", params: { modulo: "asistente" } })}
+        onPress={ir("/preguntale")}
       />
 
       <View style={estilos.fila}>
@@ -138,7 +138,7 @@ export default function Principal() {
           icono="account-multiple-outline"
           colorIcono="morado"
           titulo="Comunidad"
-          onPress={ir({ pathname: "/pronto", params: { modulo: "comunidad" } })}
+          onPress={ir("/comunidad")}
         />
       </View>
 

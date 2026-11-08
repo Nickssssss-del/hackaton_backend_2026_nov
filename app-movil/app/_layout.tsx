@@ -12,6 +12,7 @@ import { AtkinsonHyperlegible_400Regular, AtkinsonHyperlegible_700Bold } from "@
 import { StatusBar } from "expo-status-bar";
 import { useEffect, type ReactNode } from "react";
 import { AbrirAvisoDePastilla } from "../src/controladores/AbrirAvisoDePastilla";
+import { AvisosDeVecinos } from "../src/controladores/AvisosDeVecinos";
 
 export default function DisenoRaiz() {
   useSesion();
@@ -50,6 +51,7 @@ function Pantallas() {
     <>
       <StatusBar style={tema.oscuro ? "light" : "dark"} />
       <AbrirAvisoDePastilla />
+      <AvisosDeVecinos />
           <Stack
             screenOptions={{
               // Cada pantalla trae su barra (Volver, Aa, luna, altavoz): sin encabezado del sistema,
@@ -68,6 +70,8 @@ function Pantallas() {
           <Stack.Screen name="pastillas" options={{ headerShown: false }} />
           <Stack.Screen name="ayuda-vecinos" options={{ headerShown: false }} />
           <Stack.Screen name="servicios" options={{ headerShown: false }} />
+          <Stack.Screen name="comunidad" options={{ headerShown: false }} />
+          <Stack.Screen name="preguntale" options={{ headerShown: false }} />
           <Stack.Screen name="sos" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="servicio/[id]" options={{ title: "Servicio" }} />
           <Stack.Screen name="publicar" options={{ title: "Publicar servicio" }} />

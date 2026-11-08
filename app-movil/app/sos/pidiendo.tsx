@@ -8,7 +8,12 @@
  * con el número listo: la persona toca el botón verde del teléfono.
  * La franja verde abre Mensajes con la ubicación ya escrita (hay que tocar Enviar).
  *
- * Modo demo (`demo=1`): no llama a nadie; la cascada avanza sola. Usa tus contactos reales
+ * Con internet, la emergencia también se registra en la base (useEmergenciaNube): eslabones con el
+ * estado de cada llamada, enlace «Voy en camino» dentro del SMS, aviso push a vecinos cercanos con
+ * alerta activa (Edge Function alerta-vecinos) y contador en vivo de quién va (Realtime).
+ * Nada de eso frena las llamadas ni el SMS: si falla, la emergencia sigue solo con el teléfono.
+ *
+ * Modo demo (`demo=1`): no llama a nadie ni registra nada; la cascada avanza sola. Usa tus contactos reales
  * si los tienes (nunca nombres inventados). La franja abre G3 (lo que ve el vecino).
  */
 import { router, useLocalSearchParams } from "expo-router";
@@ -17,6 +22,7 @@ import { Animated, AppState, Platform, Pressable, StyleSheet, View } from "react
 import { llamar as llamarNumero } from "../../src/controladores/llamadas";
 import { postaMasCercana } from "../../src/controladores/useLugaresCercanos";
 import { useEmergencia } from "../../src/controladores/useEmergencia";
+import { useEmergenciaNube } from "../../src/controladores/useEmergenciaNube";
 import { useEscuchar } from "../../src/controladores/useEscuchar";
 import {
   accionDemo,
@@ -43,6 +49,7 @@ export default function PidiendoAyuda() {
   const c = tema.colores;
   const esDemo = useLocalSearchParams<{ demo?: string }>().demo === "1";
   const emergencia = useEmergencia();
+  const nube = useEmergenciaNube();
   const { escuchar } = useEscuchar();
   const [pasos, setPasos] = useState<PasoCascada[]>([]);
   const [fase, setFase] = useState<Fase>(null);
@@ -85,6 +92,15 @@ export default function PidiendoAyuda() {
     animacion.start();
     return () => animacion.stop();
   }, [latido]);
+
+  // Real: registrar la emergencia en la base una vez armada la cascada, y seguir sus cambios.
+  const { iniciar, sincronizarPasos } = nube;
+  const { asegurarUbicacion } = emergencia;
+  useEffect(() => {
+    if (esDemo || pasos.length === 0) return;
+    iniciar(pasos, asegurarUbicacion);
+    sincronizarPasos(pasos);
+  }, [esDemo, pasos, iniciar, sincronizarPasos, asegurarUbicacion]);
 
   const i = pasoActual(pasos);
   const actual = i >= 0 ? pasos[i] : null;
@@ -157,7 +173,8 @@ export default function PidiendoAyuda() {
     }
     setAviso(null);
     try {
-      const r = await emergencia.necesitoAyuda();
+      const enlace = await nube.esperarEnlace();
+      const r = await emergencia.necesitoAyuda(enlace);
       if (r.estado === "pedir_numero") {
         setAviso("Aún no tienes personas de confianza. Agrégalas en Mis datos › Mis contactos.");
         return;
@@ -170,6 +187,7 @@ export default function PidiendoAyuda() {
   };
 
   const cancelar = async () => {
+    if (!esDemo) void nube.cerrar();
     if (!esDemo && ubicacionAbierta) {
       try {
         await emergencia.estoyBien();
@@ -222,6 +240,7 @@ export default function PidiendoAyuda() {
       </View>
 
       {esDemo ? <Mensaje tono="info">Demo: no se llama a nadie.</Mensaje> : null}
+      {!esDemo ? <EstadoVecinos nube={nube} /> : null}
 
       <Pressable accessibilityRole="button" onPress={() => void enviarUbicacion()} style={[estilos.franja, { backgroundColor: c.confirmadoSuave }]}>
         <Icono nombre="map-marker-outline" tamano={28} color={c.confirmado} />
@@ -265,6 +284,30 @@ export default function PidiendoAyuda() {
         </View>
       ))}
     </Pantalla>
+  );
+}
+
+/** Lo que pasa en la base: vecinos avisados, vecinos que van y contactos que abrieron el enlace. */
+function EstadoVecinos({ nube }: { nube: ReturnType<typeof useEmergenciaNube> }) {
+  const { tema } = useTema();
+  const c = tema.colores;
+  const lineas: string[] = [];
+  for (const nombre of nube.contactosEnCamino) lineas.push(`${nombre} confirmó que viene`);
+  if (nube.vecinosEnCamino > 0) lineas.push(nube.vecinosEnCamino === 1 ? "1 vecino confirmó que viene" : `${nube.vecinosEnCamino} vecinos confirmaron que vienen`);
+  if (nube.vecinosAvisados !== null && nube.vecinosAvisados > 0 && nube.vecinosEnCamino === 0) {
+    lineas.push(nube.vecinosAvisados === 1 ? "Avisamos a 1 vecino cerca" : `Avisamos a ${nube.vecinosAvisados} vecinos cerca`);
+  }
+  if (nube.estado === "limite") lineas.push("Ya pediste ayuda varias veces esta hora: solo llamamos y enviamos mensajes.");
+  if (lineas.length === 0) return null;
+  return (
+    <View style={[estilos.franja, { backgroundColor: c.confirmadoSuave }]} accessible accessibilityLiveRegion="polite" accessibilityLabel={lineas.join(". ")}>
+      <Icono nombre="account-group-outline" tamano={28} color={c.confirmado} />
+      <View style={{ flex: 1 }}>
+        {lineas.map((l) => (
+          <Texto key={l} variante="etiqueta" color={c.confirmado}>{l}</Texto>
+        ))}
+      </View>
+    </View>
   );
 }
 

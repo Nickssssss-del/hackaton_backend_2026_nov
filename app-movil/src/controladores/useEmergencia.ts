@@ -154,7 +154,8 @@ export function useEmergencia() {
     setFicha(siguiente);
   }, []);
 
-  const necesitoAyuda = useCallback(async (): Promise<ResultadoAyuda> => {
+  /** `enlace`: página «Voy en camino» de la emergencia registrada en la base, si existe. */
+  const necesitoAyuda = useCallback(async (enlace?: string | null): Promise<ResultadoAyuda> => {
     const actuales = contactos.length > 0 ? contactos : await leerContactosLocales();
     if (actuales.length === 0) return { estado: "pedir_numero" };
     const actual = ficha ?? (await leerFichaConRespaldo());
@@ -165,6 +166,7 @@ export function useEmergencia() {
       hora: new Date(),
       ficha: { texto: actual.mensaje },
       aceptoConsentimiento: actual.consentimiento?.aceptado === true,
+      enlace,
     });
     const telefonos = telefonosDe(actuales, brigada);
     setMensaje(texto);

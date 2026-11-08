@@ -79,6 +79,7 @@ function TarjetaMia({ servicio, borrando, onBorrar }: { servicio: ServicioPublic
       <View style={estilos.insignias}>
         <Insignia tono="amarillo" icono="thumb-up-outline" texto={String(servicio.vistoBuenoTotal)} etiqueta={`${servicio.vistoBuenoTotal} vistos buenos`} />
         {!servicio.contacto ? <Insignia tono="gris" texto="Sin celular" /> : null}
+        {servicio.visibleVecinos ? null : <Insignia tono="gris" icono="eye-off-outline" texto="Oculto" etiqueta="Tus vecinos no lo ven" />}
       </View>
 
       {confirmar ? (

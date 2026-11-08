@@ -5,6 +5,7 @@ import type { PerfilLocal, ZonaPublica } from "./tipos";
 import { borrarMisDatos, obtenerSupabase } from "./supabase";
 import { asignarZona, redondear3 } from "./geo";
 import { listarZonasPublicas } from "./zonasRepositorio";
+import { leerPreferenciasCompletas } from "./local/preferencias";
 
 export async function listarZonas(): Promise<ZonaPublica[]> {
   const { data, error } = await obtenerSupabase()
@@ -35,14 +36,23 @@ export async function guardarPerfilNube(perfil: PerfilLocal): Promise<void> {
       ? asignarZona(perfil.lat, perfil.lng, zonasConGeometria)
       : null;
   const coordenadasValidas = zonaCalculada === perfil.zonaId;
-  const { error } = await obtenerSupabase().from("perfiles").upsert({
+  // «Vecinos cerca me ven si pido ayuda» (B3) viaja con el perfil: perfiles.alerta_vecinal (script 07).
+  const { visibleParaVecinos } = await leerPreferenciasCompletas();
+  const fila = {
     id,
     nombre: nombre.length >= 2 ? nombre : null,
     celular: /^9\d{8}$/.test(celular) ? celular : null,
     zona_id: perfil.zonaId || null,
     lat: coordenadasValidas && perfil.lat !== undefined ? redondear3(perfil.lat) : null,
     lng: coordenadasValidas && perfil.lng !== undefined ? redondear3(perfil.lng) : null,
-  });
+  };
+  const { error } = await obtenerSupabase().from("perfiles").upsert({ ...fila, alerta_vecinal: visibleParaVecinos });
+  if (error && /alerta_vecinal/.test(error.message ?? "")) {
+    // Base sin el script 07 todavía: se guarda el perfil sin el interruptor.
+    const reintento = await obtenerSupabase().from("perfiles").upsert(fila);
+    if (reintento.error) throw reintento.error;
+    return;
+  }
   if (error) throw error;
 }
 

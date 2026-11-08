@@ -29,7 +29,7 @@ En la primera versión con Expo:
 
 La emergencia anterior (`app/emergencia/**`) sigue intacta hasta que la nueva esté probada en un teléfono.
 
-## D-05 · Categorías de ayuda: «Una manito» se guarda como `transporte` (7-nov-2026, definitiva)
+## D-05 · Categorías de ayuda: «Una manito» se guarda como `transporte` (7-nov-2026, definitiva; confirmada el 8-nov)
 
 | Tarjeta en F1 | Valor en `pedidos_ayuda.categoria` | ¿Existe en la base? |
 |---|---|---|
@@ -87,9 +87,46 @@ Pantallas nuevas en `app/servicios/`: E1 `index` («¿Qué buscas?»), E2 `lista
 - **Agregar foto**: todavía no hay dónde guardarla (Storage es propuesta del borrador SQL) ni librería de cámara instalada. El botón avisa «Las fotos llegan pronto» y E3 muestra el ícono del tipo de negocio sobre su color. **Pendiente:** `expo-image-picker` + Storage, con aprobación (cambio nativo).
 - **Celular solo al escribir** (D-03): publicar, visto bueno, comentar y reportar llevan a `/perfil/celular` si falta, y al volver se envía solo (salvo reportar, que se vuelve a tocar).
 
-## D-10 · Visto bueno con un toque y «Comentar con mi voz» (Fase 5, 8-nov-2026)
+## D-10 · Visto bueno con un toque y «Comentar con mi voz» (Fase 5, 8-nov-2026) — **la parte de comentarios la reemplaza D-14**
 
 - La base exige un motivo en `vistos_buenos`. El **toque en el pulgar** de E3 guarda el motivo `confiable`.
 - **«Comentar con mi voz»** guarda un visto bueno **con comentario** (140 letras, sin enlaces) y deja elegir el motivo. «Mis vecinos ven mi comentario» empieza en **Sí** (la persona eligió comentar); en No, el comentario no se muestra.
 - Como la base acepta un solo visto bueno por persona y negocio, **hoy se comenta una sola vez**. La tabla propia de comentarios es propuesta del borrador SQL; cuando exista, «Comentar» se separa del visto bueno.
 - E3 muestra el comentario destacado de la vista `servicios_publicos` (autor y texto por separado: campo nuevo `comentarioTexto`).
+
+## Alineación con el backend de `main` (scripts 07–09 y Edge Functions, 8-nov-2026)
+
+Requisito: el proyecto de Supabase debe tener aplicados los scripts `07_mockup_v4.sql` y `08_ajustes_backend.sql`, y desplegadas las Edge Functions `preguntale` y `alerta-vecinos`. Fuente: `backend/docs/contrato_modulo2.md`.
+
+## D-11 · Categorías de ayuda alineadas con el script 07
+
+«Una manito» se mantiene: en pantalla dice «Una manito» y se guarda como `transporte` (D-05). No se usa `apoyo`, aunque el script 07 lo acepte; un pedido antiguo con `apoyo` también se muestra como «Una manito». «Desastre natural» se envía como `desastre_natural`, que ya existe. Las 4 tarjetas de F1 se pueden enviar.
+
+## D-12 · «Quiero ayudar» con el contrato nuevo de `yo_ayudo`
+
+`yo_ayudo` devuelve `true` y exige celular verificado. La app ya no muestra el número de quien pidió: es quien pidió quien ve al ayudante en **Mis pedidos** (`/ayuda-vecinos/mis-pedidos`, vista `ayudas_recibidas`) y llama. Con `CELULAR_NO_VERIFICADO`, F1 lleva a confirmar el celular.
+
+## D-13 · Confirmar el celular por SMS (`/perfil/verificar`)
+
+`updateUser({ phone })` sobre la cuenta anónima → código de 6 números → `verifyOtp({ type: "phone_change" })` → `sincronizar_verificacion()`. Lo exigen ofrecer ayuda y la alerta vecinal. Requiere Supabase Auth con teléfono y Twilio (`backend/docs/configuracion.md`). Mis datos muestra «Confirmar mi celular» o «Celular confirmado».
+
+## D-14 · Comentarios de negocios en la tabla `comentarios`
+
+«Comentar con mi voz» (E3) escribe en `comentarios` y E3 lee `comentarios_visibles`. Se puede comentar más de una vez. El visto bueno sigue siendo un toque.
+
+## D-15 · E4 con horario, precio, descripción y `visible_vecinos`
+
+Se rescatan del formulario anterior (`app/publicar/*`) el horario (abre y cierra, cada 30 min), el precio desde y la descripción. «Mis vecinos pueden verlo» es `servicios.visible_vecinos`: en No, el negocio se guarda pero solo lo ve su dueño. «Menú» se guarda como `menu`, y «Agua y luz» incluye `pago_servicios`. La foto se **muestra** si existe en el bucket `fotos`; **subirla** sigue pendiente (necesita `expo-image-picker`, cambio nativo con aprobación).
+
+## D-16 · D1 «Pregúntale a Vecinos» y F2/F3 «Comunidad»
+
+- D1 (`/preguntale`) llama a la Edge Function `preguntale`. Pide consentimiento la primera vez. Lo que crea algo se confirma con «¿Lo guardo?». «Llamar» nunca marca sin un toque.
+- F2/F3 (`/comunidad`) usan `publicaciones_cercanas`, `publicaciones`, `asistencias` («Voy»), `comentarios` y `reportes_comunidad`.
+
+## D-17 · Emergencia registrada en la base, push y alerta vecinal real
+
+- G2 registra, en segundo plano y con tiempo máximo, `emergencias`, `eslabones` (estado de cada llamada) y un enlace «Voy en camino» que va dentro del SMS. Avisa con `alerta-vecinos` (inicio y cierre) y muestra en vivo (Realtime) quién confirmó que viene. «Estoy bien, cancelar» llama a `cerrar_emergencia`. **Nada de esto frena las llamadas ni el SMS.**
+- «Vecinos cerca me ven si pido ayuda» se guarda en `perfiles.alerta_vecinal` y registra el token de push (`registrar_push_token`).
+- Al tocar el aviso push se abre G3 real (`/sos/alerta`): `ver_alerta`, `voy_a_ayudar` y `ya_no_puedo_ir`. La demo sigue en `/sos/vecino`.
+- Para que lleguen los push hace falta un development build con `extra.eas.projectId` en `app.json` (`eas init`) y FCM (`google-services.json`, ya en `main`). La carpeta `android/` está versionada: hay que regenerarla (`npx expo prebuild`) para que tome `googleServicesFile` y los plugins.
+- El botón rojo de F1 ahora lleva a `/sos` (antes iba a la emergencia anterior, `/emergencia`).

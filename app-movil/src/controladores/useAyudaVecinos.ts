@@ -3,16 +3,17 @@
  * que importen Supabase ni repositorios:
  * - qué le falta al perfil para escribir (el celular se pide recién aquí, decisión del equipo),
  * - enviar un pedido (pedidos_ayuda) y ofrecer ayuda (RPC yo_ayudo), con mensajes honestos.
- * La base no cambia: se usan las mismas tablas, vista y RPC que las pantallas anteriores.
+ * Alineado con el contrato del Módulo 2 (scripts 07 y 08).
  */
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
-import { crearPedido, yoAyudo } from "../modelos/pedidosRepositorio";
+import { actualizarPedido, crearPedido, listarAyudasRecibidas, yoAyudo } from "../modelos/pedidosRepositorio";
 import { leerPerfilLocal, guardarPerfilLocal } from "../modelos/local/perfil";
 import { CATEGORIAS_AYUDA_V4, type ValorCategoriaAyuda } from "../modelos/categoriasAyuda";
-import { tieneConfiguracionSupabase } from "../modelos/supabase";
-import type { CategoriaPedido } from "../modelos/tipos";
-import { revisarTexto } from "./errores";
+import { asegurarSesionAnonima, tieneConfiguracionSupabase } from "../modelos/supabase";
+import type { CategoriaPedido, PedidoCercano } from "../modelos/tipos";
+import { codigoDeError, mensajeDeError, revisarTexto } from "./errores";
+import { usePedidosCercanos } from "./usePedidosCercanos";
 import { exigirEscritura } from "./guarda";
 import { useConexion } from "./useConexion";
 
@@ -99,27 +100,93 @@ export function useEnviarPedido() {
   };
 }
 
+/**
+ * F1 «Quiero ayudar». yo_ayudo (script 07) devuelve true y NO entrega el contacto de quien pidió:
+ * es quien pidió quien ve el número del ayudante (ayudas_recibidas) y llama.
+ * Exige celular verificado: si falta, `necesitaVerificar` pasa a true y la vista lleva a verificarlo.
+ */
 export function useOfrecerAyuda() {
   const cliente = useQueryClient();
   const conexion = useConexion();
-  const [contacto, setContacto] = useState<{ pedidoId: string; nombre: string; celular: string } | null>(null);
+  const [ofrecido, setOfrecido] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [ocupado, setOcupado] = useState<string | null>(null);
+  const [necesitaVerificar, setNecesitaVerificar] = useState(false);
 
   const ofrecer = useCallback(
     async (pedidoId: string) => {
       setError(null);
+      setNecesitaVerificar(false);
       setOcupado(pedidoId);
+      let codigo: string | null = null;
       const problema = await escribir(conexion !== "sin internet", async () => {
-        const r = await yoAyudo(pedidoId);
-        setContacto({ pedidoId, ...r });
+        try {
+          await yoAyudo(pedidoId);
+        } catch (causa) {
+          codigo = codigoDeError(causa);
+          throw causa;
+        }
       });
       setOcupado(null);
-      if (problema) setError(problema);
-      else void cliente.invalidateQueries({ queryKey: ["pedidos-cercanos"] });
+      if (codigo === "CELULAR_NO_VERIFICADO") {
+        setNecesitaVerificar(true);
+        return;
+      }
+      if (problema) {
+        setError(problema);
+        if (codigo === "PEDIDO_NO_DISPONIBLE") void cliente.invalidateQueries({ queryKey: ["pedidos-cercanos"] });
+        return;
+      }
+      setOfrecido(pedidoId);
+      void cliente.invalidateQueries({ queryKey: ["pedidos-cercanos"] });
     },
     [cliente, conexion],
   );
 
-  return { ofrecer, contacto, cerrar: () => setContacto(null), error, ocupado };
+  return { ofrecer, ofrecido, error, ocupado, necesitaVerificar };
+}
+
+/**
+ * «Mis pedidos» del Mockup v4: mis pedidos abiertos (pedidos_cercanos, es_mio) con los vecinos que
+ * se ofrecieron (ayudas_recibidas: nombre corto y celular). Permite marcarlos como atendidos o cancelarlos.
+ */
+export function useMisPedidosVecinos() {
+  const cliente = useQueryClient();
+  const conexion = useConexion();
+  const pedidos = usePedidosCercanos();
+  const ayudas = useQuery({
+    queryKey: ["ayudas-recibidas"],
+    queryFn: async () => {
+      await asegurarSesionAnonima();
+      return listarAyudasRecibidas();
+    },
+    enabled: !sinBase(),
+    staleTime: 1000 * 30,
+    retry: 1,
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const cambiarEstado = useCallback(
+    async (pedido: PedidoCercano, estado: "atendido" | "cancelado") => {
+      setError(null);
+      const problema = await escribir(conexion !== "sin internet", () => actualizarPedido(pedido.id, pedido.descripcion, estado));
+      if (problema) setError(problema);
+      await cliente.invalidateQueries({ queryKey: ["pedidos-cercanos"] });
+      await cliente.invalidateQueries({ queryKey: ["ayudas-recibidas"] });
+    },
+    [cliente, conexion],
+  );
+
+  const mios = pedidos.pedidos.filter((p) => p.esMio);
+  const lista = ayudas.data ?? [];
+  return {
+    pedidos: mios.map((p) => ({ pedido: p, ayudantes: lista.filter((a) => a.pedidoId === p.id) })),
+    cargando: pedidos.cargando || ayudas.isLoading,
+    error: error ?? pedidos.error ?? (ayudas.error ? mensajeDeError(ayudas.error, "general") : null),
+    recargar: () => {
+      void cliente.invalidateQueries({ queryKey: ["pedidos-cercanos"] });
+      void ayudas.refetch();
+    },
+    cambiarEstado,
+  };
 }

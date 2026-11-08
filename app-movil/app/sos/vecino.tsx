@@ -1,6 +1,6 @@
 /**
  * Vista. G3 · Lo que ve un vecino cuando alguien pide ayuda (Mockup v4, p. 25).
- * Solo demostración: el equipo decidió no enviar alertas en tiempo real todavía (sin backend).
+ * Demostración (desde Mis datos › Probar la emergencia). La alerta real está en /sos/alerta.
  * Mapa dibujado (sin servicios de mapas), con el punto que late y el camino punteado.
  * «Llamar 106» sí abre el marcador de verdad.
  */

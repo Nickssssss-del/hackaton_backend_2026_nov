@@ -11,5 +11,6 @@ export const ESTILO_CATEGORIA: Record<ValorCategoriaAyuda, { icono: NombreIcono;
   salud: { icono: "plus-outline", color: "verde" },
   compras: { icono: "store-outline", color: "naranja" },
   transporte: { icono: "account-multiple-outline", color: "morado" },
+  apoyo: { icono: "account-multiple-outline", color: "morado" },
   arreglos: { icono: "hammer-wrench", color: "azul" },
 };

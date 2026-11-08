@@ -110,7 +110,7 @@ export default function MasOpciones() {
       </Seccion>
 
       <TarjetaAcceso icono="storefront-outline" colorIcono="turquesa" titulo="Mis servicios" onPress={() => router.push("/servicios/mios")} />
-      <TarjetaAcceso icono="hand-heart-outline" colorIcono="morado" titulo="Mis pedidos de ayuda" onPress={() => router.push("/ayuda/mis-pedidos")} />
+      <TarjetaAcceso icono="hand-heart-outline" colorIcono="morado" titulo="Mis pedidos de ayuda" onPress={() => router.push("/ayuda-vecinos/mis-pedidos")} />
       <TarjetaAcceso icono="school-outline" titulo="Ver el tutorial otra vez" onPress={() => router.push("/bienvenida/tutorial")} />
 
       <View style={estilos.borrar}>

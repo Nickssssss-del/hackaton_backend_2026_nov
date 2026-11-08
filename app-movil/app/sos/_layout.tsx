@@ -1,5 +1,5 @@
 /**
- * Vista. Emergencia del Mockup v4: G1 ¿Estás bien?, G2 Pidiendo ayuda y G3 vista del vecino (demo).
+ * Vista. Emergencia del Mockup v4: G1 ¿Estás bien?, G2 Pidiendo ayuda, G3 alerta vecinal real (alerta) y su demo (vecino).
  * Sin encabezado del sistema; al salir se calla la voz.
  */
 import { Stack } from "expo-router";

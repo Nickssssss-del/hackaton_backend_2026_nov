@@ -1,15 +1,17 @@
 /**
  * Vista. F1 · Ayuda entre vecinos (Mockup v4, p. 20).
  * Pestañas «Necesito» / «Quiero ayudar».
- * - Necesito: 4 tarjetas de color (Desastre natural, Salud, Compras, Una manito) → F1.1 Pedir.
- *   «Desastre natural» todavía no existe en la base (SQL en borrador): se avisa con honestidad.
+ * - Necesito: 4 tarjetas de color (Desastre natural, Salud, Compras, Una manito) → F1.1 Pedir,
+ *   y «Mis pedidos» (quién se ofreció, vista ayudas_recibidas).
  *   Pie: «Contar con mi voz» → F1.1 con el micrófono como entrada.
  * - Quiero ayudar: pedidos de la zona (vista pedidos_cercanos) con «Yo ayudo» (RPC yo_ayudo).
+ *   yo_ayudo exige celular verificado: si falta, se lleva a /perfil/verificar. No entrega el número
+ *   de quien pidió: quien pidió ve el del ayudante y llama (contrato del Módulo 2, opción A1).
  * Parámetro opcional `pestana=ayudar` para abrir directo en «Quiero ayudar» (tarjeta de B2).
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { useState } from "react";
-import { Linking, Pressable, StyleSheet, View } from "react-native";
+import { Pressable, StyleSheet, View } from "react-native";
 import { usePedidosCercanos } from "../../src/controladores/usePedidosCercanos";
 import { faltaParaEscribir, sinBase, useOfrecerAyuda } from "../../src/controladores/useAyudaVecinos";
 import { usePerfil } from "../../src/controladores/usePerfil";
@@ -19,6 +21,7 @@ import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { Icono } from "../../src/vistas/componentes/Icono";
 import { Mensaje } from "../../src/vistas/componentes/Mensaje";
 import { Pantalla } from "../../src/vistas/componentes/Pantalla";
+import { TarjetaAcceso } from "../../src/vistas/componentes/TarjetaAcceso";
 import { Texto } from "../../src/vistas/componentes/Texto";
 import { ESTILO_CATEGORIA } from "../../src/vistas/componentes/estiloCategoriaAyuda";
 import { ALTO_TACTIL, colorIcono, RADIO } from "../../src/vistas/tema/tokens";
@@ -36,7 +39,7 @@ export default function AyudaEntreVecinos() {
   const textoEscuchar =
     pestana === "necesito"
       ? "Ayuda entre vecinos. Elige qué necesitas: desastre natural, salud, compras o una manito. O toca Contar con mi voz."
-      : "Ayuda entre vecinos. Aquí ves lo que piden tus vecinos. Toca Yo ayudo para ver su número.";
+      : "Ayuda entre vecinos. Aquí ves lo que piden tus vecinos. Toca Yo ayudo y tu vecino verá tu número para llamarte.";
 
   return (
     <Pantalla
@@ -80,7 +83,6 @@ export default function AyudaEntreVecinos() {
 
 function Necesito() {
   const { tema } = useTema();
-  const [avisoDesastre, setAvisoDesastre] = useState(false);
   return (
     <>
       <View style={estilos.rejilla}>
@@ -92,13 +94,7 @@ function Necesito() {
               key={cat.valor}
               accessibilityRole="button"
               accessibilityLabel={cat.ayuda ? `${cat.etiqueta}, ${cat.ayuda}` : cat.etiqueta}
-              onPress={() => {
-                if (!cat.disponibleEnBase) {
-                  setAvisoDesastre(true);
-                  return;
-                }
-                router.push({ pathname: "/ayuda-vecinos/pedir", params: { categoria: cat.valor } });
-              }}
+              onPress={() => router.push({ pathname: "/ayuda-vecinos/pedir", params: { categoria: cat.valor } })}
               style={({ pressed }) => [
                 estilos.tarjeta,
                 { backgroundColor: tono.fondo, borderColor: tono.icono, opacity: pressed ? 0.85 : 1 },
@@ -111,16 +107,17 @@ function Necesito() {
           );
         })}
       </View>
-      {avisoDesastre ? (
-        <>
-          <Mensaje tono="aviso">
-            Los pedidos por sismo o lluvia todavía no se pueden enviar: el equipo los está preparando. Si hay peligro ahora, usa Emergencia.
-          </Mensaje>
-          <BotonPrincipal variante="emergencia" icono="alert-outline" onPress={() => router.push("/emergencia")}>
-            Emergencia
-          </BotonPrincipal>
-        </>
-      ) : null}
+      <TarjetaAcceso
+        icono="clipboard-text-outline"
+        colorIcono="morado"
+        titulo="Mis pedidos"
+        subtitulo="Quién se ofreció a ayudarte"
+        onPress={() => router.push("/ayuda-vecinos/mis-pedidos")}
+      />
+      <Texto variante="ayuda" color={tema.colores.textoSecundario}>Si hay peligro ahora, usa el botón rojo de Emergencia.</Texto>
+      <BotonPrincipal variante="emergencia" icono="alert-outline" onPress={() => router.push("/sos")}>
+        Emergencia
+      </BotonPrincipal>
     </>
   );
 }
@@ -145,6 +142,14 @@ function QuieroAyudar() {
       {copiaFecha ? <Mensaje tono="info">{`Sin internet. Copia guardada del ${copiaFecha}.`}</Mensaje> : null}
       {error ? <Mensaje tono="aviso">{error}</Mensaje> : null}
       {ayuda.error ? <Mensaje tono="aviso">{ayuda.error}</Mensaje> : null}
+      {ayuda.necesitaVerificar ? (
+        <>
+          <Mensaje tono="aviso">Para ayudar, primero confirma tu celular con un código. Así tu vecino sabe que eres tú.</Mensaje>
+          <BotonPrincipal variante="tocar" icono="cellphone-check" onPress={() => router.push("/perfil/verificar")}>
+            Confirmar mi celular
+          </BotonPrincipal>
+        </>
+      ) : null}
       {cargando ? <Texto variante="ayuda">Buscando pedidos de tu barrio…</Texto> : null}
       {!cargando && !error && ajenos.length === 0 ? (
         <Mensaje tono="listo">Por ahora nadie de tu barrio pide ayuda.</Mensaje>
@@ -154,7 +159,7 @@ function QuieroAyudar() {
           key={p.id}
           pedido={p}
           ocupado={ayuda.ocupado === p.id}
-          contacto={ayuda.contacto?.pedidoId === p.id ? ayuda.contacto : null}
+          recienOfrecido={ayuda.ofrecido === p.id}
           onAyudar={() =>
             void faltaParaEscribir().then((falta) => {
               if (falta === "celular") router.push("/perfil/celular");
@@ -170,12 +175,12 @@ function QuieroAyudar() {
 function TarjetaPedido({
   pedido,
   ocupado,
-  contacto,
+  recienOfrecido,
   onAyudar,
 }: {
   pedido: PedidoCercano;
   ocupado: boolean;
-  contacto: { nombre: string; celular: string } | null;
+  recienOfrecido: boolean;
   onAyudar: () => void;
 }) {
   const { tema } = useTema();
@@ -194,15 +199,13 @@ function TarjetaPedido({
         </View>
       </View>
       {pedido.descripcion ? <Texto>{pedido.descripcion}</Texto> : null}
-      {contacto ? (
+      {recienOfrecido ? (
         <>
+          <Mensaje tono="listo">{`Listo. ${pedido.nombreCorto || "Tu vecino"} verá tu número y te llamará.`}</Mensaje>
           <Mensaje tono="aviso">Nunca des dinero ni claves por adelantado.</Mensaje>
-          <BotonPrincipal variante="listo" icono="phone" onPress={() => void Linking.openURL(`tel:${contacto.celular}`)}>
-            {`Llamar a ${contacto.nombre || "tu vecino"}`}
-          </BotonPrincipal>
         </>
       ) : pedido.yaOfreci ? (
-        <Mensaje tono="listo">Ya ofreciste tu ayuda.</Mensaje>
+        <Mensaje tono="listo">Ya ofreciste tu ayuda. Tu vecino te llamará.</Mensaje>
       ) : (
         <BotonPrincipal variante="secundarioListo" icono="hand-heart-outline" cargando={ocupado} onPress={onAyudar}>
           Yo ayudo

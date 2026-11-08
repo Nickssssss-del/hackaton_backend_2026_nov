@@ -1,8 +1,23 @@
 /**
- * Controlador. Traduce los códigos de la sección 20.4.
+ * Controlador. Traduce los códigos de error de la base y de las Edge Functions a una frase.
+ * Fuente: backend/docs/contrato_modulo2.md, sección 4. La app no reintenta la misma acción.
  */
 
 const MENSAJES: Record<string, string> = {
+  CELULAR_NO_VERIFICADO: "Primero confirma tu celular con el código que te llega por SMS.",
+  BLOQUEADO: "Tu cuenta no puede hacer esto por ahora.",
+  LIMITE_EMERGENCIAS: "Ya pediste ayuda varias veces en la última hora. Llama directo a tus contactos.",
+  PUBLICACION_NO_DISPONIBLE: "Esta publicación ya no está disponible.",
+  COMENTARIO_NO_DISPONIBLE: "Este comentario ya no está disponible.",
+  REPORTE_NO_VALIDO: "Ese reporte no corresponde.",
+  EMERGENCIA_TERMINADA: "Esta emergencia ya terminó.",
+  MAXIMO_DOS_CONTACTOS: "Solo puedes avisar a dos personas con el enlace.",
+  ESLABON_DE_OTRA_EMERGENCIA: "No se pudo guardar ese aviso.",
+  FALTA_CONTACTO: "Falta el nombre del contacto.",
+  SIN_SESION: "Vuelve a abrir la app e intenta otra vez.",
+  TEXTO_INVALIDO: "Dilo de nuevo, más corto.",
+  NO_ES_TUYA: "No se pudo avisar a tus vecinos.",
+  ERROR_INTERNO: "No se pudo avisar ahora. Intenta otra vez.",
   PERFIL_INCOMPLETO: "Primero completa tus datos.",
   ZONA_DISTINTA: "Solo puedes hacerlo en tu barrio.",
   VOTO_PROPIO: "No puedes dar Visto Bueno a tu propio servicio.",
@@ -16,6 +31,12 @@ const MENSAJES: Record<string, string> = {
 };
 
 const CODIGOS = Object.keys(MENSAJES);
+
+/** Código de la base o de una Edge Function que trae el error, si es uno conocido. */
+export function codigoDeError(causa: unknown): string | null {
+  const texto = extraerTexto(causa);
+  return CODIGOS.find((item) => texto.includes(item)) ?? null;
+}
 const ENLACE = /https?:\/\/|www\./i;
 
 export function mensajeDeError(causa: unknown, contexto: "voto" | "reporte" | "general"): string {

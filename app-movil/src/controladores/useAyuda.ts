@@ -38,8 +38,10 @@ export function useYoAyudo() {
       irAlRegistro: () => {},
       avisar: (mensaje) => { throw new Error(mensaje); },
       ejecutar: async () => {
-        const resultado = await yoAyudo(pedidoId);
-        setContacto(resultado);
+        // Pantalla anterior al Mockup v4. Desde el script 07, yo_ayudo ya no entrega el contacto
+        // de quien pidió: quien pidió ve al ayudante en ayudas_recibidas.
+        await yoAyudo(pedidoId);
+        setContacto(null);
       },
     });
     if (!ok) {

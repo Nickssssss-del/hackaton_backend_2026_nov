@@ -31,6 +31,9 @@ export interface FilaServicioPublico {
   comentario_destacado: string | null;
   comentario_autor: string | null;
   comentario_fecha: string | null;
+  /** Desde el script 07: interruptor «Mis vecinos pueden verlo» y ruta de la foto en Storage. */
+  visible_vecinos?: boolean | null;
+  foto_path?: string | null;
   es_mio: boolean;
   creado_en: string;
 }
@@ -69,6 +72,10 @@ export interface ServicioPublico {
   contacto?: string;
   /** Presente solo si el autor permitió mostrar la dirección. */
   direccion?: string;
+  /** «Mis vecinos pueden verlo». En false solo lo ve el dueño. */
+  visibleVecinos: boolean;
+  /** Ruta de la foto en el bucket privado `fotos` (<zona>/<user>/<archivo>). */
+  fotoPath?: string;
 }
 
 /** Fila cruda de la vista pedidos_cercanos. */
@@ -85,7 +92,18 @@ export interface FilaPedidoCercano {
   ya_ofreci: boolean;
 }
 
-export type CategoriaPedido = "arreglos" | "compras" | "transporte" | "salud";
+/** Valores del CHECK de pedidos_ayuda.categoria (script 07). «Una manito» se guarda como 'transporte' (D-05). */
+export type CategoriaPedido = "arreglos" | "compras" | "transporte" | "salud" | "desastre_natural" | "apoyo";
+
+/** Fila de la vista ayudas_recibidas: solo quien pidió ve a quien se ofreció. */
+export interface AyudaRecibida {
+  id: string;
+  pedidoId: string;
+  categoria: CategoriaPedido;
+  ayudanteNombre: string;
+  ayudanteCelular: string;
+  creadoEn: string;
+}
 
 /** Pedido tal como lo muestra la vista. */
 export interface PedidoCercano {
@@ -102,10 +120,12 @@ export interface PedidoCercano {
 export interface CrearServicioDTO {
   nombreNegocio?: string;
   oficio: Oficio;
-  descripcion?: string;
-  precioDesde?: number;
-  horaApertura?: string;
-  horaCierre?: string;
+  /** null borra el valor al editar. */
+  descripcion?: string | null;
+  precioDesde?: number | null;
+  /** "HH:MM". Las dos horas van juntas o las dos en null (CHECK de servicios). */
+  horaApertura?: string | null;
+  horaCierre?: string | null;
   direccion?: string;
   mostrarDireccion: boolean;
   contacto?: string;
@@ -113,6 +133,10 @@ export interface CrearServicioDTO {
   lat?: number;
   lng?: number;
   disponibleEmergencia: boolean;
+  /** «Mis vecinos pueden verlo». La base lo pone en true si no se envía. */
+  visibleVecinos?: boolean;
+  /** Ruta en el bucket `fotos`, si se subió una. */
+  fotoPath?: string;
 }
 
 /** Datos para publicar un pedido. La descripción admite 140 caracteres y no lleva enlaces. */
@@ -127,6 +151,7 @@ export const OFICIOS = [
   "bodega",
   "panaderia",
   "restaurante",
+  "menu",
   "mercado",
   "farmacia",
   "gasfitero",
@@ -145,6 +170,7 @@ export const OFICIOS = [
   "mototaxi",
   "cuidado_personas",
   "clases_particulares",
+  "pago_servicios",
   "otro",
 ] as const;
 
