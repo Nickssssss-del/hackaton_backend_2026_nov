@@ -65,7 +65,7 @@ export function BotonPrincipal({
     >
       <View style={estilos.fila}>
         {icono && !desactivado ? <Icono nombre={icono} color={elegido.texto} /> : null}
-        <Texto variante="boton" color={elegido.texto} centrado>
+        <Texto variante="boton" color={elegido.texto} centrado ajustar={2} style={{ flexShrink: 1 }}>
           {cargando ? "Un momento…" : children}
         </Texto>
       </View>

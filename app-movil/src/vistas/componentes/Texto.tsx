@@ -3,7 +3,7 @@
  * Si la letra crece, el texto se ajusta en varias líneas; la pantalla se desplaza (nada se corta).
  */
 import { Text, type TextProps, type TextStyle } from "react-native";
-import { tamanoLetra } from "../tema/tokens";
+import { LETRA_MINIMA, tamanoLetra } from "../tema/tokens";
 import { useTema } from "../tema/useTema";
 
 export type VarianteTexto = "titulo" | "subtitulo" | "cuerpo" | "etiqueta" | "boton" | "ayuda" | "grande";
@@ -23,9 +23,14 @@ type Props = TextProps & {
   color?: string;
   centrado?: boolean;
   negrita?: boolean;
+  /**
+   * Textos de botones: se achica solo lo justo para caber en `ajustar` líneas (1 por defecto),
+   * nunca por debajo de 20 px. Así ninguna palabra se corta a la mitad («Emergenc-ia»).
+   */
+  ajustar?: boolean | number;
 };
 
-export function Texto({ variante = "cuerpo", color, centrado, negrita, style, ...props }: Props) {
+export function Texto({ variante = "cuerpo", color, centrado, negrita, ajustar, style, ...props }: Props) {
   const { tema } = useTema();
   const base = BASE[variante];
   const fontSize = tamanoLetra(base.tamano, tema.escalaLetra);
@@ -38,5 +43,12 @@ export function Texto({ variante = "cuerpo", color, centrado, negrita, style, ..
     textAlign: centrado ? "center" : undefined,
   };
   // El tamaño ya lo controla la app (A+ / Aa); se limita el escalado extra del sistema para no cortar.
-  return <Text maxFontSizeMultiplier={1.15} {...props} style={[estilo, style]} />;
+  const ajuste = ajustar
+    ? {
+        numberOfLines: typeof ajustar === "number" ? ajustar : 1,
+        adjustsFontSizeToFit: true,
+        minimumFontScale: Math.min(1, LETRA_MINIMA / fontSize),
+      }
+    : {};
+  return <Text maxFontSizeMultiplier={1.15} {...ajuste} {...props} style={[estilo, style]} />;
 }

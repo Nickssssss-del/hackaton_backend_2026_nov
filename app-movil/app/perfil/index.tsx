@@ -9,8 +9,10 @@
  * «Vecinos cerca me ven si pido ayuda» se guarda también en perfiles.alerta_vecinal (script 07),
  * y «Confirmar mi celular» lleva a /perfil/verificar (lo exigen ayudar y las alertas vecinales).
  */
-import { router } from "expo-router";
-import { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { leerSituaciones } from "../../src/modelos/local/situaciones";
+import { SITUACIONES } from "../../src/vistas/componentes/estiloSituaciones";
 import { cerrarSesionLocal } from "../../src/controladores/registroVecinos";
 import { sincronizarAlertaVecinal, useEstadoCuenta } from "../../src/controladores/useCuenta";
 import { activarAvisoSalida, desactivarAvisoSalida, mensajeSalida } from "../../src/controladores/salidaDeCasa";
@@ -32,6 +34,16 @@ export default function MisDatos() {
   const { tema } = useTema();
   const c = tema.colores;
   const prefs = usePreferencias();
+  // Lo elegido en «¿Algo de esto te pasa?», en una línea: «Vivo solo · Oigo poco».
+  const [textoSituaciones, setTextoSituaciones] = useState("Aún no eliges");
+  useFocusEffect(
+    useCallback(() => {
+      void leerSituaciones().then((lista) => {
+        const nombres = SITUACIONES.filter((x) => lista.includes(x.valor)).map((x) => x.etiqueta);
+        setTextoSituaciones(nombres.length > 0 ? nombres.join(" · ") : "Aún no eliges");
+      });
+    }, []),
+  );
   const [confirmarSalida, setConfirmarSalida] = useState(false);
   const [saliendo, setSaliendo] = useState(false);
   const cuenta = useEstadoCuenta();
@@ -155,7 +167,13 @@ export default function MisDatos() {
         titulo="Mis contactos"
         onPress={() => router.push({ pathname: "/alta/contactos", params: { editar: "1" } })}
       />
-      <TarjetaAcceso icono="hand-heart-outline" titulo="¿Algo te pasa?" onPress={() => router.push("/perfil/situaciones")} />
+      <TarjetaAcceso
+        icono="hand-heart-outline"
+        colorIcono="morado"
+        titulo="¿Algo de esto te pasa?"
+        subtitulo={textoSituaciones}
+        onPress={() => router.push("/perfil/situaciones")}
+      />
       <TarjetaAcceso
         icono="swap-horizontal"
         titulo="Cambiar de modo"
