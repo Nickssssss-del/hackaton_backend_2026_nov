@@ -10,6 +10,7 @@ import {
   idDeLaSesion,
   listarBloqueos,
   listarReportesDePersonas,
+  nombresCortos,
   type Bloqueo,
   type ReportePersona,
 } from "../modelos/bloqueos";
@@ -23,6 +24,9 @@ export function useBloqueos() {
   const [error, setError] = useState<string | null>(null);
   const [aviso, setAviso] = useState<string | null>(null);
   const [enCurso, setEnCurso] = useState<string | null>(null);
+  const [nombres, setNombres] = useState<Map<string, string>>(new Map());
+  /** La lectura de perfiles falló (por ejemplo, el script 11 aún no está aplicado). */
+  const [sinNombres, setSinNombres] = useState(false);
 
   const cargar = useCallback(async () => {
     setCargando(true);
@@ -32,6 +36,17 @@ export function useBloqueos() {
       setBloqueos(lista);
       setReportes(dePersonas);
       setMiId(yo);
+      const ids = [
+        ...lista.flatMap((bloqueo) => (bloqueo.creado_por ? [bloqueo.user_id, bloqueo.creado_por] : [bloqueo.user_id])),
+        ...dePersonas.map((reporte) => reporte.usuario_id),
+      ];
+      try {
+        setNombres(await nombresCortos(ids));
+        setSinNombres(false);
+      } catch {
+        setNombres(new Map());
+        setSinNombres(true);
+      }
     } catch (causa) {
       setError(mensajeDeError(causa, "No se pudieron leer los bloqueos."));
     } finally {
@@ -89,6 +104,8 @@ export function useBloqueos() {
     error,
     aviso,
     enCurso,
+    nombres,
+    sinNombres,
     recargar: cargar,
     quitarBloqueo,
     bloquearUsuario,
