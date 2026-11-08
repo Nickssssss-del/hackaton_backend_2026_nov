@@ -193,10 +193,17 @@ export default function AyudaCerca() {
         })}
       </View>
 
-      {cargando ? <Texto variante="ayuda">Buscando lugares cerca de ti…</Texto> : null}
+      {cargando ? <Texto variante="ayuda">Buscando lugares cerca de ti… puede tardar hasta un minuto.</Texto> : null}
       {sinUbicacion ? <Mensaje tono="aviso">No sé dónde estás. Activa la ubicación del teléfono y toca Actualizar.</Mensaje> : null}
       {!cargando && posicion && origen === "ninguno" ? (
-        <Mensaje tono="aviso">Sin internet no pude buscar. Conéctate una vez y guardaré los lugares para usarlos sin internet.</Mensaje>
+        <>
+          <Mensaje tono="aviso">
+            No pude cargar los lugares: no hay internet o el servidor de mapas no respondió. Con internet, los guardo para usarlos sin conexión.
+          </Mensaje>
+          <BotonPrincipal variante="tocar" icono="refresh" onPress={() => void actualizar()}>
+            Volver a intentar
+          </BotonPrincipal>
+        </>
       ) : null}
       {!cargando && origen !== "ninguno" && cercanos.length === 0 ? (
         <Mensaje tono="info">{`No hay lugares registrados a ${km} km. Prueba con 2 km o llama al 106, 105 o 116.`}</Mensaje>
