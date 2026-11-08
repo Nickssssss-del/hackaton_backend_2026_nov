@@ -4,6 +4,7 @@
 import { useResumen } from "../controladores/useResumen";
 import type { ResumenDia } from "../modelos/resumen";
 import { Mensajes } from "./Mensajes";
+import { TiempoUsoResumen } from "./TiempoUsoResumen";
 
 const HOY = new Intl.DateTimeFormat("es-PE", { dateStyle: "long", timeZone: "America/Lima" });
 
@@ -45,6 +46,10 @@ export function Resumen() {
           ))}
         </dl>
       ) : null}
+
+      <div className="mt-8">
+        <TiempoUsoResumen />
+      </div>
     </section>
   );
 }
