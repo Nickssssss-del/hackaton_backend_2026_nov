@@ -5,6 +5,11 @@
  */
 import { cliente } from "./supabase";
 
+export interface PuntoGrafica {
+  etiqueta: string;
+  valor: number;
+}
+
 export interface ResumenDia {
   negociosVisibles: number;
   pedidosAbiertos: number;
@@ -12,6 +17,8 @@ export interface ResumenDia {
   reportesPendientes: number;
   avisosInicio: number;
   avisosCierre: number;
+  emergenciasPorDia: PuntoGrafica[];
+  reportesPorTipo: PuntoGrafica[];
 }
 
 const DIA_MS = 24 * 60 * 60 * 1000;
@@ -80,12 +87,53 @@ async function contarReportesQueSiguen(
   return total;
 }
 
+const ETIQUETA_DIA = new Intl.DateTimeFormat("es-PE", {
+  day: "numeric",
+  month: "short",
+  timeZone: "America/Lima",
+});
+
+/** Siete conteos, del más antiguo al de hoy. Cada uno es head, sin filas. */
+async function emergenciasRealesPorDia(): Promise<PuntoGrafica[]> {
+  const { desde } = limitesDiaLima();
+  const medianoche = Date.parse(desde);
+  const dias = Array.from({ length: 7 }, (_, indice) => {
+    const instante = new Date(medianoche - (6 - indice) * DIA_MS);
+    const limites = limitesDiaLima(instante);
+    return { etiqueta: ETIQUETA_DIA.format(instante).replace(".", ""), ...limites };
+  });
+  const sb = cliente();
+  const valores = await Promise.all(
+    dias.map((dia) =>
+      contar(
+        sb
+          .from("emergencias")
+          .select("id", { count: "exact", head: true })
+          .eq("practica", false)
+          .gte("creado_en", dia.desde)
+          .lt("creado_en", dia.hasta),
+      ),
+    ),
+  );
+  return dias.map((dia, indice) => ({ etiqueta: dia.etiqueta, valor: valores[indice] ?? 0 }));
+}
+
 export async function leerResumen(): Promise<ResumenDia> {
   const { desde, hasta } = limitesDiaLima();
   const sb = cliente();
 
-  const [negociosVisibles, pedidosAbiertos, emergenciasReales, avisosInicio, avisosCierre, deServicios, dePublicaciones, deComentarios, dePersonas] =
-    await Promise.all([
+  const [
+    negociosVisibles,
+    pedidosAbiertos,
+    emergenciasReales,
+    avisosInicio,
+    avisosCierre,
+    deServicios,
+    dePublicaciones,
+    deComentarios,
+    dePersonas,
+    emergenciasPorDia,
+  ] = await Promise.all([
       contar(
         sb.from("servicios").select("id", { count: "exact", head: true }).eq("oculto", false).eq("visible_vecinos", true),
       ),
@@ -118,6 +166,7 @@ export async function leerResumen(): Promise<ResumenDia> {
       contarReportesQueSiguen("reportes_comunidad", "publicaciones", "publicacion_id"),
       contarReportesQueSiguen("reportes_comunidad", "comentarios", "comentario_id"),
       contar(sb.from("reportes_comunidad").select("id", { count: "exact", head: true }).not("usuario_id", "is", null)),
+      emergenciasRealesPorDia(),
     ]);
 
   return {
@@ -127,5 +176,12 @@ export async function leerResumen(): Promise<ResumenDia> {
     reportesPendientes: deServicios + dePublicaciones + deComentarios + dePersonas,
     avisosInicio,
     avisosCierre,
+    emergenciasPorDia,
+    reportesPorTipo: [
+      { etiqueta: "Servicios", valor: deServicios },
+      { etiqueta: "Publicaciones", valor: dePublicaciones },
+      { etiqueta: "Comentarios", valor: deComentarios },
+      { etiqueta: "Personas", valor: dePersonas },
+    ],
   };
 }
