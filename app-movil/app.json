@@ -30,7 +30,8 @@
       "expo-font"
     ],
     "android": {
-      "package": "com.melllfer.proyectobarrio"
+      "package": "com.melllfer.proyectobarrio",
+      "permissions": ["android.permission.CALL_PHONE"]
     }
   }
 }

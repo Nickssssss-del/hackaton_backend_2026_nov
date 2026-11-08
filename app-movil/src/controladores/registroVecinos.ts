@@ -11,6 +11,9 @@ import { guardarPerfilLocal, leerPerfilLocal } from "../modelos/local/perfil";
 import { guardarEstadoRegistro, leerEstadoRegistro } from "../modelos/local/registro";
 import { guardarUltimaUbicacion } from "../modelos/local/ultimaUbicacion";
 import { guardarUbicacionNube } from "../modelos/perfilRepositorio";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { guardarJson, leerJson, PREFIJO } from "../modelos/almacen";
+import { cancelarTodosLosAvisos } from "./recordatorios";
 import { asegurarSesionAnonima, tieneConfiguracionSupabase } from "../modelos/supabase";
 import type { ContactoLocal, DireccionLocal, Genero, PerfilLocal } from "../modelos/tipos";
 
@@ -47,6 +50,13 @@ export async function leerPerfil(): Promise<PerfilLocal> {
 async function actualizarPerfil(cambios: Partial<PerfilLocal>): Promise<void> {
   const actual = await leerPerfil();
   await guardarPerfilLocal({ ...actual, ...cambios });
+}
+
+/** Mis datos › Mi avatar. null vuelve a «automático» (según edad y género). */
+export async function guardarAvatar(avatar: PerfilLocal["avatar"] | null): Promise<void> {
+  const actual = await leerPerfil();
+  const { avatar: _anterior, ...resto } = actual;
+  await guardarPerfilLocal(avatar ? { ...resto, avatar } : resto);
 }
 
 // ---------- A3 · ¿Dónde vives? ----------
@@ -159,12 +169,62 @@ export async function buscarEnAgenda(nombre: string): Promise<ResultadoAgenda> {
   }
 }
 
+export type ResultadoListaAgenda =
+  | { estado: "lista"; contactos: { nombre: string; telefono: string }[] }
+  | { estado: "sin_permiso" };
+
+/** Contactos de la agenda con un celular peruano válido (uno por persona), en orden alfabético. */
+export async function listarAgenda(): Promise<ResultadoListaAgenda> {
+  try {
+    const permiso = await Contacts.requestPermissionsAsync();
+    if (!permiso.granted) return { estado: "sin_permiso" };
+    const { data } = await Contacts.getContactsAsync({ fields: [Contacts.Fields.Name, Contacts.Fields.PhoneNumbers] });
+    const vistos = new Set<string>();
+    const contactos: { nombre: string; telefono: string }[] = [];
+    for (const contacto of data) {
+      for (const tel of contacto.phoneNumbers ?? []) {
+        const celular = normalizarCelular(tel.number ?? tel.digits ?? "");
+        if (celular && !vistos.has(celular)) {
+          vistos.add(celular);
+          contactos.push({ nombre: (contacto.name ?? "").trim() || celular, telefono: celular });
+          break;
+        }
+      }
+    }
+    contactos.sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+    return { estado: "lista", contactos };
+  } catch {
+    return { estado: "sin_permiso" };
+  }
+}
+
 export function leerContactos(): Promise<ContactoLocal[]> {
   return leerContactosLocales();
 }
 
 export async function guardarContactos(contactos: ContactoLocal[]): Promise<void> {
   await guardarContactosLocales(contactos.slice(0, MAX_CONTACTOS));
+}
+
+// ---------- Cerrar sesión en este teléfono ----------
+
+/**
+ * Borra del teléfono el registro, el perfil, los contactos, la ficha, las pastillas y demás datos
+ * locales (claves «barrio.*»), y cancela los avisos programados. Conserva solo el tamaño de letra
+ * y el modo oscuro. No toca la nube: lo publicado se queda (para borrarlo está «Borrar mis datos»).
+ * Después la app vuelve a la bienvenida (A1) para registrarse de nuevo.
+ */
+export async function cerrarSesionLocal(): Promise<void> {
+  const preferencias = await leerJson<{ tamano?: string; oscuro?: boolean }>("preferencias", {});
+  try {
+    const claves = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith(PREFIJO));
+    await AsyncStorage.multiRemove(claves);
+  } catch {
+    // Si falla, al menos se marca el registro como no completo.
+  }
+  await guardarJson("preferencias", { tamano: preferencias.tamano, oscuro: preferencias.oscuro });
+  await guardarEstadoRegistro({ completo: false });
+  await cancelarTodosLosAvisos();
 }
 
 // ---------- A6 · ¡Todo listo! ----------

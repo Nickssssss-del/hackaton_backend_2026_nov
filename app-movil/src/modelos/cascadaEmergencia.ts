@@ -1,15 +1,18 @@
 /**
  * Modelo. Cascada de ayuda de la emergencia (Mockup v4, G2). Reglas puras, sin pantalla.
  *
- * Orden: personas de confianza (máx. 2) → 106 SAMU → 105 Policía → 116 Bomberos.
+ * Orden: personas de confianza (máx. 2) → comité o autoridad vecinal (si está registrado y
+ * verificado) → posta u hospital más cercano con teléfono (radar de 2 km, si se conoce) →
+ * 106 SAMU → 105 Policía → 116 Bomberos. Nunca se inventan contactos: si la persona
+ * no eligió a nadie, la cascada empieza por el comité vecinal o por el 106.
  * Estados de cada paso: espera → llamando → «no_contesto» o «viene».
  * Cuando alguien viene, los pasos que faltan quedan en «no_hizo_falta».
  *
- * Flujo asistido y honesto (decisión del equipo): la app NO llama ni envía mensajes sola.
- * En el modo real, la persona toca «Llamar» y luego cuenta qué pasó. El modo demo recorre
- * la cascada solo, con letrero de demostración, para mostrar la mejora futura.
+ * Modo real: la app llama sola a cada paso (controladores/llamadas.ts). Al volver de la llamada
+ * pregunta «¿Contestó?»; si nadie responde en unos segundos, pasa al siguiente.
+ * Modo demo: no llama a nadie; la cascada avanza sola con letrero de demostración.
  */
-export type TipoPaso = "contacto" | "servicio";
+export type TipoPaso = "contacto" | "comite" | "salud" | "servicio";
 export type EstadoPaso = "espera" | "llamando" | "no_contesto" | "viene" | "no_hizo_falta";
 
 export interface PasoCascada {
@@ -26,7 +29,16 @@ export const SERVICIOS_EMERGENCIA: readonly { titulo: string; telefono: string }
   { titulo: "116 Bomberos", telefono: "116" },
 ];
 
-export function armarCascada(contactos: { nombre: string; telefono: string }[]): PasoCascada[] {
+export interface ComiteVecinal {
+  nombre: string;
+  telefono: string;
+}
+
+export function armarCascada(
+  contactos: { nombre: string; telefono: string }[],
+  comite?: ComiteVecinal | null,
+  salud?: ComiteVecinal | null,
+): PasoCascada[] {
   const personas = contactos.slice(0, 2).map<PasoCascada>((c, i) => ({
     id: `contacto-${i}`,
     titulo: c.nombre.trim() || `Persona ${i + 1}`,
@@ -41,7 +53,13 @@ export function armarCascada(contactos: { nombre: string; telefono: string }[]):
     tipo: "servicio",
     estado: "espera",
   }));
-  const pasos = [...personas, ...servicios];
+  const vecinal: PasoCascada[] = comite?.telefono
+    ? [{ id: "comite", titulo: "Comité vecinal", telefono: comite.telefono, tipo: "comite", estado: "espera" }]
+    : [];
+  const posta: PasoCascada[] = salud?.telefono
+    ? [{ id: "salud", titulo: "Posta más cercana", telefono: salud.telefono, tipo: "salud", estado: "espera" }]
+    : [];
+  const pasos = [...personas, ...vecinal, ...posta, ...servicios];
   pasos[0] = { ...pasos[0], estado: "llamando" };
   return pasos;
 }
@@ -84,12 +102,16 @@ export function textoEstado(estado: EstadoPaso): string {
   }
 }
 
-/** «Ana y Jorge», «Ana», o «tus personas de confianza». */
-export function nombresContactos(contactos: { nombre: string }[]): string {
+/** A quién se llama primero, en palabras: «Ana y Jorge», «Ana y el comité vecinal», «el comité vecinal»… */
+export function aQuienLlamamos(contactos: { nombre: string }[], hayComite: boolean): string {
   const n = contactos.slice(0, 2).map((c) => c.nombre.trim()).filter(Boolean);
-  if (n.length === 0) return "tus personas de confianza";
-  return n.join(" y ");
+  const partes = hayComite ? [...n, "el comité vecinal"] : n;
+  if (partes.length === 0) return "la ambulancia (106)";
+  if (partes.length === 1) return partes[0];
+  return `${partes.slice(0, -1).join(", ")} y ${partes[partes.length - 1]}`;
 }
 
-/** Recorrido del modo demo: Ana y Jorge no contestan, el SAMU viene (como el mockup). */
-export const GUION_DEMO: readonly ("no_contesto" | "viene")[] = ["no_contesto", "no_contesto", "viene"];
+/** Demo: todos «no contestan» hasta el 106, que «viene» (como el mockup). */
+export function accionDemo(paso: PasoCascada): "no_contesto" | "viene" {
+  return paso.telefono === "106" ? "viene" : "no_contesto";
+}

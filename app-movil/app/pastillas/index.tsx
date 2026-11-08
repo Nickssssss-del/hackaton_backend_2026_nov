@@ -2,12 +2,13 @@
  * Vista. C1 · Horario de pastillas (Mockup v4, p. 12).
  * Tomas del día en orden de hora: tomada (verde), actual (amarilla), pendiente (blanca).
  * «Ya la tomé» marca la toma de hoy (tocar otra vez la desmarca). «Agregar pastilla» → C2.
- * «Demo: así te aviso» → C3 de demostración.
+ * «Demo: así te aviso» → C3 de demostración. «Probar el aviso en 10 segundos» manda un aviso real
+ * del sistema (sirve para comprobar sonido y vibración, incluso con la app cerrada).
  */
 import { router, useFocusEffect } from "expo-router";
 import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
-import { quitarPastilla } from "../../src/controladores/recordatorios";
+import { probarAvisoEnDiezSegundos, quitarPastilla } from "../../src/controladores/recordatorios";
 import {
   cantidadLegible,
   estadosDelDia,
@@ -33,6 +34,19 @@ export default function HorarioPastillas() {
   const [pastillas, setPastillas] = useState<Pastilla[]>([]);
   const [tomadas, setTomadas] = useState<string[]>([]);
   const [porQuitar, setPorQuitar] = useState<string | null>(null);
+  const [prueba, setPrueba] = useState<{ tono: "listo" | "aviso"; texto: string } | null>(null);
+
+  const probar = async () => {
+    if (!pastillas[0]) return;
+    const r = await probarAvisoEnDiezSegundos(pastillas[0]);
+    setPrueba(
+      r === "concedido"
+        ? { tono: "listo", texto: "En 10 segundos te llega un aviso de prueba. Puedes cerrar la app para probarlo." }
+        : r === "denegado"
+          ? { tono: "aviso", texto: "Sin permiso de avisos. Actívalo en Ajustes › Apps › Vecinos › Notificaciones." }
+          : { tono: "aviso", texto: "Aquí no hay avisos (solo funcionan en el teléfono)." },
+    );
+  };
 
   const cargar = useCallback(async () => {
     const [lista, hoy] = await Promise.all([leerPastillas(), leerTomadasHoy()]);
@@ -100,6 +114,12 @@ export default function HorarioPastillas() {
       {pastillas.length === 0 ? (
         <Mensaje tono="info">Aún no tienes pastillas. Toca «Agregar pastilla» para que te avise a la hora.</Mensaje>
       ) : null}
+      {pastillas.length > 0 ? (
+        <BotonPrincipal variante="secundario" icono="bell-ring-outline" onPress={() => void probar()}>
+          Probar el aviso en 10 segundos
+        </BotonPrincipal>
+      ) : null}
+      {prueba ? <Mensaje tono={prueba.tono}>{prueba.texto}</Mensaje> : null}
       {pastillas.map((p) => (
         <TarjetaToma
           key={p.id}

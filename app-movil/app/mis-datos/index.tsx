@@ -1,286 +1,152 @@
 /**
- * Vista. Mis datos: perfil, contactos, ficha, preferencias y borrar cuenta.
+ * Vista. Más opciones de Mis datos (se llega desde B3 › «Más opciones»).
+ * Rediseñada con los componentes del Mockup v4: el tamaño de letra y el modo oscuro ya están en
+ * la barra de arriba (Aa y luna) y en B3, así que aquí no se repiten.
+ * - Mi perfil: nombre, celular y el NOMBRE del barrio (nunca el código interno de la base).
+ * - A quién avisamos: tus 2 personas (se cambian en A5, con Cambiar/Quitar) y la brigada.
+ * - Mi ficha, Mis servicios, Mis pedidos, tutorial y Borrar mis datos.
  * Contactos, ficha y consentimiento solo en el teléfono.
- * Perfil (nombre, celular, barrio) en teléfono y, con internet, en nube.
  */
-import { router } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useTema } from "../../src/vistas/tema/useTema";
-import { TemaProveedor } from "../../src/vistas/tema/TemaProveedor";
-import { leerPreferencias, guardarPreferencias } from "../../src/modelos/local/preferencias";
-import { leerPerfilLocal, guardarPerfilLocal } from "../../src/modelos/local/perfil";
+import { router, useFocusEffect } from "expo-router";
+import { useCallback, useState } from "react";
+import { StyleSheet, View } from "react-native";
+import { usePreferencias } from "../../src/controladores/PreferenciasContexto";
+import { useBorrarMisDatos } from "../../src/controladores/useBorrarMisDatos";
+import { useGruposCercanos } from "../../src/controladores/useGruposCercanos";
+import { usePerfil } from "../../src/controladores/usePerfil";
+import { useZona } from "../../src/controladores/useZona";
 import { leerContactosLocales } from "../../src/modelos/local/contactos";
 import { leerFicha } from "../../src/modelos/local/ficha";
-import { useConexion } from "../../src/controladores/useConexion";
-import { usePerfil } from "../../src/controladores/usePerfil";
-import { useEscuchar } from "../../src/controladores/useEscuchar";
-import { useGruposCercanos } from "../../src/controladores/useGruposCercanos";
-import { useBorrarMisDatos } from "../../src/controladores/useBorrarMisDatos";
-import { usePreferencias } from "../../src/controladores/PreferenciasContexto";
-import { Boton } from "../../src/vistas/componentes/Boton";
-import { Encabezado } from "../../src/vistas/componentes/Encabezado";
-import { Aviso } from "../../src/vistas/componentes/Aviso";
+import { leerPerfilLocal } from "../../src/modelos/local/perfil";
+import type { ContactoLocal, PerfilLocal } from "../../src/modelos/tipos";
+import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
+import { InterruptorSiNo } from "../../src/vistas/componentes/InterruptorSiNo";
+import { Mensaje } from "../../src/vistas/componentes/Mensaje";
+import { Pantalla } from "../../src/vistas/componentes/Pantalla";
+import { TarjetaAcceso } from "../../src/vistas/componentes/TarjetaAcceso";
+import { Texto } from "../../src/vistas/componentes/Texto";
+import { RADIO } from "../../src/vistas/tema/tokens";
+import { useTema } from "../../src/vistas/tema/useTema";
 
-const OPCIONES_LETRA = [
-  { valor: 1, etiqueta: "Normal" },
-  { valor: 1.25, etiqueta: "Grande" },
-  { valor: 1.5, etiqueta: "Enorme" },
-] as const;
+const telefonoLegible = (t: string) => t.replace(/^(\d{3})(\d{3})(\d{3})$/, "$1 $2 $3");
 
-export default function PantallaMisDatos() {
-  const { tema, cambiarTema } = useTema();
-  const conexion = useConexion();
-  const { perfil, guardar: guardarPerfil, asegurarPerfilEnNube, completo } = usePerfil();
-  const voz = useEscuchar();
-  const grupos = useGruposCercanos();
+export default function MasOpciones() {
+  const { tema } = useTema();
+  const c = tema.colores;
   const { sonidos, setSonidos } = usePreferencias();
-  type PreferenciasEstado = { tema: "claro" | "oscuro"; escalaLetra: 1 | 1.25 | 1.5 };
-  const [preferencias, setPreferencias] = useState<PreferenciasEstado>({
-    tema: "claro",
-    escalaLetra: 1,
-  });
-  const [cargandoPreferencias, setCargandoPreferencias] = useState(true);
-  const [contactos, setContactos] = useState<{ nombre: string; telefono: string; relacion: string }[]>([]);
-  const [ficha, setFicha] = useState<{ mensaje: string; consentimiento?: { aceptado: boolean; fecha: string } }>({
-    mensaje: "",
-    consentimiento: undefined,
-  });
+  const { perfil: perfilHook } = usePerfil();
+  const { zonas } = useZona();
+  const grupos = useGruposCercanos();
+  const { borrar, borrando } = useBorrarMisDatos();
+  const [perfil, setPerfil] = useState<PerfilLocal | null>(null);
+  const [contactos, setContactos] = useState<ContactoLocal[]>([]);
+  const [ficha, setFicha] = useState<{ mensaje: string; aceptado?: boolean }>({ mensaje: "" });
 
-  // Cargar preferencias locales
-  useEffect(() => {
-    let activo = true;
-    leerPreferencias().then((p) => {
-      if (activo) {
-        const temaCargado: "claro" | "oscuro" = p.tema === "oscuro" ? "oscuro" : "claro";
-        setPreferencias({
-          tema: temaCargado,
-          escalaLetra: (p.escalaLetra ?? 1) as 1 | 1.25 | 1.5,
-        });
-        setCargandoPreferencias(false);
-      }
-    });
-    return () => { activo = false; };
-  }, []);
+  // Se relee al volver de editar (perfil, contactos o ficha).
+  useFocusEffect(
+    useCallback(() => {
+      void Promise.all([leerPerfilLocal(), leerContactosLocales(), leerFicha()]).then(([p, cs, f]) => {
+        setPerfil(p);
+        setContactos(cs);
+        setFicha({ mensaje: f.mensaje, aceptado: f.consentimiento?.aceptado });
+      });
+    }, []),
+  );
 
-  // Aplicar tema y escala al cambiar preferencias
-  useEffect(() => {
-    if (cargandoPreferencias) return;
-    if (preferencias.tema === "oscuro") {
-      cambiarTema("oscuro");
-    } else if (tema.nombre === "oscuro") {
-      cambiarTema("claro");
-    }
-  }, [preferencias.tema, cargandoPreferencias, tema.nombre, cambiarTema]);
-
-  // Cargar contactos y ficha
-  useEffect(() => {
-    let activo = true;
-    Promise.all([leerContactosLocales(), leerFicha()]).then(([c, f]) => {
-      if (activo) {
-        setContactos(c);
-        setFicha({ mensaje: f.mensaje, consentimiento: f.consentimiento });
-      }
-    });
-    return () => { activo = false; };
-  }, []);
-
-  const cambiarEscala = async (valor: 1 | 1.25 | 1.5) => {
-    const nuevas = { ...preferencias, escalaLetra: valor };
-    setPreferencias(nuevas);
-    await guardarPreferencias({ tema: nuevas.tema, escalaLetra: valor });
-  };
-
-  const cambiarTemaOscuro = async (activar: boolean) => {
-    const nuevoTema = activar ? "oscuro" : "claro";
-    const nuevas: PreferenciasEstado = { ...preferencias, tema: nuevoTema };
-    setPreferencias(nuevas);
-    await guardarPreferencias({ tema: nuevoTema, escalaLetra: nuevas.escalaLetra });
-  };
-
-  const cambiarSonidos = async (activar: boolean) => {
-    await setSonidos(activar);
-  };
-
-  const editarPerfil = async () => {
-    router.push("/mis-datos/perfil");
-  };
-
-  const { borrar: borrarCuenta, borrando } = useBorrarMisDatos();
-
-  if (cargandoPreferencias) {
-    return (
-      <ScrollView contentContainerStyle={estilos.pagina}>
-        <Text style={estilos.texto}>Cargando…</Text>
-      </ScrollView>
-    );
-  }
-
-  const nombre = perfil?.nombre?.trim() || "Sin nombre";
-  const celular = perfil?.celular?.trim() || "Sin celular";
-  const barrio = perfil?.zonaId || "Sin barrio";
+  const datos = perfil ?? perfilHook;
+  const zona = zonas.find((z) => z.id === datos?.zonaId);
+  const barrio = zona
+    ? zona.distrito && zona.distrito !== zona.nombre
+      ? `${zona.nombre} (${zona.distrito})`
+      : zona.nombre
+    : datos?.zonaId
+      ? "Guardado (sin internet no veo el nombre)"
+      : "Aún no eliges tu barrio";
   const brigada = grupos.find((g) => g.tipo === "brigada");
 
   return (
-    <ScrollView contentContainerStyle={estilos.pagina}>
-      <Encabezado onVolver={() => router.back()} escuchar={() => void voz.escuchar("Mis datos")} />
-      <Aviso tipo="azul">Tus contactos, ficha y consentimiento solo están en tu teléfono.</Aviso>
+    <Pantalla
+      titulo="Más opciones"
+      volver
+      textoEscuchar={`Más opciones. Tu nombre es ${datos?.nombre ?? "sin nombre"}. Tu barrio: ${barrio}. Aquí puedes cambiar tu perfil, a quién avisamos y tu ficha de emergencia.`}
+    >
+      <Mensaje tono="info">Tus contactos, ficha y consentimiento solo están en tu teléfono.</Mensaje>
 
-      {/* Tamaño de letra */}
-      <View style={estilos.filaGrande}>
-        <Text style={estilos.etiqueta}>Tamaño de letra</Text>
-        <View style={estilos.opciones}>
-          {OPCIONES_LETRA.map((op) => (
-            <Boton
-              key={op.valor}
-              variante={preferencias.escalaLetra === op.valor ? "confirmar" : "secundario"}
-              onPress={() => void cambiarEscala(op.valor)}
-              style={{ minWidth: 90 }}
-            >
-              {op.etiqueta}
-            </Boton>
-          ))}
-        </View>
-      </View>
+      <InterruptorSiNo etiqueta="Leer en voz alta" valor={sonidos} onCambiar={setSonidos} />
 
-      {/* Modo oscuro */}
-      <View style={estilos.filaGrande}>
-        <Text style={estilos.etiqueta}>Modo oscuro</Text>
-        <View style={estilos.opciones}>
-          <Boton
-            variante={preferencias.tema === "oscuro" ? "confirmar" : "secundario"}
-            onPress={() => void cambiarTemaOscuro(true)}
-            style={{ minWidth: 90 }}
-          >
-            Sí
-          </Boton>
-          <Boton
-            variante={preferencias.tema === "claro" ? "confirmar" : "secundario"}
-            onPress={() => void cambiarTemaOscuro(false)}
-            style={{ minWidth: 90 }}
-          >
-            No
-          </Boton>
-        </View>
-      </View>
+      <Seccion titulo="Mi perfil" accion="Cambiar mi perfil" onPress={() => router.push("/mis-datos/perfil")}>
+        <Dato etiqueta="Nombre" valor={datos?.nombre?.trim() || "Sin nombre"} />
+        <Dato etiqueta="Celular" valor={datos?.celular ? telefonoLegible(datos.celular) : "Aún no lo pones"} />
+        <Dato etiqueta="Barrio" valor={barrio} />
+      </Seccion>
 
-      {/* Sonidos / lectura en voz alta */}
-      <View style={estilos.filaGrande}>
-        <Text style={estilos.etiqueta}>Sonidos / lectura en voz alta</Text>
-        <View style={estilos.opciones}>
-          <Boton
-            variante={sonidos ? "confirmar" : "secundario"}
-            onPress={() => void cambiarSonidos(true)}
-            style={{ minWidth: 90 }}
-          >
-            Sí
-          </Boton>
-          <Boton
-            variante={sonidos ? "secundario" : "confirmar"}
-            onPress={() => void cambiarSonidos(false)}
-            style={{ minWidth: 90 }}
-          >
-            No
-          </Boton>
-        </View>
-      </View>
+      <Seccion
+        titulo="A quién avisamos"
+        accion="Cambiar mis contactos"
+        onPress={() => router.push({ pathname: "/alta/contactos", params: { editar: "1" } })}
+      >
+        {contactos.length === 0 ? <Texto color={c.textoSecundario}>Aún no eliges a nadie.</Texto> : null}
+        {contactos.map((x, i) => (
+          <Dato
+            key={x.telefono}
+            etiqueta={`${i + 1}. ${x.nombre}${x.relacion ? `, ${x.relacion}` : ""}`}
+            valor={telefonoLegible(x.telefono)}
+          />
+        ))}
+        {brigada ? (
+          <Dato
+            etiqueta="Brigada de tu barrio"
+            valor={`${brigada.nombre}${brigada.contacto ? ` · ${telefonoLegible(brigada.contacto)}` : ""}${brigada.verificada ? "" : " · sin verificar"}`}
+          />
+        ) : null}
+      </Seccion>
 
-      {/* Mi perfil */}
-      <View style={estilos.filaGrande}>
-        <View style={estilos.infoPerfil}>
-          <Text style={estilos.etiqueta}>Mi perfil</Text>
-          <Text style={estilos.valor}>Nombre: {nombre}</Text>
-          <Text style={estilos.valor}>Celular: {celular}</Text>
-          <Text style={estilos.valor}>Barrio: {barrio}</Text>
-        </View>
-        <Boton variante="secundario" onPress={() => void editarPerfil()}>
-          Cambiar
-        </Boton>
-      </View>
+      <Seccion titulo="Mi ficha de emergencia" accion="Cambiar mi ficha" onPress={() => router.push("/mis-datos/ficha")}>
+        <Texto color={c.textoSecundario}>{ficha.mensaje.trim() || "Aún no escribes nada."}</Texto>
+        <Dato
+          etiqueta="¿Se puede compartir en una emergencia?"
+          valor={ficha.aceptado === true ? "Sí" : ficha.aceptado === false ? "No" : "Aún no decides"}
+        />
+      </Seccion>
 
-      {/* A quién avisamos */}
-      <View style={estilos.filaGrande}>
-        <View style={estilos.infoContactos}>
-          <Text style={estilos.etiqueta}>A quién avisamos</Text>
-          {contactos.map((c, i) => (
-            <Text key={c.telefono} style={estilos.valor}>
-              {i + 1}. {c.nombre} ({c.relacion || "sin relación"}) - {c.telefono}
-            </Text>
-          ))}
-          {contactos.length === 0 && <Text style={estilos.valor}>Sin contactos guardados</Text>}
-          {brigada && <Text style={estilos.valor}>Brigada: {brigada.nombre} ({brigada.contacto || "sin teléfono"})</Text>}
-        </View>
-        <Boton variante="secundario" onPress={() => router.push("/mis-datos/contactos")}>
-          Cambiar
-        </Boton>
-      </View>
+      <TarjetaAcceso icono="storefront-outline" colorIcono="turquesa" titulo="Mis servicios" onPress={() => router.push("/mis-servicios")} />
+      <TarjetaAcceso icono="hand-heart-outline" colorIcono="morado" titulo="Mis pedidos de ayuda" onPress={() => router.push("/ayuda/mis-pedidos")} />
+      <TarjetaAcceso icono="school-outline" titulo="Ver el tutorial otra vez" onPress={() => router.push("/bienvenida/tutorial")} />
 
-      {/* Mi ficha de emergencia */}
-      <View style={estilos.filaGrande}>
-        <View style={estilos.infoFicha}>
-          <Text style={estilos.etiqueta}>Mi ficha de emergencia</Text>
-          {ficha.mensaje ? (
-            <Text style={estilos.valor}>{ficha.mensaje}</Text>
-          ) : (
-            <Text style={estilos.valor}>Sin datos</Text>
-          )}
-          <Text style={estilos.valor}>
-            Consentimiento: {ficha.consentimiento?.aceptado === true ? "Aceptado" : ficha.consentimiento?.aceptado === false ? "No aceptado" : "Sin definir"}
-          </Text>
-        </View>
-        <Boton variante="secundario" onPress={() => router.push("/mis-datos/ficha")}>
-          Cambiar
-        </Boton>
+      <View style={estilos.borrar}>
+        <BotonPrincipal variante="neutro" icono="delete-outline" cargando={borrando} onPress={() => void borrar()}>
+          Borrar mis datos
+        </BotonPrincipal>
       </View>
+    </Pantalla>
+  );
+}
 
-      {/* Mis servicios */}
-      <View style={estilos.filaGrande}>
-        <Text style={estilos.etiqueta}>Mis servicios</Text>
-        <Boton variante="secundario" onPress={() => router.push("/mis-servicios")}>
-          Ver
-        </Boton>
-      </View>
+function Seccion({ titulo, accion, onPress, children }: { titulo: string; accion: string; onPress: () => void; children: React.ReactNode }) {
+  const { tema } = useTema();
+  const c = tema.colores;
+  return (
+    <View style={[estilos.seccion, { backgroundColor: c.superficie, borderColor: c.borde }]}>
+      <Texto variante="subtitulo" accessibilityRole="header">{titulo}</Texto>
+      {children}
+      <BotonPrincipal variante="secundario" icono="pencil-outline" onPress={onPress}>
+        {accion}
+      </BotonPrincipal>
+    </View>
+  );
+}
 
-      {/* Mis pedidos */}
-      <View style={estilos.filaGrande}>
-        <Text style={estilos.etiqueta}>Mis pedidos</Text>
-        <Boton variante="secundario" onPress={() => router.push("/ayuda/mis-pedidos")}>
-          Ver
-        </Boton>
-      </View>
-
-      {/* Ver tutorial otra vez */}
-      <View style={estilos.filaGrande}>
-        <Text style={estilos.etiqueta}>Ver el tutorial otra vez</Text>
-        <Boton variante="secundario" onPress={() => router.push("/bienvenida/tutorial")}>
-          Ver
-        </Boton>
-      </View>
-
-      {/* Borrar mis datos - botón discreto al final */}
-      <View style={estilos.borrarContenedor}>
-        <Boton
-          variante="peligro"
-          onPress={() => void borrarCuenta()}
-          disabled={borrando}
-          style={{ marginTop: 24 }}
-        >
-          {borrando ? "Borrando…" : "Borrar mis datos"}
-        </Boton>
-      </View>
-    </ScrollView>
+function Dato({ etiqueta, valor }: { etiqueta: string; valor: string }) {
+  const { tema } = useTema();
+  return (
+    <View>
+      <Texto variante="etiqueta">{etiqueta}</Texto>
+      <Texto color={tema.colores.textoSecundario}>{valor}</Texto>
+    </View>
   );
 }
 
 const estilos = StyleSheet.create({
-  pagina: { flexGrow: 1, gap: 16, padding: 16 },
-  filaGrande: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", minHeight: 52, gap: 12 },
-  etiqueta: { fontSize: 18, flex: 1 },
-  valor: { fontSize: 18, color: "#4A4A4A" },
-  texto: { fontSize: 18 },
-  opciones: { flexDirection: "row", gap: 8 },
-  infoPerfil: { flex: 1, gap: 4 },
-  infoContactos: { flex: 1, gap: 4 },
-  infoFicha: { flex: 1, gap: 4 },
-  borrarContenedor: { alignItems: "center", paddingTop: 16 },
+  seccion: { borderWidth: 1.5, borderRadius: RADIO.l, padding: 14, gap: 10 },
+  borrar: { marginTop: 16 },
 });

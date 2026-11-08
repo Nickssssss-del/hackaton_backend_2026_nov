@@ -219,6 +219,8 @@ export interface PerfilLocal {
   /** Registro Mockup v4 (A4). Solo en el celular, nunca se envía a la nube. */
   edad?: number;
   genero?: Genero;
+  /** Avatar elegido a mano en Mis datos; sin valor se elige por edad y género. Solo en el celular. */
+  avatar?: "senora" | "senor" | "jovenMujer" | "jovenHombre";
   /** Registro Mockup v4 (A3.1). Solo en el celular. */
   direccion?: DireccionLocal;
 }

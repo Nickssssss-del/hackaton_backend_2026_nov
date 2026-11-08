@@ -64,7 +64,7 @@ export function Opciones<T extends string>({ opciones, seleccion, onCambiar, mul
             <Texto variante="etiqueta" centrado color={activa && !tarjetas ? c.accionTexto : c.texto}>
               {op.etiqueta}
             </Texto>
-            {tarjetas && activa ? (
+            {tarjetas && multiple && activa ? (
               <View style={[estilos.check, { backgroundColor: c.accion }]}>
                 <Icono nombre="check" tamano={18} color={c.sobreColor} />
               </View>

@@ -1,11 +1,13 @@
 /**
  * Vista. C3 · Es hora de tu pastilla (Mockup v4, p. 14). Fondo amarillo de aviso, sin «Volver».
  * Se abre al tocar la notificación, o desde «Demo: así te aviso» (demo=1, no registra nada).
- * Si la pastilla tiene aviso por voz, la app lo lee en voz alta al abrirse.
+ * Mientras está abierta suena (timbre cada 5 s) y vibra, según lo elegido en C2; si tiene aviso
+ * por voz, además lo lee en voz alta. Todo se detiene al tocar un botón o salir.
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { detenerAlarma, sonarAlarma } from "../../src/controladores/alarmaPastilla";
 import { posponerDiezMinutos } from "../../src/controladores/recordatorios";
 import { useEscuchar } from "../../src/controladores/useEscuchar";
 import { cantidadLegible, horaLegible, leerPastillas, marcarTomada, type Pastilla } from "../../src/modelos/local/pastillas";
@@ -30,15 +32,23 @@ export default function EsHoraDeTuPastilla() {
     void leerPastillas().then((lista) => {
       const p = lista.find((x) => x.id === id) ?? lista[0] ?? null;
       setPastilla(p);
-      if (p?.aviso.voz) {
-        void voz.escuchar(`Es hora de tu pastilla. ${p.nombre}. Toma ${cantidadLegible(p.cantidad)}.`, true);
+      if (!p) return;
+      void sonarAlarma(p.aviso);
+      if (p.aviso.voz) {
+        setTimeout(() => void voz.escuchar(`Es hora de tu pastilla. ${p.nombre}. Toma ${cantidadLegible(p.cantidad)}.`, true), 1300);
       }
     });
+    return () => detenerAlarma();
     // Solo al abrir la pantalla.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
-  const salir = () => (router.canGoBack() ? router.back() : router.replace("/pastillas"));
+  const salir = () => {
+    detenerAlarma();
+    void voz.silenciar();
+    if (router.canGoBack()) router.back();
+    else router.replace("/pastillas");
+  };
 
   const yaLaTome = async () => {
     if (pastilla && !esDemo) await marcarTomada(pastilla.id, true);

@@ -3,6 +3,8 @@
  * Calle o avenida, Número y Referencia, cada uno con micrófono.
  * «Seguir» queda desactivado mostrando cuántos datos faltan («Falta 1 dato»).
  * «Omitir» continúa a A4 sin dirección. Todo se guarda solo en el teléfono.
+ * En modo edición (Mis datos) hay además «Usar mi ubicación actual»: vuelve a tomar el GPS,
+ * actualiza el barrio y propone la calle y el número (por si la persona se mudó).
  */
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
@@ -12,6 +14,7 @@ import {
   guardarDireccion,
   leerPerfil,
   omitirDireccion,
+  ubicarDomicilio,
 } from "../../src/controladores/registroVecinos";
 import type { DireccionLocal } from "../../src/modelos/tipos";
 import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
@@ -27,6 +30,24 @@ export default function TuDireccion() {
   // Desde Mis datos (B3) se reutiliza esta pantalla para editar (INC-29).
   const editando = params.editar === "1";
   const [direccion, setDireccion] = useState<DireccionLocal>(VACIA);
+  const [ubicando, setUbicando] = useState(false);
+  const [avisoGps, setAvisoGps] = useState<{ tono: "info" | "aviso"; texto: string } | null>(null);
+
+  const usarUbicacionActual = async () => {
+    setAvisoGps(null);
+    setUbicando(true);
+    const r = await ubicarDomicilio();
+    setUbicando(false);
+    if (r.estado !== "ok") {
+      setAvisoGps({
+        tono: "aviso",
+        texto: r.estado === "denegado" ? "Sin permiso de ubicación. Actívalo en los ajustes del teléfono." : "No encontré señal. Intenta junto a una ventana.",
+      });
+      return;
+    }
+    setDireccion((d) => ({ ...d, calle: r.calle || d.calle, numero: r.numero || d.numero }));
+    setAvisoGps({ tono: "info", texto: "Ubicación actualizada. Revisa la calle y el número, y toca Guardar." });
+  };
 
   useEffect(() => {
     let activo = true;
@@ -91,6 +112,12 @@ export default function TuDireccion() {
       }
     >
       {params.desdeGps ? <Mensaje tono="info">¿Vives aquí? Revisa y corrige si hace falta.</Mensaje> : null}
+      {editando ? (
+        <BotonPrincipal variante="secundario" icono="crosshairs-gps" cargando={ubicando} onPress={() => void usarUbicacionActual()}>
+          Usar mi ubicación actual
+        </BotonPrincipal>
+      ) : null}
+      {avisoGps ? <Mensaje tono={avisoGps.tono}>{avisoGps.texto}</Mensaje> : null}
       <CampoConVoz
         etiqueta="Calle o avenida"
         ayuda="Av. Los Maestros"

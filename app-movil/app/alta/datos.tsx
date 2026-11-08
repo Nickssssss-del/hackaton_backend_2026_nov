@@ -2,8 +2,9 @@
  * Vista. A4 · Tus datos · Paso 2 de 3 (Mockup v4, p. 5).
  * Nombre por voz o texto (borde verde cuando está completo), edad con − / + y «Eres».
  * Solo en el celular. Sin DNI (matriz técnica). «No decir» es una respuesta válida.
+ * Con `editar=1` (Mis datos › Mis datos personales): sin pasos, botón «Guardar» y vuelve atrás.
  */
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   EDAD_INICIAL,
@@ -29,6 +30,7 @@ const GENEROS: { valor: Genero; etiqueta: string }[] = [
 ];
 
 export default function TusDatos() {
+  const editando = useLocalSearchParams<{ editar?: string }>().editar === "1";
   const [nombre, setNombre] = useState("");
   const [edad, setEdad] = useState(EDAD_INICIAL);
   const [genero, setGenero] = useState<Genero | undefined>(undefined);
@@ -50,18 +52,24 @@ export default function TusDatos() {
 
   const seguir = async () => {
     await guardarDatos(nombre, edad, genero);
-    router.push("/alta/contactos");
+    if (editando) router.back();
+    else router.push("/alta/contactos");
   };
 
   return (
     <Pantalla
-      titulo="Tus datos"
+      titulo={editando ? "Mis datos personales" : "Tus datos"}
       volver
-      encabezado={<IndicadorPasos paso={2} />}
+      encabezado={editando ? undefined : <IndicadorPasos paso={2} />}
       textoEscuchar="Paso 2 de 3. Tus datos. Di o escribe tu nombre, elige tu edad con menos y más, y elige mujer, hombre o no decir."
       pie={
-        <BotonPrincipal motivoDesactivado={valido ? null : "Falta tu nombre"} onPress={() => void seguir()}>
-          Seguir
+        <BotonPrincipal
+          variante={editando ? "listo" : "tocar"}
+          icono={editando ? "check" : undefined}
+          motivoDesactivado={valido ? null : "Falta tu nombre"}
+          onPress={() => void seguir()}
+        >
+          {editando ? "Guardar" : "Seguir"}
         </BotonPrincipal>
       }
     >

@@ -4,8 +4,13 @@
  * ¿Algo te pasa? y «Cambiar de modo». Todo se guarda al instante en el teléfono.
  * Mi dirección, Mis contactos y Cambiar de modo reutilizan A3.1, A5 y A2 en modo edición (INC-29).
  * «Más opciones» lleva a la pantalla anterior (perfil, ficha y borrar mis datos), que se conserva.
+ * Además: Mis datos personales (nombre, edad, género → A4 en edición), Mi avatar y
+ * «Cerrar sesión en este teléfono» (con confirmación; borra solo lo guardado en el teléfono).
  */
 import { router } from "expo-router";
+import { useState } from "react";
+import { cerrarSesionLocal } from "../../src/controladores/registroVecinos";
+import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { Pressable, StyleSheet, View } from "react-native";
 import { usePreferencias } from "../../src/controladores/PreferenciasContexto";
 import type { TamanoLetra } from "../../src/modelos/local/preferencias";
@@ -22,6 +27,16 @@ export default function MisDatos() {
   const { tema } = useTema();
   const c = tema.colores;
   const prefs = usePreferencias();
+  const [confirmarSalida, setConfirmarSalida] = useState(false);
+  const [saliendo, setSaliendo] = useState(false);
+
+  const salir = async () => {
+    setSaliendo(true);
+    await cerrarSesionLocal();
+    setSaliendo(false);
+    router.dismissAll();
+    router.replace("/alta");
+  };
 
   return (
     <Pantalla
@@ -72,8 +87,22 @@ export default function MisDatos() {
       />
 
       <TarjetaAcceso
+        icono="card-account-details-outline"
+        titulo="Mis datos personales"
+        subtitulo="Nombre, edad y si eres mujer u hombre"
+        onPress={() => router.push({ pathname: "/alta/datos", params: { editar: "1" } })}
+      />
+      <TarjetaAcceso
+        icono="account-circle-outline"
+        colorIcono="morado"
+        titulo="Mi avatar"
+        subtitulo="Elige tu dibujo del Inicio"
+        onPress={() => router.push("/perfil/avatar")}
+      />
+      <TarjetaAcceso
         icono="home-outline"
         titulo="Mi dirección"
+        subtitulo="Calle, número y ubicación"
         onPress={() => router.push({ pathname: "/alta/direccion", params: { editar: "1" } })}
       />
       <TarjetaAcceso
@@ -101,12 +130,32 @@ export default function MisDatos() {
         subtitulo="Demo: no llama a nadie"
         onPress={() => router.push({ pathname: "/sos", params: { demo: "1" } })}
       />
+
+      {confirmarSalida ? (
+        <View style={[estilos.confirmar, { borderColor: c.peligro, backgroundColor: c.superficie }]}>
+          <Texto variante="subtitulo">¿Cerrar sesión en este teléfono?</Texto>
+          <Texto>
+            Se borran de este teléfono tus datos, contactos, pastillas y dirección. Lo que publicaste en la nube se queda.
+          </Texto>
+          <BotonPrincipal variante="emergencia" icono="logout" cargando={saliendo} onPress={() => void salir()}>
+            Sí, cerrar sesión
+          </BotonPrincipal>
+          <BotonPrincipal variante="neutro" onPress={() => setConfirmarSalida(false)}>
+            No, quedarme
+          </BotonPrincipal>
+        </View>
+      ) : (
+        <BotonPrincipal variante="neutro" icono="logout" onPress={() => setConfirmarSalida(true)}>
+          Cerrar sesión
+        </BotonPrincipal>
+      )}
     </Pantalla>
   );
 }
 
 const estilos = StyleSheet.create({
   tamanos: { flexDirection: "row", gap: 8 },
+  confirmar: { borderWidth: 2, borderRadius: RADIO.l, padding: 14, gap: 10 },
   tamano: {
     flex: 1,
     minHeight: 96,

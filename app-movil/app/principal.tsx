@@ -16,7 +16,7 @@ import { usePreferencias } from "../src/controladores/PreferenciasContexto";
 import { leerPerfil } from "../src/controladores/registroVecinos";
 import { cantidadLegible, estadosDelDia, horaLegible, leerPastillas, leerTomadasHoy, type Pastilla } from "../src/modelos/local/pastillas";
 import { useEscuchar } from "../src/controladores/useEscuchar";
-import { elegirAvatar } from "../src/modelos/avatar";
+import { elegirAvatar, type TipoAvatar } from "../src/modelos/avatar";
 import type { Genero } from "../src/modelos/tipos";
 import { Avatar } from "../src/vistas/componentes/Avatar";
 import { BotonPrincipal } from "../src/vistas/componentes/BotonPrincipal";
@@ -35,7 +35,7 @@ export default function Principal() {
   const { modo, tamano, siguienteTamano, oscuro, setOscuro } = usePreferencias();
   const voz = useEscuchar();
   const [nombre, setNombre] = useState("");
-  const [datosAvatar, setDatosAvatar] = useState<{ edad?: number; genero?: Genero }>({});
+  const [datosAvatar, setDatosAvatar] = useState<{ edad?: number; genero?: Genero; avatar?: TipoAvatar }>({});
   const avatar = elegirAvatar({ ...datosAvatar, modo });
   const [proxima, setProxima] = useState<Pastilla | null>(null);
   const esVecino = modo === "completo";
@@ -44,7 +44,7 @@ export default function Principal() {
     useCallback(() => {
       void leerPerfil().then((perfil) => {
         setNombre(perfil.nombre?.trim().split(/\s+/)[0] ?? "");
-        setDatosAvatar({ edad: perfil.edad, genero: perfil.genero });
+        setDatosAvatar({ edad: perfil.edad, genero: perfil.genero, avatar: perfil.avatar });
       });
       void Promise.all([leerPastillas(), leerTomadasHoy()]).then(([lista, hoy]) => {
         const estados = estadosDelDia(lista, hoy);

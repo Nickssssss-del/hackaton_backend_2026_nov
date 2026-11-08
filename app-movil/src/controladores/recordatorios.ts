@@ -29,8 +29,10 @@ if (disponible) Notifications.setNotificationHandler({
   }),
 });
 
+// «v2»: Android no deja cambiar un canal ya creado; con nombre nuevo se aplican sonido y vibración
+// a quienes instalaron una versión anterior.
 function canalPara(aviso: AvisoPastilla): string {
-  return `pastillas-${aviso.sonido ? "s" : "x"}${aviso.vibracion ? "v" : "x"}`;
+  return `pastillas-v2-${aviso.sonido ? "s" : "x"}${aviso.vibracion ? "v" : "x"}`;
 }
 
 async function asegurarCanales(): Promise<void> {
@@ -43,7 +45,8 @@ async function asegurarCanales(): Promise<void> {
         importance: Notifications.AndroidImportance.MAX,
         sound: sonido ? "default" : null,
         enableVibrate: vibracion,
-        vibrationPattern: vibracion ? [0, 600, 300, 600] : [0],
+        vibrationPattern: vibracion ? [0, 800, 400, 800, 400, 800] : [0],
+        bypassDnd: true,
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       });
     }
@@ -104,6 +107,36 @@ export async function guardarPastillaConAviso(p: Pastilla): Promise<void> {
     notificacionId = undefined;
   }
   await guardarPastillas([...lista.filter((x) => x.id !== p.id), { ...p, notificacionId }]);
+}
+
+/** Aviso de prueba en 10 segundos, para comprobar que suena y vibra (también con la app cerrada). */
+export async function probarAvisoEnDiezSegundos(p: Pastilla): Promise<PermisoAvisos> {
+  const permiso = await prepararAvisos();
+  if (permiso !== "concedido") return permiso;
+  await Notifications.scheduleNotificationAsync({
+    content: contenido(p),
+    trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: 10, channelId: canalPara(p.aviso) },
+  });
+  return "concedido";
+}
+
+/** Al llegar un aviso con la app abierta: id de la pastilla (para abrir C3 enseguida). */
+export function escucharAvisosConAppAbierta(alLlegar: (pastillaId: string) => void): () => void {
+  if (!disponible) return () => undefined;
+  const sub = Notifications.addNotificationReceivedListener((n) => {
+    const data = n.request.content.data as { tipo?: string; pastillaId?: string } | undefined;
+    if (data?.tipo === "pastilla" && data.pastillaId) alLlegar(data.pastillaId);
+  });
+  return () => sub.remove();
+}
+
+export async function cancelarTodosLosAvisos(): Promise<void> {
+  if (!disponible) return;
+  try {
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  } catch {
+    // nada programado
+  }
 }
 
 export async function quitarPastilla(id: string): Promise<void> {

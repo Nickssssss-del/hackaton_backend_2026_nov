@@ -107,11 +107,7 @@ export function TarjetaAcceso({
             <Icono nombre="microphone" color={c.sobreColor} tamano={24} />
           </View>
         ) : null}
-        {seleccionada ? (
-          <View style={[estilos.check, { backgroundColor: c.accion }]}>
-            <Icono nombre="check" color={c.sobreColor} tamano={18} />
-          </View>
-        ) : null}
+        {/* La selección se ve con el borde azul grueso; sin ✓ extra (pedido del equipo). */}
       </View>
     </Pressable>
   );
@@ -127,5 +123,4 @@ const estilos = StyleSheet.create({
   textos: { flex: 1, gap: 2 },
   textosVertical: { gap: 2, alignItems: "center" },
   mic: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
-  check: { position: "absolute", top: 8, right: 8, width: 28, height: 28, borderRadius: 14, alignItems: "center", justifyContent: "center" },
 });

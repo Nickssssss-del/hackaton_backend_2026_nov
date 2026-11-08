@@ -5,7 +5,7 @@
 import { router } from "expo-router";
 import { useEffect, useRef } from "react";
 import { Platform } from "react-native";
-import { pastillaDeRespuesta, useLastNotificationResponse } from "./recordatorios";
+import { escucharAvisosConAppAbierta, pastillaDeRespuesta, useLastNotificationResponse } from "./recordatorios";
 
 function EscucharRespuesta() {
   const respuesta = useLastNotificationResponse();
@@ -17,6 +17,8 @@ function EscucharRespuesta() {
     abierta.current = clave;
     router.push({ pathname: "/pastillas/aviso", params: { id } });
   }, [respuesta]);
+  // Con la app abierta, el aviso abre C3 directamente (suena y vibra ahí).
+  useEffect(() => escucharAvisosConAppAbierta((id) => router.push({ pathname: "/pastillas/aviso", params: { id } })), []);
   return null;
 }
 
