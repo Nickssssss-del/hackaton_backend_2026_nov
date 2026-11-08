@@ -4,20 +4,22 @@
  */
 import type { ReactNode } from "react";
 import { Pressable, StyleSheet, View, type ViewStyle } from "react-native";
-import { RADIO } from "../tema/tokens";
+import { colorIcono as paletaIcono, RADIO, type ColorIcono } from "../tema/tokens";
 import { useTema } from "../tema/useTema";
 import { Icono, type NombreIcono } from "./Icono";
 import { Texto } from "./Texto";
 
-export type TonoTarjeta = "normal" | "aviso" | "tocar" | "listo" | "emergencia";
+export type TonoTarjeta = "normal" | "aviso" | "tocar" | "listo" | "emergencia" | "tocarSuave";
 
 type Props = {
   titulo: string;
   subtitulo?: string;
   icono?: NombreIcono;
   tono?: TonoTarjeta;
-  /** Elemento a la derecha: flecha (por defecto), micrófono o nada. */
-  accion?: "flecha" | "microfono" | "ninguna";
+  /** Elemento a la derecha: flecha (por defecto), flecha en círculo azul (A2), micrófono o nada. */
+  accion?: "flecha" | "flechaCirculo" | "microfono" | "ninguna";
+  /** Color del círculo del ícono (Mockup v4: Servicios naranja, Comunidad morado…). */
+  colorIcono?: ColorIcono;
   /** Diseño vertical (ícono arriba), para las rejillas de 2 columnas. */
   vertical?: boolean;
   seleccionada?: boolean;
@@ -40,13 +42,17 @@ export function TarjetaAcceso({
   onPress,
   children,
   encima,
+  colorIcono = "azul",
   estilo,
   accessibilityLabel,
 }: Props) {
   const { tema } = useTema();
   const c = tema.colores;
   const lleno = tono === "tocar" || tono === "listo" || tono === "emergencia";
+  const suave = tono === "tocarSuave";
+  const paleta = paletaIcono(colorIcono, tema.oscuro);
   const fondo = {
+    tocarSuave: c.accionSuave,
     normal: c.superficie,
     aviso: c.aviso,
     tocar: c.accion,
@@ -54,7 +60,7 @@ export function TarjetaAcceso({
     emergencia: c.peligro,
   }[tono];
   const colorTexto = lleno ? c.sobreColor : tono === "aviso" ? c.avisoTexto : c.texto;
-  const borde = seleccionada ? c.accion : tono === "aviso" ? c.avisoBorde : lleno ? fondo : c.borde;
+  const borde = seleccionada || suave ? c.accion : tono === "aviso" ? c.avisoBorde : lleno ? fondo : c.borde;
 
   return (
     <Pressable
@@ -65,15 +71,20 @@ export function TarjetaAcceso({
       style={({ pressed }) => [
         estilos.tarjeta,
         encima ? estilos.columna : vertical ? estilos.vertical : estilos.horizontal,
-        { backgroundColor: fondo, borderColor: borde, borderWidth: seleccionada ? 3 : 1.5, opacity: pressed ? 0.85 : 1 },
+        { backgroundColor: fondo, borderColor: borde, borderWidth: seleccionada ? 3 : suave ? 2.5 : 1.5, opacity: pressed ? 0.85 : 1 },
         estilo,
       ]}
     >
       {encima}
       <View style={encima ? estilos.horizontal : estilos.contenidoPlano}>
         {icono ? (
-          <View style={[estilos.icono, { backgroundColor: lleno ? "transparent" : c.accionSuave }]}>
-            <Icono nombre={icono} color={lleno ? c.sobreColor : c.accionTexto} tamano={26} />
+          <View
+            style={[
+              estilos.icono,
+              { backgroundColor: lleno ? "transparent" : suave ? c.accion : tono === "aviso" ? c.superficie : paleta.fondo },
+            ]}
+          >
+            <Icono nombre={icono} color={lleno || suave ? c.sobreColor : paleta.icono} tamano={26} />
           </View>
         ) : null}
         <View style={vertical ? estilos.textosVertical : estilos.textos}>
@@ -86,8 +97,13 @@ export function TarjetaAcceso({
           {children}
         </View>
         {!vertical && accion === "flecha" ? <Icono nombre="chevron-right" color={colorTexto} tamano={28} /> : null}
+        {!vertical && accion === "flechaCirculo" ? (
+          <View style={[estilos.mic, { backgroundColor: c.accion }]}>
+            <Icono nombre="chevron-right" color={c.sobreColor} tamano={28} />
+          </View>
+        ) : null}
         {!vertical && accion === "microfono" ? (
-          <View style={[estilos.mic, { backgroundColor: c.confirmado }]}>
+          <View style={[estilos.mic, { backgroundColor: paletaIcono("turquesa", false).icono }]}>
             <Icono nombre="microphone" color={c.sobreColor} tamano={24} />
           </View>
         ) : null}

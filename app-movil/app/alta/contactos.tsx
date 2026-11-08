@@ -132,6 +132,7 @@ export default function AQuienLlamamos() {
       {!lleno && !formulario ? (
         <>
           <TarjetaAcceso
+            tono="tocarSuave"
             icono="microphone"
             titulo={voz.escuchando ? "Te escucho…" : buscando ? "Buscando en tu agenda…" : "Dime a quién llamamos"}
             subtitulo='Di: "Ana, mi hija"'

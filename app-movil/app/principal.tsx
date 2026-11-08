@@ -10,7 +10,7 @@
  */
 import { router, useFocusEffect, type Href } from "expo-router";
 import { useCallback, useState } from "react";
-import { Pressable, StyleSheet, View } from "react-native";
+import { Image, Pressable, StyleSheet, View } from "react-native";
 import { usePreferencias } from "../src/controladores/PreferenciasContexto";
 import { leerPerfil } from "../src/controladores/registroVecinos";
 import { useEscuchar } from "../src/controladores/useEscuchar";
@@ -55,14 +55,19 @@ export default function Principal() {
     >
       {/* Cabecera: avatar, saludo y Mis datos › */}
       <View style={estilos.cabecera}>
-        <View style={[estilos.avatar, { backgroundColor: c.accionSuave }]}>
-          <Icono nombre="account" color={c.accionTexto} tamano={30} />
+        <Image
+          source={esVecino ? require("../assets/ilustraciones/avatar-carlos.png") : require("../assets/ilustraciones/avatar-rosa.png")}
+          style={estilos.avatar}
+          accessibilityElementsHidden
+          importantForAccessibility="no"
+        />
+        <View style={estilos.saludo}>
+          <Texto variante="titulo" accessibilityRole="header">{saludo}</Texto>
+          <Pressable accessibilityRole="button" accessibilityLabel="Mis datos" onPress={ir("/perfil")} style={estilos.enlace} hitSlop={8}>
+            <Texto variante="etiqueta" color={c.accionTexto}>Mis datos</Texto>
+            <Icono nombre="chevron-right" color={c.accionTexto} tamano={22} />
+          </Pressable>
         </View>
-        <Texto variante="titulo" accessibilityRole="header" style={estilos.saludo}>{saludo}</Texto>
-        <Pressable accessibilityRole="button" accessibilityLabel="Mis datos" onPress={ir("/perfil")} style={estilos.enlace}>
-          <Texto variante="etiqueta" color={tema.oscuro ? c.texto : c.accion}>Mis datos</Texto>
-          <Icono nombre="chevron-right" color={tema.oscuro ? c.texto : c.accion} tamano={22} />
-        </Pressable>
       </View>
 
       {/* Accesos rápidos: A+ (tamaño actual), Oscuro, Escuchar */}
@@ -93,6 +98,7 @@ export default function Principal() {
         <TarjetaAcceso
           tono="aviso"
           icono="pill"
+          colorIcono="naranja"
           titulo="Horario de pastillas"
           subtitulo="Aún no tienes pastillas"
           onPress={ir({ pathname: "/pronto", params: { modulo: "pastillas" } })}
@@ -101,6 +107,7 @@ export default function Principal() {
 
       <TarjetaAcceso
         icono="robot-happy-outline"
+        colorIcono="turquesa"
         titulo="Pregúntale a Vecinos"
         subtitulo="Habla o escribe"
         accion="microfono"
@@ -113,10 +120,11 @@ export default function Principal() {
       </View>
 
       <View style={estilos.fila}>
-        <TarjetaAcceso vertical icono="storefront-outline" titulo="Servicios" onPress={ir("/buscar")} />
+        <TarjetaAcceso vertical icono="storefront-outline" colorIcono="naranja" titulo="Servicios" onPress={ir("/buscar")} />
         <TarjetaAcceso
           vertical
           icono="account-multiple-outline"
+          colorIcono="morado"
           titulo="Comunidad"
           onPress={ir({ pathname: "/pronto", params: { modulo: "comunidad" } })}
         />
@@ -124,8 +132,8 @@ export default function Principal() {
 
       {esVecino ? (
         <View style={estilos.fila}>
-          <TarjetaAcceso vertical icono="message-outline" titulo="Mi negocio" onPress={ir("/mis-servicios")} />
-          <TarjetaAcceso vertical icono="pulse" titulo="Ayuda vecinal" onPress={ir("/ayuda")} />
+          <TarjetaAcceso vertical icono="message-outline" colorIcono="turquesa" titulo="Mi negocio" onPress={ir("/mis-servicios")} />
+          <TarjetaAcceso vertical icono="pulse" colorIcono="rojo" titulo="Ayuda vecinal" onPress={ir("/ayuda")} />
         </View>
       ) : null}
 
@@ -148,7 +156,7 @@ function BotonRapido({ icono, texto, etiqueta, onPress }: {
       accessibilityRole="button"
       accessibilityLabel={etiqueta}
       onPress={onPress}
-      style={[estilos.rapido, { backgroundColor: c.superficie, borderColor: c.borde }]}
+      style={[estilos.rapido, { backgroundColor: c.superficie, borderColor: tema.oscuro ? c.borde : c.accion }]}
     >
       <Icono nombre={icono} color={color} tamano={22} />
       <Texto variante="etiqueta" color={color} centrado>{texto}</Texto>
@@ -158,15 +166,15 @@ function BotonRapido({ icono, texto, etiqueta, onPress }: {
 
 const estilos = StyleSheet.create({
   cabecera: { flexDirection: "row", alignItems: "center", gap: 10 },
-  avatar: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
+  avatar: { width: 56, height: 56, borderRadius: 28 },
   saludo: { flex: 1 },
-  enlace: { flexDirection: "row", alignItems: "center", minHeight: ALTO_TACTIL, paddingHorizontal: 4 },
+  enlace: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", minHeight: 36 },
   rapidos: { flexDirection: "row", gap: 8 },
   rapido: {
     flex: 1,
     minHeight: ALTO_TACTIL + 12,
     borderRadius: RADIO.m,
-    borderWidth: 1.5,
+    borderWidth: 2,
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 6,

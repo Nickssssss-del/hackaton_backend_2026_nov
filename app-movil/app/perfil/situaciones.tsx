@@ -10,14 +10,15 @@ import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { Opciones } from "../../src/vistas/componentes/Opciones";
 import { Pantalla } from "../../src/vistas/componentes/Pantalla";
 import type { NombreIcono } from "../../src/vistas/componentes/Icono";
+import type { ColorIcono } from "../../src/vistas/tema/tokens";
 
-const SITUACIONES: { valor: Situacion; etiqueta: string; icono: NombreIcono }[] = [
-  { valor: "vivo_solo", etiqueta: "Vivo solo", icono: "home-account" },
-  { valor: "oigo_poco", etiqueta: "Oigo poco", icono: "ear-hearing" },
-  { valor: "veo_poco", etiqueta: "Veo poco", icono: "eye-outline" },
-  { valor: "camino_poco", etiqueta: "Camino poco", icono: "walk" },
-  { valor: "tomo_pastillas", etiqueta: "Tomo pastillas", icono: "pill" },
-  { valor: "ninguna", etiqueta: "Ninguna", icono: "close-circle-outline" },
+const SITUACIONES: { valor: Situacion; etiqueta: string; icono: NombreIcono; color: ColorIcono }[] = [
+  { valor: "vivo_solo", etiqueta: "Vivo solo", icono: "account-outline", color: "morado" },
+  { valor: "oigo_poco", etiqueta: "Oigo poco", icono: "ear-hearing", color: "turquesa" },
+  { valor: "veo_poco", etiqueta: "Veo poco", icono: "eye-outline", color: "azul" },
+  { valor: "camino_poco", etiqueta: "Camino poco", icono: "walk", color: "naranja" },
+  { valor: "tomo_pastillas", etiqueta: "Tomo pastillas", icono: "pill", color: "verde" },
+  { valor: "ninguna", etiqueta: "Ninguna", icono: "close", color: "gris" },
 ];
 
 export default function AlgoTePasa() {
@@ -56,6 +57,7 @@ export default function AlgoTePasa() {
     >
       <Opciones
         multiple
+        tarjetas
         columnas={2}
         nombre="¿Algo de esto te pasa?"
         opciones={SITUACIONES}

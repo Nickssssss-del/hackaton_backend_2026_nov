@@ -121,3 +121,34 @@ export const RADIO = { s: 10, m: 14, l: 18, pastilla: 999 } as const;
 /** Área táctil mínima (RNF: ≥ 48 dp). Los botones principales usan 60. */
 export const ALTO_TACTIL = 52;
 export const ALTO_BOTON_PRINCIPAL = 60;
+
+/**
+ * Colores de los íconos de las tarjetas (Mockup v4: Servicios naranja, Comunidad morado,
+ * Mi negocio verde azulado, Ayuda vecinal rojo…). En oscuro, el ícono se aclara y el fondo
+ * del círculo se oscurece para mantener contraste.
+ */
+export type ColorIcono = "azul" | "naranja" | "morado" | "turquesa" | "rojo" | "verde" | "gris";
+
+const ICONO_CLARO: Record<ColorIcono, { icono: string; fondo: string }> = {
+  azul: { icono: "#1F4E9C", fondo: "#E6EEF9" },
+  naranja: { icono: "#C2701F", fondo: "#FBEBDC" },
+  morado: { icono: "#7A52B3", fondo: "#EFE8F7" },
+  turquesa: { icono: "#186868", fondo: "#DFF0EF" },
+  rojo: { icono: "#D91023", fondo: "#FBE3E5" },
+  verde: { icono: "#196B3B", fondo: "#E3F0E6" },
+  gris: { icono: "#5A5A5A", fondo: "#EDEBE6" },
+};
+
+const ICONO_OSCURO: Record<ColorIcono, { icono: string; fondo: string }> = {
+  azul: { icono: "#8FB3EC", fondo: "#1E2A3D" },
+  naranja: { icono: "#F0A860", fondo: "#3A2A1A" },
+  morado: { icono: "#C2A6EE", fondo: "#2D2340" },
+  turquesa: { icono: "#72C9C2", fondo: "#173332" },
+  rojo: { icono: "#FF8A94", fondo: "#3A1418" },
+  verde: { icono: "#7BD39F", fondo: "#17301F" },
+  gris: { icono: "#C4C7CC", fondo: "#2A2E35" },
+};
+
+export function colorIcono(color: ColorIcono, oscuro: boolean) {
+  return (oscuro ? ICONO_OSCURO : ICONO_CLARO)[color];
+}

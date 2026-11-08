@@ -34,14 +34,16 @@ export default function ElegirModo() {
       <TarjetaAcceso
         titulo="Modo sencillo"
         subtitulo="Letra grande y pocos botones"
-        encima={<Ilustracion tipo="modoSencillo" alto={120} />}
+        accion="flechaCirculo"
+        encima={<Ilustracion tipo="modoSencillo" />}
         seleccionada={modo === "sencillo"}
         onPress={() => elegir("sencillo")}
       />
       <TarjetaAcceso
         titulo="Modo completo"
         subtitulo="Todo, y puedes subir tu negocio"
-        encima={<Ilustracion tipo="modoCompleto" alto={120} />}
+        accion="flechaCirculo"
+        encima={<Ilustracion tipo="modoCompleto" />}
         seleccionada={modo === "completo"}
         onPress={() => elegir("completo")}
       />
