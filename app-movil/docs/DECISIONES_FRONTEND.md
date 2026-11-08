@@ -130,3 +130,11 @@ Se rescatan del formulario anterior (`app/publicar/*`) el horario (abre y cierra
 - Al tocar el aviso push se abre G3 real (`/sos/alerta`): `ver_alerta`, `voy_a_ayudar` y `ya_no_puedo_ir`. La demo sigue en `/sos/vecino`.
 - Para que lleguen los push hace falta un development build con `extra.eas.projectId` en `app.json` (`eas init`) y FCM (`google-services.json`, ya en `main`). La carpeta `android/` está versionada: hay que regenerarla (`npx expo prebuild`) para que tome `googleServicesFile` y los plugins.
 - El botón rojo de F1 ahora lleva a `/sos` (antes iba a la emergencia anterior, `/emergencia`).
+
+## D-18 · Subir fotos (E4 y F3)
+
+Con `expo-image-picker` (~58.0.10): «Tomar foto» o «Mis fotos», recorte 4:3 y calidad 0,5. Se sube al bucket `fotos` en `<zona>/<usuario>/<archivo>` después de sincronizar el perfil (la política `fotos_subir` exige perfil completo). En E4, si la foto falla, el negocio se publica igual y se avisa. En F3 basta foto o mensaje. Es un cambio nativo: hay que reinstalar el development build.
+
+## D-19 · «Avisar si salgo de casa» con geocerca
+
+Al activar el interruptor (A5 o B3) se pide la ubicación «Todo el tiempo» y se crea una geocerca de 150 m alrededor de la casa (`expo-location` + `expo-task-manager` ~58.0.13). Al salir llega una notificación local, como máximo una cada 30 min; al tocarla, `/salida` abre Mensajes para las personas de confianza con la hora y la ubicación. La persona toca Enviar. Nada sale del teléfono hacia Supabase. Requiere `ACCESS_BACKGROUND_LOCATION` (`isAndroidBackgroundLocationEnabled` en `app.json`); Google Play revisa este permiso si algún día se publica allí.

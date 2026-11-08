@@ -10,6 +10,7 @@
  *   (el aviso con GPS en segundo plano aún no está construido; INC-07).
  * Contactos y preferencia: solo en el teléfono.
  */
+import { activarAvisoSalida, desactivarAvisoSalida, mensajeSalida } from "../../src/controladores/salidaDeCasa";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -43,6 +44,7 @@ export default function AQuienLlamamos() {
   const { tema } = useTema();
   const c = tema.colores;
   const { avisarAlSalir, setAvisarAlSalir } = usePreferencias();
+  const [avisoSalida, setAvisoSalida] = useState<string | null>(null);
   // Desde Mis datos (B3) se reutiliza esta pantalla para editar (INC-29).
   const editando = useLocalSearchParams<{ editar?: string }>().editar === "1";
   const [contactos, setContactos] = useState<ContactoLocal[]>([]);
@@ -361,8 +363,18 @@ export default function AQuienLlamamos() {
       {/* En Mis datos este interruptor ya está como «Avisar si salgo de casa». */}
       {editando ? null : (
         <>
-          <InterruptorSiNo etiqueta="Avisarles cuando salgo de casa" valor={avisarAlSalir} onCambiar={setAvisarAlSalir} />
-          {avisarAlSalir ? <Texto variante="ayuda">Guardamos tu elección. El aviso llegará en una próxima versión.</Texto> : null}
+          <InterruptorSiNo
+            etiqueta="Avisarles cuando salgo de casa"
+            valor={avisarAlSalir}
+            onCambiar={(activar) => {
+              setAvisarAlSalir(activar);
+              setAvisoSalida(null);
+              if (activar) void activarAvisoSalida(true).then((r) => setAvisoSalida(mensajeSalida(r)));
+              else void desactivarAvisoSalida();
+            }}
+          />
+          {avisarAlSalir && !avisoSalida ? <Texto variante="ayuda">Cuando salgas, te preguntaremos si avisamos a tus contactos.</Texto> : null}
+          {avisoSalida ? <Texto variante="ayuda">{avisoSalida}</Texto> : null}
         </>
       )}
     </Pantalla>

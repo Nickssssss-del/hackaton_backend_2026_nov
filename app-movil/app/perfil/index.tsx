@@ -13,6 +13,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { cerrarSesionLocal } from "../../src/controladores/registroVecinos";
 import { sincronizarAlertaVecinal, useEstadoCuenta } from "../../src/controladores/useCuenta";
+import { activarAvisoSalida, desactivarAvisoSalida, mensajeSalida } from "../../src/controladores/salidaDeCasa";
 import { Mensaje } from "../../src/vistas/componentes/Mensaje";
 import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { Pressable, StyleSheet, View } from "react-native";
@@ -35,6 +36,17 @@ export default function MisDatos() {
   const [saliendo, setSaliendo] = useState(false);
   const cuenta = useEstadoCuenta();
   const [avisoAlerta, setAvisoAlerta] = useState<string | null>(null);
+  const [avisoSalida, setAvisoSalida] = useState<string | null>(null);
+
+  const cambiarAvisoSalida = (activar: boolean) => {
+    prefs.setAvisarAlSalir(activar);
+    setAvisoSalida(null);
+    if (!activar) {
+      void desactivarAvisoSalida();
+      return;
+    }
+    void activarAvisoSalida(true).then((r) => setAvisoSalida(mensajeSalida(r)));
+  };
 
   const cambiarAlertaVecinal = (activar: boolean) => {
     prefs.setVisibleParaVecinos(activar);
@@ -96,7 +108,8 @@ export default function MisDatos() {
       </View>
 
       <InterruptorSiNo etiqueta="Modo oscuro" valor={prefs.oscuro} onCambiar={prefs.setOscuro} />
-      <InterruptorSiNo etiqueta="Avisar si salgo de casa" valor={prefs.avisarAlSalir} onCambiar={prefs.setAvisarAlSalir} />
+      <InterruptorSiNo etiqueta="Avisar si salgo de casa" valor={prefs.avisarAlSalir} onCambiar={cambiarAvisoSalida} />
+      {avisoSalida ? <Mensaje tono="aviso">{avisoSalida}</Mensaje> : null}
       <InterruptorSiNo
         etiqueta="Vecinos cerca me ven si pido ayuda"
         valor={prefs.visibleParaVecinos}

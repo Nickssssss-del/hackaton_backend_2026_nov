@@ -125,6 +125,8 @@ export interface DatosNegocio {
   horario: { abre: string; cierra: string } | null;
   precioDesde: number | null;
   descripcion: string;
+  /** Sube la foto nueva (si se eligió) y devuelve su ruta. Se llama después de sincronizar el perfil. */
+  subirFoto?: () => Promise<string | undefined>;
 }
 
 /**
@@ -158,14 +160,23 @@ export function usePublicarNegocio() {
         precioDesde: d.precioDesde,
         descripcion: descripcion || null,
       };
+      let errorFoto = null as string | null;
       const problema = await escribir(conexion !== "sin internet", async () => {
+        let fotoPath: string | undefined;
+        try {
+          fotoPath = d.subirFoto ? await d.subirFoto() : undefined;
+        } catch (causa) {
+          // Sin foto se publica igual; se avisa al final.
+          errorFoto = causa instanceof Error ? causa.message : "No se pudo subir la foto.";
+        }
+        const conFoto = fotoPath ? { ...comunes, fotoPath } : comunes;
         if (d.id) {
-          await actualizarServicio(d.id, comunes);
+          await actualizarServicio(d.id, conFoto);
           return;
         }
         const ultima = await leerUltimaUbicacion();
         await crearServicio({
-          ...comunes,
+          ...conFoto,
           mostrarDireccion: false,
           disponibleEmergencia: false,
           lat: ultima ? redondear3(ultima.lat) : undefined,
@@ -173,6 +184,7 @@ export function usePublicarNegocio() {
         });
       });
       if (problema) throw new Error(problema);
+      return errorFoto;
     },
     onSuccess: async () => {
       await cliente.invalidateQueries({ queryKey: ["servicios"] });
@@ -183,6 +195,8 @@ export function usePublicarNegocio() {
     publicar: mutacion.mutateAsync,
     enviando: mutacion.isPending,
     hecho: mutacion.isSuccess,
+    /** Mensaje si el negocio se publicó pero la foto no se pudo subir. */
+    avisoFoto: typeof mutacion.data === "string" ? mutacion.data : null,
     error: mutacion.error instanceof Error ? mutacion.error.message : null,
     reiniciar: mutacion.reset,
   };

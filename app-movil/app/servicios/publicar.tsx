@@ -2,8 +2,8 @@
  * Vista. E4 · Sube tu negocio (Mockup v4, p. 19). Con `id`, cambia un negocio propio.
  * - Tipo: Bodega, Panadería, Gasfitero, Menú, Farmacia u Otro (Otro abre la lista de oficios).
  * - Nombre con voz o teclado.
- * - Agregar foto: el bucket `fotos` ya existe (script 07), pero subirla necesita una librería de
- *   cámara (cambio nativo que el equipo debe aprobar). Se avisa con honestidad.
+ * - Agregar foto: tomarla o elegirla (expo-image-picker), comprimida, y subirla al bucket `fotos`
+ *   (<zona>/<usuario>/<archivo>). Si la foto falla, el negocio se publica igual y se avisa.
  * - «Mis vecinos pueden verlo» es servicios.visible_vecinos (script 07). En No el negocio se guarda
  *   pero solo lo ve su dueño; se puede activar después en Mis servicios.
  * - Más datos (opcional): horario (abre y cierra, para «Abierto/Cerrado»), precio desde y descripción.
@@ -13,6 +13,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { faltaParaEscribir } from "../../src/controladores/useAyudaVecinos";
+import { useFotoNueva } from "../../src/controladores/useFotoNueva";
 import { useServicios } from "../../src/controladores/useServicios";
 import { usePublicarNegocio, validarNombreNegocio } from "../../src/controladores/useServiciosV4";
 import { ETIQUETA_OFICIO, OTROS_OFICIOS, TIPOS_NEGOCIO_V4 } from "../../src/modelos/categoriasServicio";
@@ -21,6 +22,7 @@ import type { Oficio } from "../../src/modelos/tipos";
 import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { CampoConVoz } from "../../src/vistas/componentes/CampoConVoz";
 import { Contador } from "../../src/vistas/componentes/Contador";
+import { ElegirFoto } from "../../src/vistas/componentes/ElegirFoto";
 import { estiloOficio } from "../../src/vistas/componentes/estiloCategoriaServicio";
 import { Icono } from "../../src/vistas/componentes/Icono";
 import { Ilustracion } from "../../src/vistas/componentes/Ilustracion";
@@ -51,7 +53,8 @@ export default function SubeTuNegocio() {
   const [cierra, setCierra] = useState("20:00");
   const [precio, setPrecio] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [avisoFoto, setAvisoFoto] = useState(false);
+  const fotoNueva = useFotoNueva();
+  const [fotoActual, setFotoActual] = useState<string | undefined>(undefined);
   const [aviso, setAviso] = useState<string | null>(null);
   const negocio = usePublicarNegocio();
   const esperaCelular = useRef(false);
@@ -78,6 +81,7 @@ export default function SubeTuNegocio() {
     }
     setPrecio(mio.precioDesde !== undefined ? String(mio.precioDesde) : "");
     setDescripcion(mio.descripcion ?? "");
+    setFotoActual(mio.fotoPath);
   }, [id, servicios.todos]);
 
   const oficio: Oficio | null = tipo === "mas" ? otroOficio : tipo;
@@ -105,11 +109,12 @@ export default function SubeTuNegocio() {
         horario: conHorario ? { abre, cierra } : null,
         precioDesde: precioNumero,
         descripcion,
+        subirFoto: fotoNueva.foto ? fotoNueva.subir : undefined,
       });
     } catch {
       // El mensaje se muestra con negocio.error.
     }
-  }, [id, oficio, nombre, negocio, acepta, conHorario, abre, cierra, precio, descripcion]);
+  }, [id, oficio, nombre, negocio, acepta, conHorario, abre, cierra, precio, descripcion, fotoNueva.foto, fotoNueva.subir]);
 
   const publicarRef = useRef(publicar);
   publicarRef.current = publicar;
@@ -141,6 +146,7 @@ export default function SubeTuNegocio() {
         }
       >
         <Ilustracion tipo="listo" />
+        {negocio.avisoFoto ? <Mensaje tono="aviso">{`${negocio.avisoFoto} Puedes agregarla después en Mis servicios.`}</Mensaje> : null}
         <Mensaje tono="listo">
           {acepta ? `${nombre.trim()} ya aparece en Servicios.` : `${nombre.trim()} quedó guardado. Solo tú lo ves hasta que actives «Mis vecinos pueden verlo».`}
         </Mensaje>
@@ -228,12 +234,8 @@ export default function SubeTuNegocio() {
         completo={problemaNombre === null}
       />
 
-      <BotonPrincipal variante="secundario" icono="camera-outline" onPress={() => setAvisoFoto(true)}>
-        Agregar foto
-      </BotonPrincipal>
-      {avisoFoto ? (
-        <Mensaje tono="info">Las fotos llegan pronto. Por ahora tus vecinos verán el dibujo de tu tipo de negocio.</Mensaje>
-      ) : null}
+      <Texto variante="etiqueta">Foto (si quieres)</Texto>
+      <ElegirFoto estado={fotoNueva} rutaActual={fotoActual} descripcion={`Foto de ${nombre.trim() || "tu negocio"}`} />
 
       <Texto variante="subtitulo">Más datos (si quieres)</Texto>
       <InterruptorSiNo etiqueta="Tiene horario fijo" valor={conHorario} onCambiar={setConHorario} />

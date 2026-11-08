@@ -10,7 +10,9 @@
       [
         "expo-location",
         {
-          "locationWhenInUsePermission": "El barrio usa tu ubicación para los minutos a pie y la emergencia."
+          "locationWhenInUsePermission": "El barrio usa tu ubicación para los minutos a pie y la emergencia.",
+          "locationAlwaysAndWhenInUsePermission": "El barrio usa tu ubicación, también con la app cerrada, solo si activas «Avisar si salgo de casa».",
+          "isAndroidBackgroundLocationEnabled": true
         }
       ],
       [
@@ -27,7 +29,14 @@
           "speechRecognitionPermission": "El barrio usa el reconocimiento de voz en español."
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "El barrio usa tus fotos solo para la foto de tu negocio o de una publicación.",
+          "cameraPermission": "El barrio usa la cámara solo para tomar la foto de tu negocio o de una publicación."
+        }
+      ]
     ],
     "android": {
       "package": "com.melllfer.proyectobarrio",

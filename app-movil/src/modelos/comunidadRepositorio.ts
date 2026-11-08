@@ -43,7 +43,7 @@ export async function listarPublicaciones(): Promise<Publicacion[]> {
 export async function publicar(categoria: CategoriaPublicacion, mensaje: string, fotoPath?: string): Promise<void> {
   const { error } = await obtenerSupabase()
     .from("publicaciones")
-    .insert({ categoria, mensaje, ...(fotoPath ? { foto_path: fotoPath } : {}) });
+    .insert({ categoria, mensaje: mensaje || null, ...(fotoPath ? { foto_path: fotoPath } : {}) });
   if (error) throw error;
 }
 

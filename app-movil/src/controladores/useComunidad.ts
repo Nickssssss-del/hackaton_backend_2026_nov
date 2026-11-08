@@ -83,20 +83,33 @@ export function useVoy() {
 
 export function usePublicar() {
   const cliente = useQueryClient();
+  const conexion = useConexion();
   const mutacion = useMutation({
-    mutationFn: async ({ categoria, mensaje, internet }: { categoria: CategoriaPublicacion; mensaje: string; internet: boolean }) => {
+    mutationFn: async ({
+      categoria,
+      mensaje,
+      subirFoto,
+    }: {
+      categoria: CategoriaPublicacion;
+      mensaje: string;
+      subirFoto?: () => Promise<string | undefined>;
+    }) => {
       const texto = mensaje.trim();
-      const invalido = revisarTexto(texto, true);
+      // La base exige foto o mensaje (publicaciones_foto_o_mensaje).
+      const invalido = revisarTexto(texto, !subirFoto);
       if (invalido) throw new Error(invalido);
-      const problema = await escribir(internet, () => publicar(categoria, texto));
+      const problema = await escribir(conexion !== "sin internet", async () => {
+        // La foto se sube después de sincronizar el perfil: la política de Storage exige perfil completo.
+        const fotoPath = subirFoto ? await subirFoto() : undefined;
+        await publicar(categoria, texto, fotoPath);
+      });
       if (problema) throw new Error(problema);
     },
     onSuccess: () => cliente.invalidateQueries({ queryKey: CLAVE_PUBLICACIONES }),
   });
-  const conexion = useConexion();
   return {
-    publicar: (categoria: CategoriaPublicacion, mensaje: string) =>
-      mutacion.mutateAsync({ categoria, mensaje, internet: conexion !== "sin internet" }),
+    publicar: (categoria: CategoriaPublicacion, mensaje: string, subirFoto?: () => Promise<string | undefined>) =>
+      mutacion.mutateAsync({ categoria, mensaje, subirFoto }),
     enviando: mutacion.isPending,
     hecho: mutacion.isSuccess,
     error: mutacion.error instanceof Error ? mutacion.error.message : null,

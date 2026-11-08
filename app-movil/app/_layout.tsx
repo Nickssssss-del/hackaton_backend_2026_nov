@@ -13,6 +13,7 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, type ReactNode } from "react";
 import { AbrirAvisoDePastilla } from "../src/controladores/AbrirAvisoDePastilla";
 import { AvisosDeVecinos } from "../src/controladores/AvisosDeVecinos";
+import { AvisoSalidaDeCasa } from "../src/controladores/salidaDeCasa";
 
 export default function DisenoRaiz() {
   useSesion();
@@ -52,6 +53,7 @@ function Pantallas() {
       <StatusBar style={tema.oscuro ? "light" : "dark"} />
       <AbrirAvisoDePastilla />
       <AvisosDeVecinos />
+      <AvisoSalidaDeCasa />
           <Stack
             screenOptions={{
               // Cada pantalla trae su barra (Volver, Aa, luna, altavoz): sin encabezado del sistema,
@@ -72,6 +74,7 @@ function Pantallas() {
           <Stack.Screen name="servicios" options={{ headerShown: false }} />
           <Stack.Screen name="comunidad" options={{ headerShown: false }} />
           <Stack.Screen name="preguntale" options={{ headerShown: false }} />
+          <Stack.Screen name="salida" options={{ headerShown: false }} />
           <Stack.Screen name="sos" options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="servicio/[id]" options={{ title: "Servicio" }} />
           <Stack.Screen name="publicar" options={{ title: "Publicar servicio" }} />
