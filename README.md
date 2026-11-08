@@ -1,4 +1,4 @@
-# Proyecto Barrio
+# Proyecto Kuna
 
 App «Vecinos» para el barrio: la aplicación móvil, el panel del admin y la base en Supabase. No hay servidor propio.
 
