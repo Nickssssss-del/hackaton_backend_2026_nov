@@ -11,7 +11,9 @@ import {
   ZONA_PARCONA,
   clienteNuevo,
   crearVecino,
+  entrarConCelular,
   mensaje,
+  motivoDeSkip,
   publicarPedido,
   publicarServicio,
 } from "./helpers.mjs";
@@ -73,14 +75,14 @@ describe("RLS", { concurrency: false }, () => {
     exigeRechazo(admin.error);
   });
 
-  test("Prueba 3: sin sesión, el contacto no se publica", async () => {
-    const { data, error } = await sinSesion
+  test("Prueba 3: sin sesión, servicios_publicos no se puede leer", async () => {
+    const { error } = await sinSesion
       .from("servicios_publicos")
       .select("contacto")
       .eq("id", servicioPublico)
       .maybeSingle();
-    assert.equal(error, null);
-    assert.equal(data.contacto, null);
+    assert.equal(error.code, "42501");
+    assert.match(error.message, /permission denied for view servicios_publicos/);
   });
 
   test("Prueba 4: sin sesión, leer la tabla servicios", async () => {
@@ -140,34 +142,57 @@ describe("RLS", { concurrency: false }, () => {
     assert.equal(data.length, 0);
   });
 
-  test("Prueba 10: yo_ayudo con otra zona, pedido cerrado o propio", async () => {
+  test("Prueba 10: yo_ayudo sin celular verificado", async () => {
     const propio = await publicarPedido(ana.sb);
-    assert.equal(propio.error, null);
-    const ajeno = await ciro.sb.rpc("yo_ayudo", { p_pedido_id: propio.data.id });
-    exigeRechazo(ajeno.error, "ZONA_DISTINTA");
-    const mismo = await ana.sb.rpc("yo_ayudo", { p_pedido_id: propio.data.id });
-    exigeRechazo(mismo.error, "PEDIDO_NO_DISPONIBLE");
-    const cerrado = await ana.sb
-      .from("pedidos_ayuda")
-      .update({ estado: "cancelado" })
-      .eq("id", propio.data.id);
-    assert.equal(cerrado.error, null);
-    const despues = await beto.sb.rpc("yo_ayudo", { p_pedido_id: propio.data.id });
-    exigeRechazo(despues.error, "PEDIDO_NO_DISPONIBLE");
+    assert.equal(propio.error, null, mensaje(propio.error));
+    for (const quien of [ciro, ana, beto]) {
+      const ayuda = await quien.sb.rpc("yo_ayudo", { p_pedido_id: propio.data.id });
+      exigeRechazo(ayuda.error, "CELULAR_NO_VERIFICADO");
+    }
   });
 
-  test("Prueba 11: yo_ayudo válido devuelve el contacto", async () => {
+  test(
+    "Prueba 10: otra zona, pedido propio y pedido cerrado",
+    { skip: motivoDeSkip(["CELULARES_PRUEBA", "OTP_PRUEBA"]) },
+    async () => {
+      const verificado = await entrarConCelular({
+        nombre: "Nilo Prado",
+        zonaId: ZONA_PARCONA,
+        lat: -14.045,
+        lng: -75.698,
+      });
+      const ajeno = await publicarPedido(ana.sb);
+      assert.equal(ajeno.error, null, mensaje(ajeno.error));
+      const zona = await verificado.sb.rpc("yo_ayudo", { p_pedido_id: ajeno.data.id });
+      exigeRechazo(zona.error, "ZONA_DISTINTA");
+
+      const propio = await publicarPedido(verificado.sb, { zonaId: ZONA_PARCONA });
+      assert.equal(propio.error, null, mensaje(propio.error));
+      const mismo = await verificado.sb.rpc("yo_ayudo", { p_pedido_id: propio.data.id });
+      exigeRechazo(mismo.error, "PEDIDO_NO_DISPONIBLE");
+
+      const cerrado = await ana.sb
+        .from("pedidos_ayuda")
+        .update({ estado: "cancelado" })
+        .eq("id", ajeno.data.id);
+      assert.equal(cerrado.error, null, mensaje(cerrado.error));
+      const despues = await verificado.sb.rpc("yo_ayudo", { p_pedido_id: ajeno.data.id });
+      exigeRechazo(despues.error, "PEDIDO_NO_DISPONIBLE");
+    },
+  );
+
+  test("Prueba 11: yo_ayudo exige celular verificado y no entrega el contacto", async () => {
     const pedido = await publicarPedido(ana.sb);
-    assert.equal(pedido.error, null);
+    assert.equal(pedido.error, null, mensaje(pedido.error));
     const ayuda = await beto.sb.rpc("yo_ayudo", { p_pedido_id: pedido.data.id });
-    assert.equal(ayuda.error, null);
-    assert.equal(ayuda.data[0].celular, "900000011");
-    const visto = await ana.sb
-      .from("ayudas_ofrecidas")
-      .select("ayudante_id")
+    exigeRechazo(ayuda.error, "CELULAR_NO_VERIFICADO");
+    assert.equal(ayuda.data, null);
+    const recibidas = await ana.sb
+      .from("ayudas_recibidas")
+      .select("ayudante_celular")
       .eq("pedido_id", pedido.data.id);
-    assert.equal(visto.error, null);
-    assert.equal(visto.data[0].ayudante_id, beto.id);
+    assert.equal(recibidas.error, null, mensaje(recibidas.error));
+    assert.equal(recibidas.data.length, 0);
   });
 
   test("Prueba 12: publicar por encima del límite diario", async () => {
@@ -196,11 +221,11 @@ describe("RLS", { concurrency: false }, () => {
       });
       assert.equal(reporte.error, null, mensaje(reporte.error));
     }
-    const { data, error } = await sinSesion
+    const { data, error } = await ana.sb
       .from("servicios_publicos")
       .select("id")
       .eq("id", creado.data.id);
-    assert.equal(error, null);
+    assert.equal(error, null, mensaje(error));
     assert.equal(data.length, 0);
   });
 
@@ -263,14 +288,14 @@ describe("RLS", { concurrency: false }, () => {
     exigeRechazo(motivo.error, "MOTIVO_INVALIDO");
   });
 
-  test("Prueba 18: sin sesión, la dirección no se publica", async () => {
-    const { data, error } = await sinSesion
+  test("Prueba 18: sin sesión, servicios_publicos no se puede leer", async () => {
+    const { error } = await sinSesion
       .from("servicios_publicos")
       .select("direccion")
       .eq("id", servicioPublico)
       .maybeSingle();
-    assert.equal(error, null);
-    assert.equal(data.direccion, null);
+    assert.equal(error.code, "42501");
+    assert.match(error.message, /permission denied for view servicios_publicos/);
   });
 
   test("Prueba 19: categoría fuera de la lista", async () => {

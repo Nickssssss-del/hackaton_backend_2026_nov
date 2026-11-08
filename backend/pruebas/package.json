@@ -4,7 +4,7 @@
   "type": "module",
   "description": "Pruebas de RLS contra el proyecto de desarrollo de Supabase.",
   "scripts": {
-    "test": "node --test rls.test.mjs"
+    "test": "node --test"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0"
