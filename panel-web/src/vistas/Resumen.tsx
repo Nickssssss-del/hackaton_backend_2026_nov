@@ -3,6 +3,7 @@
  */
 import { useResumen } from "../controladores/useResumen";
 import type { ResumenDia } from "../modelos/resumen";
+import { Cargando } from "./Cargando";
 import { Mensajes } from "./Mensajes";
 import { TiempoUsoResumen } from "./TiempoUsoResumen";
 
@@ -26,22 +27,21 @@ export function Resumen() {
 
   return (
     <section aria-labelledby="titulo-resumen">
-      <h2 id="titulo-resumen" className="text-xl font-bold">
+      <h2 id="titulo-resumen" className="text-3xl font-bold text-stone-900">
         Resumen del día
       </h2>
-      <p className="mt-1 text-stone-700">Hoy en Lima: {HOY.format(new Date())}. Solo totales.</p>
+      <p className="mt-1 text-base text-stone-600">Hoy en Lima: {HOY.format(new Date())}. Solo totales.</p>
 
-      <Mensajes cargando={cargando} error={error} aviso={null} onRecargar={() => void recargar()} />
+      {cargando ? <Cargando /> : null}
+      <Mensajes cargando={false} error={error} aviso={null} onRecargar={() => void recargar()} />
 
       {resumen ? (
-        <dl className="mt-6 space-y-3">
+        <dl className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {FILAS.map((fila) => (
-            <div key={fila.clave} className="rounded-xl border border-stone-200 bg-white p-4">
-              <div className="flex items-baseline justify-between gap-3">
-                <dt className="font-semibold">{fila.titulo}</dt>
-                <dd className="text-2xl font-bold tabular-nums">{resumen[fila.clave]}</dd>
-              </div>
-              <p className="mt-1 text-sm text-stone-600">{fila.detalle}</p>
+            <div key={fila.clave} className="rounded-2xl border border-stone-200 bg-white p-4">
+              <dt className="text-base font-semibold text-stone-900">{fila.titulo}</dt>
+              <dd className="mt-2 text-3xl font-bold tabular-nums text-stone-900">{resumen[fila.clave]}</dd>
+              <p className="mt-2 text-base text-stone-600">{fila.detalle}</p>
             </div>
           ))}
         </dl>

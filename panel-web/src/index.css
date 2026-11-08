@@ -1,1 +1,50 @@
 @import "tailwindcss";
+
+@layer base {
+  html {
+    font-size: 16px;
+  }
+
+  body {
+    color: #1c1917;
+    line-height: 1.5;
+  }
+
+  :focus-visible {
+    outline: 3px solid #1d4ed8;
+    outline-offset: 2px;
+  }
+
+  [role="alert"] {
+    color: #7f1d1d;
+    background-color: #fee2e2;
+    border: 1px solid #9f1239;
+  }
+}
+
+.cargando-aro {
+  width: 40px;
+  height: 40px;
+  border-radius: 9999px;
+  border: 2px solid #e7e5e4;
+  border-top-color: #1f4e9c;
+  animation: cargando-giro 0.8s linear infinite;
+}
+
+@keyframes cargando-giro {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cargando-aro {
+    animation: cargando-pulso 1.2s ease-in-out infinite;
+  }
+}
+
+@keyframes cargando-pulso {
+  50% {
+    opacity: 0.4;
+  }
+}

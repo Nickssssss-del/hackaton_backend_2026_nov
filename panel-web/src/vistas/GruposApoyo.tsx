@@ -3,6 +3,7 @@
  */
 import { useGrupos } from "../controladores/useGrupos";
 import { tipoGrupo } from "./etiquetas";
+import { Cargando } from "./Cargando";
 import { Mensajes } from "./Mensajes";
 
 export function GruposApoyo() {
@@ -10,36 +11,37 @@ export function GruposApoyo() {
 
   return (
     <section aria-labelledby="titulo-grupos">
-      <h2 id="titulo-grupos" className="text-xl font-bold">
+      <h2 id="titulo-grupos" className="text-3xl font-bold text-stone-900">
         Grupos de apoyo
       </h2>
-      <p className="mt-1 text-stone-700">
+      <p className="mt-1 text-base text-stone-600">
         Grupos de ayuda entre vecinos. La marca «Verificado» aparece en los que confirmó el equipo.
       </p>
 
-      <Mensajes cargando={cargando} error={error} aviso={aviso} onRecargar={() => void recargar()} />
+      {cargando ? <Cargando /> : null}
+      <Mensajes cargando={false} error={error} aviso={aviso} onRecargar={() => void recargar()} />
 
       {!cargando && !error && grupos.length === 0 ? (
-        <p className="mt-6 rounded-xl bg-stone-100 p-4">No hay grupos de apoyo.</p>
+        <p className="mt-6 rounded-2xl border border-stone-300 bg-stone-100 p-4 text-base text-stone-800">No hay grupos de apoyo.</p>
       ) : null}
 
-      <ul className="mt-6 space-y-3">
+      <ul className="mt-6 space-y-4">
         {grupos.map((grupo) => (
           <li
             key={grupo.id}
-            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white p-4"
+            className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-stone-200 bg-white p-4"
           >
             <div>
-              <h3 className="font-semibold">{grupo.nombre}</h3>
-              <p className="text-sm text-stone-600">
+              <h3 className="text-lg font-semibold">{grupo.nombre}</h3>
+              <p className="mt-1 text-base text-stone-700">
                 {tipoGrupo(grupo.tipo)}
                 {grupo.zona ? ` · ${grupo.zona}` : ""}
                 {grupo.contacto ? ` · ${grupo.contacto}` : ""}
               </p>
-              {grupo.direccion ? <p className="text-sm text-stone-600">{grupo.direccion}</p> : null}
+              {grupo.direccion ? <p className="mt-1 text-base text-stone-700">{grupo.direccion}</p> : null}
             </div>
             {grupo.verificada ? (
-              <span className="rounded-full bg-emerald-100 px-3 py-1 text-sm font-medium text-emerald-800">
+              <span className="rounded-full bg-emerald-100 px-3 py-1 text-base font-medium text-emerald-900">
                 ✓ Verificado
               </span>
             ) : (
@@ -48,7 +50,7 @@ export function GruposApoyo() {
                 disabled={enCurso !== null}
                 onClick={() => void verificar(grupo.id)}
                 aria-label={`Marcar como verificada: ${grupo.nombre}`}
-                className="rounded-lg bg-stone-900 px-4 py-2 font-medium text-white disabled:opacity-60"
+                className="rounded-full bg-[#1F4E9C] px-4 py-2 text-base font-medium text-white hover:bg-[#163a74] disabled:bg-stone-300 disabled:text-stone-700"
               >
                 {enCurso === grupo.id ? "Guardando…" : "Marcar como verificada"}
               </button>
