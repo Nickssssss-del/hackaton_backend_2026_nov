@@ -3,7 +3,7 @@
  * Reutiliza la lógica del registro: agenda o escribir.
  * Guarda en local/contactos (nunca en Supabase).
  */
-import * as Contacts from "expo-contacts";
+import * as Contacts from "expo-contacts/legacy";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";

@@ -1,4 +1,4 @@
-import * as Contacts from "expo-contacts";
+import * as Contacts from "expo-contacts/legacy";
 import { router, useLocalSearchParams } from "expo-router";
 import { useEffect, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, TextInput } from "react-native";

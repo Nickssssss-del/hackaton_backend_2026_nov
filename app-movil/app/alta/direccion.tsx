@@ -23,7 +23,9 @@ import { Pantalla } from "../../src/vistas/componentes/Pantalla";
 const VACIA: DireccionLocal = { calle: "", numero: "", referencia: "" };
 
 export default function TuDireccion() {
-  const params = useLocalSearchParams<{ calle?: string; numero?: string; desdeGps?: string }>();
+  const params = useLocalSearchParams<{ calle?: string; numero?: string; desdeGps?: string; editar?: string }>();
+  // Desde Mis datos (B3) se reutiliza esta pantalla para editar (INC-29).
+  const editando = params.editar === "1";
   const [direccion, setDireccion] = useState<DireccionLocal>(VACIA);
 
   useEffect(() => {
@@ -48,7 +50,8 @@ export default function TuDireccion() {
 
   const seguir = async () => {
     await guardarDireccion(direccion);
-    router.push("/alta/datos");
+    if (editando) router.back();
+    else router.push("/alta/datos");
   };
   const omitir = async () => {
     await omitirDireccion();
@@ -57,11 +60,21 @@ export default function TuDireccion() {
 
   return (
     <Pantalla
-      titulo="Tu dirección"
+      titulo={editando ? "Mi dirección" : "Tu dirección"}
       volver
-      encabezado={<IndicadorPasos paso={1} />}
-      textoEscuchar="Paso 1 de 3. Tu dirección. Di o escribe la calle o avenida, el número y una referencia."
+      encabezado={editando ? undefined : <IndicadorPasos paso={1} />}
+      textoEscuchar={`${editando ? "Mi dirección" : "Paso 1 de 3. Tu dirección"}. Di o escribe la calle o avenida, el número y una referencia.`}
       pie={
+        editando ? (
+          <BotonPrincipal
+            variante="listo"
+            icono="check"
+            motivoDesactivado={faltan > 0 ? `Falta ${faltan} ${faltan === 1 ? "dato" : "datos"}` : null}
+            onPress={() => void seguir()}
+          >
+            Guardar
+          </BotonPrincipal>
+        ) : (
         <View style={estilos.fila}>
           <BotonPrincipal variante="neutro" estilo={estilos.omitir} onPress={() => void omitir()}>
             Omitir
@@ -74,6 +87,7 @@ export default function TuDireccion() {
             Seguir
           </BotonPrincipal>
         </View>
+        )
       }
     >
       {params.desdeGps ? <Mensaje tono="info">¿Vives aquí? Revisa y corrige si hace falta.</Mensaje> : null}

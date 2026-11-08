@@ -16,6 +16,8 @@ export interface Preferencias {
   sonidos?: boolean;
   /** A5 / B3: avisar a los contactos al salir de casa. Por defecto No (requiere consentimiento). */
   avisarAlSalir?: boolean;
+  /** B3: vecinos cercanos ven mi ubicación si pido ayuda. Por defecto No (consentimiento, INC-17). */
+  visibleParaVecinos?: boolean;
   /** Campos de la versión anterior. Se leen solo para migrar. */
   tema?: "claro" | "emergencia" | "oscuro";
   escalaLetra?: number;
@@ -27,6 +29,7 @@ export interface PreferenciasCompletas {
   modo: ModoUso | null;
   sonidos: boolean;
   avisarAlSalir: boolean;
+  visibleParaVecinos: boolean;
 }
 
 function tamanoDesdeEscala(escala?: number): TamanoLetra {
@@ -47,6 +50,7 @@ export async function leerPreferenciasCompletas(): Promise<PreferenciasCompletas
     modo: p.modo ?? null,
     sonidos: p.sonidos ?? true,
     avisarAlSalir: p.avisarAlSalir ?? false,
+    visibleParaVecinos: p.visibleParaVecinos ?? false,
   };
 }
 

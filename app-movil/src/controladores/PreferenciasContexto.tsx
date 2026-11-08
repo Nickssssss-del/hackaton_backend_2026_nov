@@ -22,6 +22,7 @@ interface PreferenciasContextoTipo extends PreferenciasCompletas {
   setModo: (modo: ModoUso) => void;
   setSonidos: (activar: boolean) => void;
   setAvisarAlSalir: (activar: boolean) => void;
+  setVisibleParaVecinos: (activar: boolean) => void;
 }
 
 const VALORES_INICIALES: PreferenciasCompletas = {
@@ -30,6 +31,7 @@ const VALORES_INICIALES: PreferenciasCompletas = {
   modo: null,
   sonidos: true,
   avisarAlSalir: false,
+  visibleParaVecinos: false,
 };
 
 const PreferenciasContexto = createContext<PreferenciasContextoTipo>({
@@ -41,6 +43,7 @@ const PreferenciasContexto = createContext<PreferenciasContextoTipo>({
   setModo: () => undefined,
   setSonidos: () => undefined,
   setAvisarAlSalir: () => undefined,
+  setVisibleParaVecinos: () => undefined,
 });
 
 export function PreferenciasProveedor({ children }: { children: ReactNode }) {
@@ -69,6 +72,7 @@ export function PreferenciasProveedor({ children }: { children: ReactNode }) {
       ...(cambios.modo ? { modo: cambios.modo } : {}),
       ...(cambios.sonidos !== undefined ? { sonidos: cambios.sonidos } : {}),
       ...(cambios.avisarAlSalir !== undefined ? { avisarAlSalir: cambios.avisarAlSalir } : {}),
+      ...(cambios.visibleParaVecinos !== undefined ? { visibleParaVecinos: cambios.visibleParaVecinos } : {}),
     });
   }, []);
 
@@ -85,6 +89,7 @@ export function PreferenciasProveedor({ children }: { children: ReactNode }) {
       setModo: (modo) => actualizar({ modo }),
       setSonidos: (sonidos) => actualizar({ sonidos }),
       setAvisarAlSalir: (avisarAlSalir) => actualizar({ avisarAlSalir }),
+      setVisibleParaVecinos: (visibleParaVecinos) => actualizar({ visibleParaVecinos }),
     }),
     [valores, cargando, actualizar],
   );

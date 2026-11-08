@@ -51,8 +51,8 @@ export function Opciones<T extends string>({ opciones, seleccion, onCambiar, mul
               },
             ]}
           >
-            {op.icono ? <Icono nombre={op.icono} color={c.accion} /> : null}
-            <Texto variante="etiqueta" centrado color={activa && !tema.oscuro ? c.accion : c.texto}>
+            {op.icono ? <Icono nombre={op.icono} color={c.accionTexto} /> : null}
+            <Texto variante="etiqueta" centrado color={activa ? c.accionTexto : c.texto}>
               {op.etiqueta}
             </Texto>
           </Pressable>

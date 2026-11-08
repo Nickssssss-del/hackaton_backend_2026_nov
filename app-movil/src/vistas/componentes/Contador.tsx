@@ -23,7 +23,7 @@ export function Contador({ valor, nombre, onMenos, onMas, puedeMenos = true, pue
   const c = tema.colores;
   const boton = (habilitado: boolean) => [
     estilos.boton,
-    { borderColor: habilitado ? c.accion : c.desactivado, backgroundColor: c.superficie },
+    { borderColor: habilitado ? c.accionTexto : c.desactivado, backgroundColor: c.superficie },
   ];
   return (
     <View style={estilos.fila}>
@@ -34,7 +34,7 @@ export function Contador({ valor, nombre, onMenos, onMas, puedeMenos = true, pue
         onPress={onMenos}
         style={boton(puedeMenos)}
       >
-        <Icono nombre="minus" tamano={28} color={puedeMenos ? c.accion : c.desactivadoTexto} />
+        <Icono nombre="minus" tamano={28} color={puedeMenos ? c.accionTexto : c.desactivadoTexto} />
       </Pressable>
       <View style={[estilos.valor, { backgroundColor: c.superficie, borderColor: c.borde }]}>
         <Texto variante="subtitulo" centrado accessibilityLiveRegion="polite">{valor}</Texto>
@@ -46,7 +46,7 @@ export function Contador({ valor, nombre, onMenos, onMas, puedeMenos = true, pue
         onPress={onMas}
         style={boton(puedeMas)}
       >
-        <Icono nombre="plus" tamano={28} color={puedeMas ? c.accion : c.desactivadoTexto} />
+        <Icono nombre="plus" tamano={28} color={puedeMas ? c.accionTexto : c.desactivadoTexto} />
       </Pressable>
     </View>
   );

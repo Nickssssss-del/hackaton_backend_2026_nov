@@ -32,6 +32,8 @@ export interface ColoresTema {
   // Mockup v4.
   /** Texto e íconos sobre botones de color. */
   sobreColor: string;
+  /** Azul para íconos y texto sobre superficies: en oscuro se aclara para tener contraste AA. */
+  accionTexto: string;
   accionSuave: string;
   confirmadoSuave: string;
   avisoBorde: string;
@@ -68,6 +70,7 @@ const CLARO: ColoresTema = {
   textoSecundario: "#4A4A4A",
   fondo: "#F5F4EF",
   superficie: "#FFFFFF",
+  accionTexto: "#1F4E9C",
   accionSuave: "#E6EEF9",
   confirmadoSuave: "#E3F0E6",
   peligroSuave: "#FBE3E5",
@@ -87,6 +90,7 @@ const OSCURO: ColoresTema = {
   textoSecundario: "#C4C7CC",
   fondo: "#121417",
   superficie: "#1E2228",
+  accionTexto: "#8FB3EC",
   accionSuave: "#1E2A3D",
   confirmadoSuave: "#17301F",
   peligroSuave: "#3A1418",

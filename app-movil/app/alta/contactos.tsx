@@ -8,7 +8,7 @@
  *   (el aviso con GPS en segundo plano aún no está construido; INC-07).
  * Contactos y preferencia: solo en el teléfono.
  */
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { usePreferencias } from "../../src/controladores/PreferenciasContexto";
@@ -40,6 +40,8 @@ export default function AQuienLlamamos() {
   const { tema } = useTema();
   const c = tema.colores;
   const { avisarAlSalir, setAvisarAlSalir } = usePreferencias();
+  // Desde Mis datos (B3) se reutiliza esta pantalla para editar (INC-29).
+  const editando = useLocalSearchParams<{ editar?: string }>().editar === "1";
   const [contactos, setContactos] = useState<ContactoLocal[]>([]);
   const [formulario, setFormulario] = useState<Formulario | null>(null);
   const [mensaje, setMensaje] = useState<string | null>(null);
@@ -113,13 +115,17 @@ export default function AQuienLlamamos() {
 
   return (
     <Pantalla
-      titulo="¿A quién llamamos si te pasa algo?"
+      titulo={editando ? "Mis contactos" : "¿A quién llamamos si te pasa algo?"}
       volver
-      encabezado={<IndicadorPasos paso={3} />}
-      textoEscuchar={`Paso 3 de 3. ¿A quién llamamos si te pasa algo? Toca Dime a quién llamamos y di, por ejemplo, Ana, mi hija. O toca Escribir un número. Tienes ${contactos.length} de 2 personas.`}
+      encabezado={editando ? undefined : <IndicadorPasos paso={3} />}
+      textoEscuchar={`${editando ? "Mis contactos." : "Paso 3 de 3."} ¿A quién llamamos si te pasa algo? Toca Dime a quién llamamos y di, por ejemplo, Ana, mi hija. O toca Escribir un número. Tienes ${contactos.length} de 2 personas.`}
       pie={
-        <BotonPrincipal variante="listo" icono="check" onPress={() => router.push("/alta/listo")}>
-          Listo
+        <BotonPrincipal
+          variante="listo"
+          icono="check"
+          onPress={() => (editando ? router.back() : router.push("/alta/listo"))}
+        >
+          {editando ? "Guardar" : "Listo"}
         </BotonPrincipal>
       }
     >
@@ -218,8 +224,13 @@ export default function AQuienLlamamos() {
         );
       })}
 
-      <InterruptorSiNo etiqueta="Avisarles cuando salgo de casa" valor={avisarAlSalir} onCambiar={setAvisarAlSalir} />
-      {avisarAlSalir ? <Texto variante="ayuda">Guardamos tu elección. El aviso llegará en una próxima versión.</Texto> : null}
+      {/* En Mis datos este interruptor ya está como «Avisar si salgo de casa». */}
+      {editando ? null : (
+        <>
+          <InterruptorSiNo etiqueta="Avisarles cuando salgo de casa" valor={avisarAlSalir} onCambiar={setAvisarAlSalir} />
+          {avisarAlSalir ? <Texto variante="ayuda">Guardamos tu elección. El aviso llegará en una próxima versión.</Texto> : null}
+        </>
+      )}
     </Pantalla>
   );
 }

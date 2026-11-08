@@ -4,7 +4,7 @@
  * Nadie tiene que decir su edad para elegir. Se cambia luego en Mis datos.
  * Toda la tarjeta es táctil; al tocarla se guarda el modo y se pasa a A3.
  */
-import { router } from "expo-router";
+import { router, useLocalSearchParams } from "expo-router";
 import { usePreferencias } from "../../src/controladores/PreferenciasContexto";
 import type { ModoUso } from "../../src/modelos/local/preferencias";
 import { Ilustracion } from "../../src/vistas/componentes/Ilustracion";
@@ -14,12 +14,15 @@ import { Texto } from "../../src/vistas/componentes/Texto";
 
 export default function ElegirModo() {
   const { modo, setModo, tamano, setTamano } = usePreferencias();
+  // Desde Mis datos (B3): «Cambiar de modo» vuelve atrás en lugar de seguir el registro.
+  const editando = useLocalSearchParams<{ editar?: string }>().editar === "1";
 
   const elegir = (elegido: ModoUso) => {
     setModo(elegido);
     // «Letra grande»: si la persona no cambió la letra todavía, el modo sencillo empieza en Grande.
     if (elegido === "sencillo" && tamano === "normal") setTamano("grande");
-    router.push("/alta/ubicacion");
+    if (editando) router.back();
+    else router.push("/alta/ubicacion");
   };
 
   return (

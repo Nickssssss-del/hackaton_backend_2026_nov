@@ -27,12 +27,13 @@ export {
 import { MAX_CONTACTOS, normalizarCelular } from "../modelos/validacionRegistro";
 const TIEMPO_MAXIMO_UBICACION = 10000;
 
-/** Ruta del Inicio según el modo (A2). B1/B2 se construyen en la fase de Inicios. */
-export function rutaInicio(modo: ModoUso | null): "/inicio" {
-  // Modo sencillo → Inicio del adulto mayor (B1); completo → Inicio del vecino (B2).
-  // Mientras B1/B2 no existan, ambos abren el Inicio actual.
+/**
+ * Ruta del Inicio según el modo (A2). Una sola pantalla, /principal, muestra
+ * B1 (modo sencillo → adulto mayor) o B2 (modo completo → vecino).
+ */
+export function rutaInicio(modo: ModoUso | null): "/principal" {
   void modo;
-  return "/inicio";
+  return "/principal";
 }
 
 export async function registroCompleto(): Promise<boolean> {

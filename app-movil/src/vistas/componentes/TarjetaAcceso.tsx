@@ -73,7 +73,7 @@ export function TarjetaAcceso({
       <View style={encima ? estilos.horizontal : estilos.contenidoPlano}>
         {icono ? (
           <View style={[estilos.icono, { backgroundColor: lleno ? "transparent" : c.accionSuave }]}>
-            <Icono nombre={icono} color={lleno ? c.sobreColor : c.accion} tamano={26} />
+            <Icono nombre={icono} color={lleno ? c.sobreColor : c.accionTexto} tamano={26} />
           </View>
         ) : null}
         <View style={vertical ? estilos.textosVertical : estilos.textos}>

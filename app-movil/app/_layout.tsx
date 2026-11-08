@@ -57,6 +57,9 @@ function Pantallas() {
           >
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="alta" options={{ headerShown: false }} />
+          <Stack.Screen name="principal" options={{ headerShown: false }} />
+          <Stack.Screen name="perfil" options={{ headerShown: false }} />
+          <Stack.Screen name="pronto" options={{ headerShown: false }} />
           <Stack.Screen name="servicio/[id]" options={{ title: "Servicio" }} />
           <Stack.Screen name="publicar" options={{ title: "Publicar servicio" }} />
           <Stack.Screen name="publicar/detalles" options={{ title: "Detalles del servicio" }} />
