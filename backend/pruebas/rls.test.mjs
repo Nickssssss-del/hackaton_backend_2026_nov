@@ -2,6 +2,7 @@
  * rls.test.mjs
  * Pruebas 1 a 20 de la sección 13. Solo usa la anon key.
  * Las 21 a 25 quedan fuera del MVP: no hay códigos SMS en la demo.
+ * El bloque Mockup v4 cubre el script 07. Corre después de aplicarlo.
  */
 import assert from "node:assert/strict";
 import { before, describe, test } from "node:test";
@@ -298,5 +299,239 @@ describe("RLS", { concurrency: false }, () => {
     assert.equal(despues.data.length, 0);
     const ajeno = await beto.sb.from("perfiles").select("id").eq("id", beto.id);
     assert.equal(ajeno.data.length, 1);
+  });
+});
+
+describe("Mockup v4", { concurrency: false }, () => {
+  let duena;
+  let cerca;
+  let lejos;
+  let otraZona;
+  let servicioId;
+  let publicacionId;
+  let comentarioId;
+
+  before(async () => {
+    duena = await crearVecino({
+      nombre: "Rosa Quispe",
+      celular: "900000021",
+      zonaId: ZONA_CERCADO,
+      lat: -14.068,
+      lng: -75.728,
+    });
+    cerca = await crearVecino({
+      nombre: "Luis Ramos",
+      celular: "900000022",
+      zonaId: ZONA_CERCADO,
+      lat: -14.066,
+      lng: -75.728,
+    });
+    lejos = await crearVecino({
+      nombre: "Nico Farro",
+      celular: "900000023",
+      zonaId: ZONA_CERCADO,
+      lat: -14.05,
+      lng: -75.728,
+    });
+    otraZona = await crearVecino({
+      nombre: "Gabi Ríos",
+      celular: "900000024",
+      zonaId: ZONA_PARCONA,
+      lat: -14.045,
+      lng: -75.698,
+    });
+
+    const servicio = await publicarServicio(duena.sb, {
+      nombreNegocio: "Bodega Rosa",
+      oficio: "bodega",
+    });
+    assert.equal(servicio.error, null, mensaje(servicio.error));
+    servicioId = servicio.data.id;
+
+    const publicacion = await duena.sb
+      .from("publicaciones")
+      .insert({ categoria: "kermes", mensaje: "Kermés del sábado en el parque." })
+      .select("id")
+      .single();
+    assert.equal(publicacion.error, null, mensaje(publicacion.error));
+    publicacionId = publicacion.data.id;
+
+    const comentario = await duena.sb
+      .from("comentarios")
+      .insert({ publicacion_id: publicacionId, texto: "Llevo gaseosa." })
+      .select("id")
+      .single();
+    assert.equal(comentario.error, null, mensaje(comentario.error));
+    comentarioId = comentario.data.id;
+  });
+
+  test("Mockup v4: otra zona no ve negocios, publicaciones ni comentarios", async () => {
+    const negocios = await otraZona.sb.from("servicios_publicos").select("id").eq("id", servicioId);
+    assert.equal(negocios.error, null, mensaje(negocios.error));
+    assert.equal(negocios.data.length, 0);
+    const publicaciones = await otraZona.sb
+      .from("publicaciones_cercanas")
+      .select("id")
+      .eq("id", publicacionId);
+    assert.equal(publicaciones.error, null, mensaje(publicaciones.error));
+    assert.equal(publicaciones.data.length, 0);
+    const comentarios = await otraZona.sb
+      .from("comentarios_visibles")
+      .select("id")
+      .eq("id", comentarioId);
+    assert.equal(comentarios.error, null, mensaje(comentarios.error));
+    assert.equal(comentarios.data.length, 0);
+
+    const mismoBarrio = await cerca.sb.from("servicios_publicos").select("id").eq("id", servicioId);
+    assert.equal(mismoBarrio.data.length, 1);
+    const pubs = await cerca.sb.from("publicaciones_cercanas").select("id").eq("id", publicacionId);
+    assert.equal(pubs.data.length, 1);
+    const coms = await cerca.sb.from("comentarios_visibles").select("id").eq("id", comentarioId);
+    assert.equal(coms.data.length, 1);
+  });
+
+  test("Mockup v4: voy_a_ayudar no revela ni registra si no se cumplen las condiciones", async () => {
+    const verificado = await cerca.sb
+      .from("perfiles")
+      .update({ celular_verificado: true, alerta_vecinal: true })
+      .eq("id", cerca.id)
+      .select("celular_verificado, alerta_vecinal")
+      .single();
+    assert.equal(verificado.error, null, mensaje(verificado.error));
+    assert.equal(verificado.data.celular_verificado, false);
+    assert.equal(verificado.data.alerta_vecinal, true);
+
+    await duena.sb.from("perfiles").update({ alerta_vecinal: true }).eq("id", duena.id);
+    const emergencia = await duena.sb
+      .from("emergencias")
+      .insert({
+        practica: false,
+        nombre: "Rosa Quispe",
+        direccion: "Calle Lima 245",
+        lat: -14.068123,
+        lng: -75.728456,
+      })
+      .select("id, avisar_vecinos")
+      .single();
+    assert.equal(emergencia.error, null, mensaje(emergencia.error));
+    assert.equal(emergencia.data.avisar_vecinos, true);
+
+    await lejos.sb.from("perfiles").update({ alerta_vecinal: true }).eq("id", lejos.id);
+    const sinAlerta = await crearVecino({
+      nombre: "Sara Nieto",
+      celular: "900000025",
+      zonaId: ZONA_CERCADO,
+      lat: -14.066,
+      lng: -75.728,
+    });
+
+    for (const quien of [cerca, lejos, sinAlerta]) {
+      const ayuda = await quien.sb.rpc("voy_a_ayudar", {
+        p_emergencia: emergencia.data.id,
+        p_lat: -14.067,
+        p_lng: -75.728,
+      });
+      exigeRechazo(ayuda.error, "CELULAR_NO_VERIFICADO");
+      const registro = await quien.sb
+        .from("vecinos_que_van")
+        .select("id")
+        .eq("emergencia_id", emergencia.data.id);
+      assert.equal(registro.error, null, mensaje(registro.error));
+      assert.equal(registro.data.length, 0);
+    }
+
+    const directo = await cerca.sb.from("vecinos_que_van").insert({
+      emergencia_id: emergencia.data.id,
+      vecino_id: cerca.id,
+      estado: "va",
+    });
+    exigeRechazo(directo.error);
+  });
+
+  test("Mockup v4: el modo práctica no avisa a vecinos", async () => {
+    await duena.sb.from("perfiles").update({ alerta_vecinal: true }).eq("id", duena.id);
+    const practica = await duena.sb
+      .from("emergencias")
+      .insert({
+        practica: true,
+        nombre: "Rosa Quispe",
+        direccion: "Calle Lima 245",
+        lat: -14.068123,
+        lng: -75.728456,
+      })
+      .select("id, practica, avisar_vecinos")
+      .single();
+    assert.equal(practica.error, null, mensaje(practica.error));
+    assert.equal(practica.data.practica, true);
+    assert.equal(practica.data.avisar_vecinos, false);
+
+    const lista = await otraZona.sb.rpc("vecinos_para_alerta", { p_emergencia: practica.data.id });
+    exigeRechazo(lista.error);
+    const vistos = await cerca.sb.from("emergencias").select("id").eq("id", practica.data.id);
+    assert.equal(vistos.data.length, 0);
+  });
+
+  test("Mockup v4: no se leen emergencias, eslabones ni enlaces ajenos", async () => {
+    const emergencia = await duena.sb
+      .from("emergencias")
+      .insert({
+        practica: false,
+        nombre: "Rosa Quispe",
+        direccion: "Calle Lima 245",
+        lat: -14.068123,
+        lng: -75.728456,
+      })
+      .select("id")
+      .single();
+    assert.equal(emergencia.error, null, mensaje(emergencia.error));
+    const eslabon = await duena.sb
+      .from("eslabones")
+      .insert({ emergencia_id: emergencia.data.id, orden: 1, contacto: "Ana" })
+      .select("id")
+      .single();
+    assert.equal(eslabon.error, null, mensaje(eslabon.error));
+    const enlace = await duena.sb
+      .from("enlaces")
+      .insert({ emergencia_id: emergencia.data.id, eslabon_id: eslabon.data.id, contacto: "Ana" })
+      .select("id")
+      .single();
+    assert.equal(enlace.error, null, mensaje(enlace.error));
+
+    const emergencias = await otraZona.sb.from("emergencias").select("id").eq("id", emergencia.data.id);
+    const eslabones = await otraZona.sb.from("eslabones").select("id").eq("emergencia_id", emergencia.data.id);
+    const enlaces = await otraZona.sb.from("enlaces").select("id").eq("emergencia_id", emergencia.data.id);
+    assert.equal(emergencias.data.length, 0);
+    assert.equal(eslabones.data.length, 0);
+    assert.equal(enlaces.data.length, 0);
+
+    const propios = await duena.sb.from("eslabones").select("id").eq("id", eslabon.data.id);
+    assert.equal(propios.data.length, 1);
+  });
+
+  test("Mockup v4: un vecino no puede bloquear y, sin fila en bloqueos, no recibe BLOQUEADO", async () => {
+    const bloqueo = await cerca.sb.from("bloqueos").insert({
+      user_id: cerca.id,
+      motivo: "abuso de prueba",
+    });
+    exigeRechazo(bloqueo.error);
+
+    const publicacion = await cerca.sb
+      .from("publicaciones")
+      .insert({ categoria: "taller", mensaje: "Taller de costura el domingo." })
+      .select("id")
+      .single();
+    assert.equal(publicacion.error, null, mensaje(publicacion.error));
+    const comentario = await cerca.sb
+      .from("comentarios")
+      .insert({ publicacion_id: publicacionId, texto: "Ahí estaré." })
+      .select("id")
+      .single();
+    assert.equal(comentario.error, null, mensaje(comentario.error));
+
+    const pedido = await publicarPedido(duena.sb);
+    assert.equal(pedido.error, null, mensaje(pedido.error));
+    const ayuda = await cerca.sb.rpc("yo_ayudo", { p_pedido_id: pedido.data.id });
+    exigeRechazo(ayuda.error, "CELULAR_NO_VERIFICADO");
+    assert.doesNotMatch(mensaje(ayuda.error), /BLOQUEADO/);
   });
 });
