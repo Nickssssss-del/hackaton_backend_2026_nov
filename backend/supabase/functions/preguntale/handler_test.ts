@@ -145,6 +145,17 @@ Deno.test("buscar_servicio sin ubicación filtra por zona_id", async () => {
   assertEquals(cuerpo.texto, "No encontré tecnico celulares en tu barrio.");
 });
 
+Deno.test("buscar_servicio sin resultados devuelve los 3 botones de siempre", async () => {
+  const r = await crearHandler(deps({
+    llamarIA: () => Promise.resolve({ nombre: "buscar_servicio", argumentos: { oficio: "cerrajero" } }),
+    buscarServicios: () => Promise.resolve([]),
+  }))(pedido({ texto: "necesito un cerrajero", zona_id: UUID }));
+  const cuerpo = await r.json();
+  assertEquals(cuerpo.funcion, "buscar_servicio");
+  assertEquals(cuerpo.servicios, []);
+  assertEquals(cuerpo.botones.map((b: { etiqueta: string }) => b.etiqueta), ["Servicios", "Pastillas", "Ayuda"]);
+});
+
 Deno.test("buscar_servicio sin ubicación ni zona pregunta el barrio y no busca", async () => {
   let busco = false;
   const r = await crearHandler(deps({

@@ -3,6 +3,7 @@
 // Contrato: backend/docs/spec_preguntale.md
 import {
   type Boton,
+  BOTONES_BASE,
   noEntiende,
   type Respuesta,
   validarEntrada,
@@ -141,7 +142,8 @@ export function crearHandler(deps: Dependencias) {
       const servicios = ordenar(encontrados, ubicacion).slice(0, 3);
       const nombre = oficio.replaceAll("_", " ");
       respuesta.servicios = servicios;
-      respuesta.botones = botonesDeServicios(servicios);
+      // Sin resultados, los botones de siempre para que la persona no quede sin salida.
+      respuesta.botones = servicios.length === 0 ? BOTONES_BASE : botonesDeServicios(servicios);
       respuesta.texto = servicios.length === 0
         ? `No encontré ${nombre} en tu barrio.`
         : `Encontré ${servicios.length} ${servicios.length === 1 ? "opción" : "opciones"} de ${nombre}.`;

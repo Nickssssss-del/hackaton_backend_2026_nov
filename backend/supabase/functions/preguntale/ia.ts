@@ -1,9 +1,10 @@
-// Único punto que conoce al proveedor de IA (Groq, API compatible con OpenAI, sin SDK).
-// Cambiar de proveedor es cambiar este archivo. Recibe solo el texto de quien pregunta.
+// Único punto que conoce al proveedor de IA: cualquier API compatible con OpenAI, sin SDK.
+// Por defecto Groq; se cambia de proveedor con los secretos IA_URL, IA_API_KEY e IA_MODELO.
+// Recibe solo el texto de quien pregunta.
 import type { LlamadaIA } from "./handler.ts";
 import { HERRAMIENTAS } from "./herramientas.ts";
 
-const URL_GROQ = "https://api.groq.com/openai/v1/chat/completions";
+export const URL_POR_DEFECTO = "https://api.groq.com/openai/v1/chat/completions";
 
 const SISTEMA =
   "Eres el asistente de la app Kuna, para adultos mayores de un barrio de Ica, Perú. " +
@@ -31,6 +32,7 @@ const TOOLS = HERRAMIENTAS.map((h) => ({
 interface Opciones {
   apiKey?: string;
   modelo?: string;
+  url?: string;
   enviar?: typeof fetch;
 }
 
@@ -40,12 +42,13 @@ export async function llamarIA(
   {
     apiKey = Deno.env.get("IA_API_KEY"),
     modelo = Deno.env.get("IA_MODELO") ?? "openai/gpt-oss-20b",
+    url = Deno.env.get("IA_URL") || URL_POR_DEFECTO,
     enviar = fetch,
   }: Opciones = {},
 ): Promise<LlamadaIA | null> {
   if (!apiKey) throw new Error("FALTA_IA_API_KEY");
 
-  const respuesta = await enviar(URL_GROQ, {
+  const respuesta = await enviar(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
     body: JSON.stringify({
