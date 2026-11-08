@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Proyecto Barrio",
+    "name": "Kuna",
     "slug": "proyecto-barrio",
     "scheme": "proyectobarrio",
     "orientation": "portrait",
@@ -38,10 +38,23 @@
         }
       ]
     ],
-   "android": {
-  "package": "com.melllfer.proyectobarrio",
-  "permissions": ["android.permission.CALL_PHONE"],
-  "googleServicesFile": "./google-services.json"
-}
+    "android": {
+      "package": "com.melllfer.proyectobarrio",
+      "permissions": [
+        "android.permission.CALL_PHONE"
+      ],
+      "googleServicesFile": "./google-services.json",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icono/icono-adaptable.png",
+        "monochromeImage": "./assets/icono/icono-adaptable.png",
+        "backgroundColor": "#012A88"
+      }
+    },
+    "icon": "./assets/icono/icono.png",
+    "splash": {
+      "image": "./assets/icono/logo-kuna.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    }
   }
 }

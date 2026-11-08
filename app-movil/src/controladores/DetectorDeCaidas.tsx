@@ -2,9 +2,10 @@
  * Controlador. «Emergencia o caída» (Mockup v4, p. 26: «Botón Emergencia o caída → ¿Estás bien?»).
  *
  * Con el acelerómetro (expo-sensors) busca el patrón típico de una caída:
- *   1. caída libre: la aceleración total baja de 0,4 g durante 80 ms o más;
- *   2. golpe: antes de 1,5 s supera 2,5 g;
- *   3. quietud: en los 2 s siguientes casi no se mueve (cerca de 1 g).
+ *   1. caída libre: la aceleración total baja de 0,6 g durante 100 ms o más;
+ *   2. golpe: antes de 1 s supera 1,6 g (una cama frena suave; el piso, fuerte);
+ *   3. quietud: en los 1,5 s siguientes casi no se mueve (cerca de 1 g).
+ * Umbrales y pruebas en modelos/detectorCaida.ts.
  * Si se cumple, abre G1 (/sos?caida=1): la persona tiene la cuenta para decir «Estoy bien».
  *
  * Funciona con la app abierta (Android no deja leer el acelerómetro con la app cerrada sin un
@@ -18,7 +19,8 @@ import { AppState, Platform } from "react-native";
 import { crearDetector } from "../modelos/detectorCaida";
 import { usePreferencias } from "./PreferenciasContexto";
 
-const INTERVALO_MS = 50;
+// 50 lecturas por segundo: un golpe sobre una cama dura 30-60 ms y con 20 por segundo se perdía.
+const INTERVALO_MS = 20;
 const ESPERA_ENTRE_DETECCIONES_MS = 60000;
 
 function Escuchar() {
