@@ -1,7 +1,7 @@
 /**
  * Modelo. Contratos de la app, en camelCase.
  * Las lecturas públicas salen de las vistas servicios_publicos y pedidos_cercanos.
- * La app no modela lecturas de servicios, vistos_buenos, perfiles ajenos ni auth.users.
+ * La app no modela lecturas de tablas privadas ni perfiles ajenos.
  */
 
 /** Fila cruda de la vista servicios_publicos. */
@@ -9,7 +9,7 @@ export interface FilaServicioPublico {
   id: string;
   nombre: string | null;
   nombre_negocio: string | null;
-  oficio: string;
+  oficio: Oficio;
   descripcion: string | null;
   precio_desde: number | string | null;
   hora_apertura: string | null;
@@ -40,6 +40,8 @@ export interface ServicioPublico {
   id: string;
   /** Nombre del negocio o del autor. */
   nombre: string;
+  /** Nombre del negocio (si el autor lo proporcionó). */
+  nombreNegocio?: string;
   oficio: string;
   descripcion: string;
   precioDesde?: number;
@@ -59,6 +61,8 @@ export interface ServicioPublico {
   comentarioDestacado?: string;
   comentarioAutor?: string;
   esMio: boolean;
+  /** Disponible en emergencias. */
+  disponibleEmergencia?: boolean;
   /** Presente solo si el autor permitió mostrar el contacto. */
   contacto?: string;
   /** Presente solo si el autor permitió mostrar la dirección. */
@@ -113,7 +117,7 @@ export interface CrearServicioDTO {
 export interface CrearPedidoDTO {
   categoria: CategoriaPedido;
   descripcion: string;
-  zonaId: string;
+  zonaId?: string;
 }
 
 export const OFICIOS = [
@@ -150,6 +154,42 @@ export interface ZonaPublica {
   id: string;
   nombre: string;
   distrito: string;
+  latCentro?: number;
+  lngCentro?: number;
+  radioM?: number;
+}
+
+export interface GrupoApoyoPublico {
+  id: string;
+  nombre: string;
+  tipo: TipoGrupoApoyo;
+  contacto: string | null;
+  direccion: string | null;
+  lat: number | null;
+  lng: number | null;
+  zonaId: string | null;
+  verificada: boolean;
+}
+
+export type TipoGrupoApoyo =
+  | "brigada"
+  | "bomberos"
+  | "comisaria"
+  | "salud"
+  | "municipalidad"
+  | "punto_seguro"
+  | "otro";
+
+export interface PerfilNube {
+  id: string;
+  nombre: string | null;
+  celular: string | null;
+  celular_verificado: boolean;
+  cuenta_asegurada_en: string | null;
+  zona_id: string | null;
+  lat: number | null;
+  lng: number | null;
+  creado_en: string;
 }
 
 export type MotivoVistoBueno =
@@ -174,6 +214,8 @@ export interface PerfilLocal {
   nombre?: string;
   zonaId?: string;
   celular?: string;
+  lat?: number;
+  lng?: number;
 }
 
 export interface ContactoEmergencia {
@@ -181,8 +223,34 @@ export interface ContactoEmergencia {
   telefono: string;
 }
 
+export interface ContactoLocal {
+  nombre: string;
+  telefono: string;
+  relacion: string;
+  orden: number;
+}
+
 /** Ficha guardada solo en el teléfono. */
 export interface FichaEmergencia {
   contactos: ContactoEmergencia[];
   mensaje: string;
+  consentimiento?: Consentimiento;
+}
+
+export interface ContactoConfianza extends ContactoEmergencia {}
+
+export interface Consentimiento {
+  aceptado: boolean;
+  fecha: string;
+}
+
+export interface UltimaUbicacion {
+  lat: number;
+  lng: number;
+  fecha: string;
+}
+
+export interface CacheGrupos {
+  grupos: GrupoApoyoPublico[];
+  fecha: string;
 }

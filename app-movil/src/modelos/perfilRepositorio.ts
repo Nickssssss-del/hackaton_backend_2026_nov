@@ -2,10 +2,12 @@
  * Modelo. El vecino solo lee y edita su fila de perfiles, y lee zonas.
  */
 import type { PerfilLocal, ZonaPublica } from "./tipos";
-import { borrarMisDatos, supabase } from "./supabase";
+import { borrarMisDatos, obtenerSupabase } from "./supabase";
+import { asignarZona, redondear3 } from "./geo";
+import { listarZonasPublicas } from "./zonasRepositorio";
 
 export async function listarZonas(): Promise<ZonaPublica[]> {
-  const { data, error } = await supabase
+  const { data, error } = await obtenerSupabase()
     .from("zonas")
     .select("id, nombre, distrito")
     .order("nombre");
@@ -14,28 +16,42 @@ export async function listarZonas(): Promise<ZonaPublica[]> {
 }
 
 export async function guardarPerfilNube(perfil: PerfilLocal): Promise<void> {
-  const { data, error: sesionError } = await supabase.auth.getUser();
+  const { data, error: sesionError } = await obtenerSupabase().auth.getUser();
   if (sesionError) throw sesionError;
   const id = data.user?.id;
   if (!id) throw new Error("SIN_SESION");
 
   const nombre = perfil.nombre?.trim() ?? "";
   const celular = perfil.celular?.trim() ?? "";
-  const { error } = await supabase.from("perfiles").upsert({
+  const zonas = await listarZonasPublicas();
+  const zonasConGeometria = zonas.filter(
+    (zona): zona is ZonaPublica & { latCentro: number; lngCentro: number; radioM: number } =>
+      typeof zona.latCentro === "number" &&
+      typeof zona.lngCentro === "number" &&
+      typeof zona.radioM === "number",
+  );
+  const zonaCalculada =
+    typeof perfil.lat === "number" && typeof perfil.lng === "number"
+      ? asignarZona(perfil.lat, perfil.lng, zonasConGeometria)
+      : null;
+  const coordenadasValidas = zonaCalculada === perfil.zonaId;
+  const { error } = await obtenerSupabase().from("perfiles").upsert({
     id,
     nombre: nombre.length >= 2 ? nombre : null,
     celular: /^9\d{8}$/.test(celular) ? celular : null,
     zona_id: perfil.zonaId || null,
+    lat: coordenadasValidas && perfil.lat !== undefined ? redondear3(perfil.lat) : null,
+    lng: coordenadasValidas && perfil.lng !== undefined ? redondear3(perfil.lng) : null,
   });
   if (error) throw error;
 }
 
 export async function perfilEstaCompleto(): Promise<boolean> {
-  const { data, error } = await supabase.auth.getUser();
+  const { data, error } = await obtenerSupabase().auth.getUser();
   if (error) throw error;
   const id = data.user?.id;
   if (!id) return false;
-  const perfil = await supabase
+  const perfil = await obtenerSupabase()
     .from("perfiles")
     .select("nombre, celular, zona_id")
     .eq("id", id)

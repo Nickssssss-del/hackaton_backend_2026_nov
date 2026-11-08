@@ -1,5 +1,12 @@
 {
   "fuente": "Base local. Los contactos de confianza no se guardan en la nube.",
+  "numeros": [
+    { "nombre": "Policía", "telefono": "105" },
+    { "nombre": "Bomberos", "telefono": "116" },
+    { "nombre": "SAMU", "telefono": "106" }
+  ],
+  "verificado_el": "[A COMPLETAR]",
+  "fuente_numeros": "Mockup rojo 4, por validar",
   "contactos": [],
   "mensaje": ""
 }

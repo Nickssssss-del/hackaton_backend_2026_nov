@@ -5,5 +5,5 @@ import NetInfo from "@react-native-community/netinfo";
 
 export async function exigirInternet(): Promise<void> {
   const estado = await NetInfo.fetch();
-  if (!estado.isConnected) throw new Error("SIN_INTERNET");
+  if (estado.isInternetReachable !== true) throw new Error("SIN_INTERNET");
 }
