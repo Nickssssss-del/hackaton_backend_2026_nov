@@ -1,6 +1,8 @@
 /**
  * Vista. Campo de texto con micrófono (RNF-07: toda entrada tiene alternativa por voz).
  * Lo dictado queda escrito en el campo para revisarlo. Sin micrófono (Expo Go), se usa el teclado.
+ * Con `digitos` (celular, código) se dicta de a pedazos y con palabras: «939… 123… 456» o
+ * «novecientos treinta y nueve…» llenan el campo con los dígitos (controladores/useVoz.ts).
  */
 import { useCallback } from "react";
 import { Pressable, StyleSheet, TextInput, View, type KeyboardTypeOptions } from "react-native";
@@ -21,13 +23,19 @@ type Props = {
   completo?: boolean;
   /** Oculta el micrófono (p. ej. números de celular). */
   sinVoz?: boolean;
+  /** Dictado de números: cuántos dígitos se esperan (9 celular, 6 código). Deja de escuchar al completarlos. */
+  digitos?: number;
 };
 
-export function CampoConVoz({ etiqueta, valor, onCambiar, ayuda, maxLength = 140, teclado, completo, sinVoz }: Props) {
+export function CampoConVoz({ etiqueta, valor, onCambiar, ayuda, maxLength = 140, teclado, completo, sinVoz, digitos }: Props) {
   const { tema } = useTema();
   const c = tema.colores;
-  const alReconocer = useCallback((texto: string) => onCambiar(texto.slice(0, maxLength)), [onCambiar, maxLength]);
-  const voz = useVoz(alReconocer);
+  // En modo números llegan solo dígitos (ya convertidos): se cortan a los esperados, no al largo del texto dicho.
+  const alReconocer = useCallback(
+    (texto: string) => onCambiar(digitos !== undefined ? texto.slice(0, digitos) : texto.slice(0, maxLength)),
+    [onCambiar, maxLength, digitos],
+  );
+  const voz = useVoz(alReconocer, digitos !== undefined ? { digitos } : undefined);
   const fontSize = tamanoLetra(20, tema.escalaLetra);
 
   return (
@@ -66,7 +74,9 @@ export function CampoConVoz({ etiqueta, valor, onCambiar, ayuda, maxLength = 140
           </Pressable>
         )}
       </View>
-      {voz.escuchando ? <Texto variante="ayuda">Te escucho…</Texto> : null}
+      {voz.escuchando ? (
+        <Texto variante="ayuda">{digitos !== undefined ? "Te escucho… puedes decirlo de a poquitos." : "Te escucho…"}</Texto>
+      ) : null}
       {voz.teclado && !voz.disponible ? <Texto variante="ayuda">Escribe con el teclado.</Texto> : null}
     </View>
   );

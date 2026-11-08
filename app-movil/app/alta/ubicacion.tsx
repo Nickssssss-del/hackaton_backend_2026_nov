@@ -1,5 +1,5 @@
 /**
- * Vista. A3 · ¿Dónde vives? · Paso 1 de 3 (Mockup v4, p. 3).
+ * Vista. A3 · ¿Dónde vives? · Paso 1 de 4 (Mockup v4, p. 3).
  * «Usar mi ubicación»: GPS (solo mientras se usa la app) → A3.1 con calle y número precargados
  *   para confirmar («Sí, aquí vivo», INC-02).
  * «Decir mi dirección»: va a A3.1 para dictar o escribir.
@@ -43,7 +43,7 @@ export default function DondeVives() {
       titulo="¿Dónde vives?"
       volver
       encabezado={<IndicadorPasos paso={1} />}
-      textoEscuchar="Paso 1 de 3. ¿Dónde vives? Toca Usar mi ubicación, o Decir mi dirección."
+      textoEscuchar="Paso 1 de 4. ¿Dónde vives? Toca Usar mi ubicación, o Decir mi dirección."
       pie={
         <>
           <BotonPrincipal icono="map-marker-outline" cargando={buscando} onPress={() => void usarUbicacion()}>

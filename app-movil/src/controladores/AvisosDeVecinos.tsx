@@ -3,7 +3,9 @@
  * - Registra el token de Expo con registrar_push_token cuando la persona activa
  *   «Vecinos cerca me ven si pido ayuda» (solo quien tiene la alerta activa recibe avisos).
  * - Al tocar el aviso «Un vecino necesita ayuda a X m» (data: emergencia_id, tipo "inicio"),
- *   abre G3 (/sos/alerta). El aviso de cierre («Ya no hace falta») no abre nada.
+ *   abre G3 (/sos/alerta). Si la app está abierta cuando llega, G3 se abre sola.
+ * - Aviso de cierre («Ya no hace falta», tipo "cierre"): G3 pasa al momento a «Esta emergencia ya
+ *   terminó» (eventosAlerta.ts). Si se toca, abre G3 de esa emergencia, que lo muestra.
  * Requiere un development build con el projectId de EAS en app.json (extra.eas.projectId) y
  * FCM configurado (google-services.json). Sin eso no registra nada y la app sigue igual.
  */
@@ -15,6 +17,7 @@ import { Platform } from "react-native";
 import { registrarPushToken } from "../modelos/alertaVecinalRepositorio";
 import { sincronizarPerfilLocalConNube } from "../modelos/perfilRepositorio";
 import { asegurarSesionAnonima, tieneConfiguracionSupabase } from "../modelos/supabase";
+import { avisarEmergenciaTerminada } from "./eventosAlerta";
 import { usePreferencias } from "./PreferenciasContexto";
 
 const CANAL_ALERTAS = "alertas-vecinos";
@@ -53,10 +56,24 @@ export async function registrarAvisosDeVecinos(): Promise<boolean> {
   }
 }
 
+type AvisoVecinal = { emergencia: string; tipo: "inicio" | "cierre" };
+
+/** Lee el aviso de alerta vecinal (inicio o cierre); null si es otro aviso (p. ej. pastillas). */
+function avisoVecinal(n: Notifications.Notification | null | undefined): AvisoVecinal | null {
+  const data = n?.request.content.data as { emergencia_id?: unknown; tipo?: unknown } | undefined;
+  if (typeof data?.emergencia_id !== "string") return null;
+  if (data.tipo !== "inicio" && data.tipo !== "cierre") return null;
+  return { emergencia: data.emergencia_id, tipo: data.tipo };
+}
+
 /** Emergencia de un aviso tocado; null si no es una alerta vecinal de inicio. */
 export function emergenciaDeRespuesta(r: Notifications.NotificationResponse | null | undefined): string | null {
-  const data = r?.notification.request.content.data as { emergencia_id?: unknown; tipo?: unknown } | undefined;
-  return data?.tipo === "inicio" && typeof data.emergencia_id === "string" ? data.emergencia_id : null;
+  const aviso = avisoVecinal(r?.notification);
+  return aviso?.tipo === "inicio" ? aviso.emergencia : null;
+}
+
+function abrirAlerta(emergencia: string) {
+  router.push({ pathname: "/sos/alerta", params: { emergencia } });
 }
 
 function Escuchar() {
@@ -69,13 +86,30 @@ function Escuchar() {
     void registrarAvisosDeVecinos();
   }, [cargando, visibleParaVecinos]);
 
+  // Aviso tocado (con la app abierta, en segundo plano o cerrada).
   useEffect(() => {
-    const emergencia = emergenciaDeRespuesta(respuesta);
+    const aviso = avisoVecinal(respuesta?.notification);
     const clave = respuesta?.notification.request.identifier ?? null;
-    if (!emergencia || !clave || abierta.current === clave) return;
+    if (!aviso || !clave || abierta.current === clave) return;
     abierta.current = clave;
-    router.push({ pathname: "/sos/alerta", params: { emergencia } });
+    if (aviso.tipo === "cierre") avisarEmergenciaTerminada(aviso.emergencia);
+    abrirAlerta(aviso.emergencia);
   }, [respuesta]);
+
+  // Aviso que llega con la app abierta: la alerta se abre sola; el cierre se marca al instante.
+  useEffect(() => {
+    const sub = Notifications.addNotificationReceivedListener((n) => {
+      const aviso = avisoVecinal(n);
+      if (!aviso) return;
+      if (aviso.tipo === "cierre") {
+        avisarEmergenciaTerminada(aviso.emergencia);
+        return;
+      }
+      abierta.current = n.request.identifier;
+      abrirAlerta(aviso.emergencia);
+    });
+    return () => sub.remove();
+  }, []);
 
   return null;
 }

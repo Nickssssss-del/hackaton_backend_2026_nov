@@ -1,5 +1,5 @@
 /**
- * Vista. Flujo de registro del Mockup v4 (A1–A6). Sin encabezado del sistema:
+ * Vista. Flujo de registro del Mockup v4 (A1–A6) + paso 4 «¿Algo de esto te pasa?». Sin encabezado del sistema:
  * cada pantalla usa la barra superior común (Volver, Aa, luna, Escuchar).
  */
 import { Stack } from "expo-router";
@@ -16,6 +16,7 @@ export default function DisenoAlta() {
       <Stack.Screen name="zona" />
       <Stack.Screen name="datos" />
       <Stack.Screen name="contactos" />
+      <Stack.Screen name="situaciones" />
       {/* A6: sin regreso al registro (gesto atrás desactivado). */}
       <Stack.Screen name="listo" options={{ gestureEnabled: false }} />
     </Stack>

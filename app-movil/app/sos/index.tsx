@@ -11,10 +11,12 @@
  */
 import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, Vibration, View } from "react-native";
+import { Animated, Easing, Platform, Pressable, StyleSheet, Vibration, View } from "react-native";
 import { leerPerfil } from "../../src/controladores/registroVecinos";
 import { useEmergencia } from "../../src/controladores/useEmergencia";
+import { llamar, permisoLlamarDirecto } from "../../src/controladores/llamadas";
 import { useEscuchar } from "../../src/controladores/useEscuchar";
+import { useRespuestaPorVoz } from "../../src/controladores/useRespuestaPorVoz";
 import { aQuienLlamamos } from "../../src/modelos/cascadaEmergencia";
 import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { Icono, type NombreIcono } from "../../src/vistas/componentes/Icono";
@@ -32,7 +34,7 @@ export default function EstasBien() {
   const { tema } = useTema();
   const c = tema.colores;
   const { demo, caida } = useLocalSearchParams<{ demo?: string; caida?: string }>();
-  const { escuchar, silenciar } = useEscuchar();
+  const { silenciar } = useEscuchar();
   const [nombre, setNombre] = useState("");
   const emergencia = useEmergencia();
   const personas = aQuienLlamamos(emergencia.contactos, Boolean(emergencia.brigada?.contacto));
@@ -58,15 +60,25 @@ export default function EstasBien() {
     else router.replace("/principal");
   };
 
+  const [listo, setListo] = useState(false);
+  // El permiso de llamar se pide AQUÍ, durante la cuenta: así, si hay que pedir ayuda, la llamada
+  // al contacto sale al instante (sin el cuadro de permiso en medio de la emergencia).
+  useEffect(() => {
+    if (demo !== "1") void permisoLlamarDirecto();
+  }, [demo]);
   useEffect(() => {
     void leerPerfil().then((perfil) => {
-      const n = perfil.nombre?.trim().split(/\s+/)[0] ?? "";
-      setNombre(n);
-      void escuchar(`¿Estás bien${n ? `, ${n}` : ""}? Si no respondes en un minuto, te ayudo a pedir ayuda. Si puedes, llama tú a la policía, a los bomberos o a la ambulancia.`, true);
+      setNombre(perfil.nombre?.trim().split(/\s+/)[0] ?? "");
+      setListo(true);
     });
-    // Solo al abrir.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Pregunta FUERTE y escucha: «estoy bien» apaga la alarma, «ayuda» pide ayuda ya.
+  const respuesta = useRespuestaPorVoz({
+    activo: listo && !pausado,
+    pregunta: `¿Estás bien${nombre ? `, ${nombre}` : ""}? Si estás bien, di: estoy bien. Si necesitas ayuda, di: ayuda.`,
+    alOir: (r) => (r === "bien" ? estoyBien() : pedirAyuda()),
+  });
 
   // Cuenta regresiva y animación; se detiene si la pantalla pierde el foco.
   useFocusEffect(
@@ -108,16 +120,14 @@ export default function EstasBien() {
   useEffect(() => {
     if (pausado) return;
     if (restan <= 0) pedirAyuda();
-    else if (restan === 30) void escuchar("Quedan 30 segundos. Toca el botón verde si estás bien.", true);
-    else if (restan === 10) void escuchar("Quedan 10 segundos.", true);
-  }, [restan, pedirAyuda, pausado, escuchar]);
+  }, [restan, pedirAyuda, pausado]);
 
   const llamarYa = (nombre: string, numero: string) => {
     silenciar();
     Vibration.cancel();
     setPausado(nombre);
     if (demo === "1") return;
-    void Linking.openURL(`tel:${numero}`).catch(() => undefined);
+    void llamar(numero);
   };
 
   const rotacion = giro.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
@@ -165,6 +175,16 @@ export default function EstasBien() {
             </Pressable>
           </Animated.View>
           <Texto variante="ayuda" centrado color={c.avisoTexto}>Toca el círculo para pedir ayuda ya</Texto>
+          <View style={[estilos.escucha, { backgroundColor: c.superficie, borderColor: respuesta.oyendo ? c.confirmado : c.borde }]}>
+            <Icono nombre={respuesta.oyendo ? "microphone" : "microphone-outline"} tamano={26} color={respuesta.oyendo ? c.confirmado : c.textoSecundario} />
+            <Texto variante="etiqueta" style={{ flex: 1 }}>
+              {respuesta.sinMicrofono
+                ? "Toca un botón: aquí no puedo escucharte."
+                : respuesta.oyendo
+                  ? `Te escucho… di «estoy bien» o «ayuda»${respuesta.oido ? `\n«${respuesta.oido}»` : ""}`
+                  : "Di «estoy bien» o «ayuda» cuando termine de hablar"}
+            </Texto>
+          </View>
         </View>
       )}
 
@@ -175,7 +195,7 @@ export default function EstasBien() {
         <BotonLlamada icono="ambulance" titulo="Ambulancia" numero="106" onPress={() => llamarYa("la ambulancia del SAMU (106)", "106")} />
       </View>
       <Texto variante="etiqueta" centrado color={c.avisoTexto} style={estilos.ayudaSamu}>
-        SAMU = Sistema de Atención Móvil de Urgencia (ambulancias)
+        SAMU = Servicio de Atención Móvil de Urgencia del Minsa (ambulancias)
       </Texto>
 
       <Pressable
@@ -252,6 +272,7 @@ const estilos = StyleSheet.create({
   numero: { fontSize: 72, lineHeight: 84 },
   accion: { flexDirection: "row", alignItems: "center", gap: 14 },
   llamadas: { gap: 10 },
+  escucha: { flexDirection: "row", alignItems: "center", gap: 10, borderWidth: 2, borderRadius: RADIO.l, padding: 12, alignSelf: "stretch" },
   ayudaSamu: { marginTop: 12, marginBottom: 8, fontSize: 18, fontWeight: "700", paddingVertical: 10, paddingHorizontal: 16, backgroundColor: "#FFFFFF", borderRadius: RADIO.m, borderWidth: 1.5, borderColor: "#DCA838" },
   radar: { flexDirection: "row", alignItems: "center", gap: 12, borderWidth: 2, borderRadius: RADIO.l, padding: 12, minHeight: 64 },
   llamada: { flexDirection: "row", minHeight: 64, borderWidth: 2.5, borderRadius: RADIO.l, alignItems: "center", paddingHorizontal: 14, gap: 12 },

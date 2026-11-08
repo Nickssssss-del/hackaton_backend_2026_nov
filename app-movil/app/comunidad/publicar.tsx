@@ -9,6 +9,7 @@ import { router } from "expo-router";
 import { useState } from "react";
 import { usePublicar } from "../../src/controladores/useComunidad";
 import { faltaParaEscribir } from "../../src/controladores/useAyudaVecinos";
+import { SUBIR_FOTOS } from "../../src/controladores/funciones";
 import { useFotoNueva } from "../../src/controladores/useFotoNueva";
 import {
   CATEGORIAS_PUBLICACION,
@@ -41,11 +42,11 @@ export default function NuevaPublicacion() {
   const foto = useFotoNueva();
 
   // Mockup v4 (p. 22): «Falta foto o mensaje y la categoría».
-  const sinContenido = mensaje.trim().length === 0 && !foto.foto;
+  const sinContenido = mensaje.trim().length === 0 && !(SUBIR_FOTOS && foto.foto);
   const falta = sinContenido && !categoria
-    ? "Falta foto o mensaje y la categoría"
+    ? SUBIR_FOTOS ? "Falta foto o mensaje y la categoría" : "Falta el mensaje y la categoría"
     : sinContenido
-      ? "Falta foto o mensaje"
+      ? SUBIR_FOTOS ? "Falta foto o mensaje" : "Falta el mensaje"
       : !categoria
         ? "Falta la categoría"
         : null;
@@ -64,7 +65,7 @@ export default function NuevaPublicacion() {
       return;
     }
     try {
-      await pub.publicar(categoria, mensaje, foto.foto ? foto.subir : undefined);
+      await pub.publicar(categoria, mensaje, SUBIR_FOTOS && foto.foto ? foto.subir : undefined);
     } catch {
       // El mensaje se muestra con pub.error.
     }
@@ -91,14 +92,14 @@ export default function NuevaPublicacion() {
     <Pantalla
       titulo="Nueva publicación"
       volver
-      textoEscuchar="Nueva publicación. Agrega una foto o cuenta qué quieres avisar con tu voz. Luego elige de qué se trata: kermés, misa, donación, ayuda social, taller u otro."
+      textoEscuchar="Nueva publicación. Cuenta qué quieres avisar con tu voz. Luego elige de qué se trata: kermés, misa, donación, ayuda social, taller u otro."
       pie={
         <BotonPrincipal variante="listo" icono="send" cargando={pub.enviando} motivoDesactivado={falta} onPress={() => void enviar()}>
           Publicar
         </BotonPrincipal>
       }
     >
-      <ElegirFoto estado={foto} forma="recuadro" descripcion="Foto de tu publicación" />
+      {SUBIR_FOTOS ? <ElegirFoto estado={foto} forma="recuadro" descripcion="Foto de tu publicación" /> : null}
       <CampoConVoz
         etiqueta="¿Qué quieres contar?"
         ayuda="Kermés el domingo…"

@@ -1,11 +1,11 @@
 /**
- * Vista. Progreso del registro: tres segmentos y "Paso N de 3" (RNF-05).
+ * Vista. Progreso del registro: cuatro segmentos y "Paso N de 4" (RNF-05). Paso 4 = ¿Algo de esto te pasa?
  */
 import { StyleSheet, View } from "react-native";
 import { useTema } from "../tema/useTema";
 import { Texto } from "./Texto";
 
-export function IndicadorPasos({ paso, total = 3 }: { paso: number; total?: number }) {
+export function IndicadorPasos({ paso, total = 4 }: { paso: number; total?: number }) {
   const { tema } = useTema();
   return (
     <View style={estilos.fila} accessible accessibilityLabel={`Paso ${paso} de ${total}`}>

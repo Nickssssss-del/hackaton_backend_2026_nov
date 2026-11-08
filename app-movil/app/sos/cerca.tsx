@@ -9,11 +9,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, Linking, Platform, Pressable, StyleSheet, View } from "react-native";
 import { llamar } from "../../src/controladores/llamadas";
+import { TEXTO_FUENTE } from "../../src/controladores/ubicacionRapida";
 import { useLugaresCercanos } from "../../src/controladores/useLugaresCercanos";
 import { minutosAPie } from "../../src/modelos/geo";
 import { distanciaLegible, ETIQUETA_TIPO, type LugarCercano, type TipoLugar } from "../../src/modelos/lugaresAyuda";
 import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { Icono, type NombreIcono } from "../../src/vistas/componentes/Icono";
+import { MapaOSM } from "../../src/vistas/componentes/MapaOSM";
 import { Mensaje } from "../../src/vistas/componentes/Mensaje";
 import { Pantalla } from "../../src/vistas/componentes/Pantalla";
 import { Texto } from "../../src/vistas/componentes/Texto";
@@ -34,6 +36,7 @@ export default function AyudaCerca() {
   const [radio, setRadio] = useState(2000);
   const { posicion, cercanos, origen, fecha, cargando, sinUbicacion, actualizar } = useLugaresCercanos(radio);
   const [ancho, setAncho] = useState(0);
+  const [vistaMapa, setVistaMapa] = useState(false);
   const giro = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -78,6 +81,61 @@ export default function AyudaCerca() {
         })}
       </View>
 
+      <View style={estilos.fila}>
+        {[
+          { valor: false, texto: "Radar", icono: "radar" as const },
+          { valor: true, texto: "Mapa", icono: "map-outline" as const },
+        ].map((o) => {
+          const activo = vistaMapa === o.valor;
+          return (
+            <Pressable
+              key={o.texto}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: activo }}
+              onPress={() => setVistaMapa(o.valor)}
+              style={[estilos.chipVista, { borderColor: c.accion, backgroundColor: activo ? c.accionSuave : c.superficie }]}
+            >
+              <Icono nombre={o.icono} tamano={22} color={c.accionTexto} />
+              <Texto variante="etiqueta" color={c.accionTexto}>{o.texto}</Texto>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {vistaMapa ? (
+        <>
+          <MapaOSM
+            puntos={
+              posicion
+                ? [
+                    { tipo: "yo", lat: posicion.lat, lng: posicion.lng, etiqueta: "Tú" },
+                    ...cercanos.map((l) => ({
+                      tipo: "vecino" as const,
+                      lat: l.lat,
+                      lng: l.lng,
+                      etiqueta: l.nombre,
+                      color: colorIcono(ESTILO[l.tipo].color, tema.oscuro).icono,
+                    })),
+                  ]
+                : []
+            }
+            anilloM={radio}
+            descripcion={`Mapa con ${cercanos.length} lugares de ayuda a ${km} kilómetros de ti.`}
+          />
+          {posicion ? (
+            <>
+              <Texto variante="ayuda" color={c.textoSecundario}>{`${TEXTO_FUENTE[posicion.fuente]}${cargando ? " · buscando GPS…" : ""}`}</Texto>
+              <BotonPrincipal
+                variante="secundario"
+                icono="map-search-outline"
+                onPress={() => void Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${posicion.lat},${posicion.lng}`)}
+              >
+                Abrir en el mapa del teléfono
+              </BotonPrincipal>
+            </>
+          ) : null}
+        </>
+      ) : (
       <View
         onLayout={(e) => setAncho(Math.min(e.nativeEvent.layout.width, 360))}
         style={[estilos.radarCaja, { height: ancho || 300 }]}
@@ -120,6 +178,7 @@ export default function AyudaCerca() {
           </View>
         ) : null}
       </View>
+      )}
 
       <View style={estilos.leyenda}>
         {TIPOS.map((t) => {
@@ -142,7 +201,7 @@ export default function AyudaCerca() {
       {!cargando && origen !== "ninguno" && cercanos.length === 0 ? (
         <Mensaje tono="info">{`No hay lugares registrados a ${km} km. Prueba con 2 km o llama al 106, 105 o 116.`}</Mensaje>
       ) : null}
-      {posicion?.fuente === "casa" ? <Mensaje tono="info">Uso la ubicación de tu casa: no hubo señal de GPS.</Mensaje> : null}
+      {posicion?.fuente === "casa" && !cargando ? <Mensaje tono="info">Uso la ubicación de tu casa: no hubo señal de GPS.</Mensaje> : null}
 
       {cercanos.map((l) => (
         <TarjetaLugar key={l.id} lugar={l} />
@@ -210,5 +269,6 @@ const estilos = StyleSheet.create({
   chip: { flexDirection: "row", alignItems: "center", gap: 6, borderRadius: RADIO.m, paddingHorizontal: 10, paddingVertical: 6 },
   tarjeta: { borderWidth: 1.5, borderRadius: RADIO.l, padding: 12, gap: 10 },
   fila: { flexDirection: "row", alignItems: "center", gap: 10 },
+  chipVista: { flex: 1, minHeight: 52, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, borderWidth: 2, borderRadius: RADIO.m },
   circulo: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
 });

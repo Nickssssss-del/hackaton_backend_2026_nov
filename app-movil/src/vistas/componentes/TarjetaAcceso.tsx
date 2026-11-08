@@ -88,7 +88,7 @@ export function TarjetaAcceso({
           </View>
         ) : null}
         <View style={vertical ? estilos.textosVertical : estilos.textos}>
-          <Texto variante="etiqueta" color={colorTexto} centrado={vertical}>{titulo}</Texto>
+          <Texto variante="etiqueta" color={colorTexto} centrado={vertical} ajustar={vertical ? 2 : 3}>{titulo}</Texto>
           {subtitulo ? (
             <Texto variante="ayuda" color={lleno || tono === "aviso" ? colorTexto : c.textoSecundario} centrado={vertical}>
               {subtitulo}

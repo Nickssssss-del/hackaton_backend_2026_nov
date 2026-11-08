@@ -63,7 +63,7 @@ export function BarraSuperior({ volver, textoEscuchar, alEscuchar }: Props) {
           color={colorAccion}
           icono="volume-high"
           etiqueta="Escuchar esta pantalla"
-          onPress={alEscuchar ?? (() => void voz.escuchar(textoEscuchar ?? "", true))}
+          onPress={alEscuchar ?? (() => void voz.alternar(textoEscuchar ?? ""))}
           estilo={circulo}
         />
       </View>

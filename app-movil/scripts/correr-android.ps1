@@ -13,6 +13,7 @@
                     teléfono conectado. Sirve para casi todos los Android (arm64-v8a y armeabi-v7a).
                     Revisa antes que exista .env con Supabase (si no, la app no se conecta a nada).
                     Lo deja en el Escritorio como Kuna-AAAA-MM-DD.apk.
+    -UsarEnvDelPanel  Con -Compartir: si falta .env, lo crea sin preguntar desde panel-web\.env.
     -Limpiar        Ejecuta "gradlew clean" antes de compilar (no usa prebuild).
     -RutaCorta      Compila desde V:\app-movil (subst V: = carpeta del repositorio) para evitar el límite de 260 caracteres.
                     Para quitar la unidad V: después:  subst V: /D
@@ -24,6 +25,7 @@ param(
   [switch]$SoloServidor,
   [switch]$Apk,
   [switch]$Compartir,
+  [switch]$UsarEnvDelPanel,
   [switch]$Limpiar,
   [switch]$RutaCorta
 )
@@ -129,6 +131,24 @@ if ($Compartir) {
   $envArchivo = Join-Path $app ".env"
   $envTexto = if (Test-Path $envArchivo) { Get-Content $envArchivo -Raw } else { "" }
   if ($envTexto -notmatch "EXPO_PUBLIC_SUPABASE_URL=\S+" -or $envTexto -notmatch "EXPO_PUBLIC_SUPABASE_ANON_KEY=\S+") {
+    # Sin .env: se ofrece crearlo con la URL y la clave publicable del panel web (es el mismo Supabase).
+    $panelEnv = Join-Path (Split-Path -Parent $app) "panel-web\.env"
+    if (Test-Path $panelEnv) {
+      $panelTexto = Get-Content $panelEnv -Raw
+      $url = if ($panelTexto -match "VITE_SUPABASE_URL=(\S+)") { $Matches[1] } else { $null }
+      $clave = if ($panelTexto -match "VITE_SUPABASE_ANON_KEY=(\S+)") { $Matches[1] } else { $null }
+      if ($url -and $clave) {
+        $respuesta = if ($UsarEnvDelPanel) { "S" } else { Read-Host "  No hay .env. ¿Lo creo con la URL y la clave publicable de panel-web\.env? (S/N)" }
+        if ($respuesta -match "^[sS]") {
+          @("EXPO_PUBLIC_SUPABASE_URL=$url", "EXPO_PUBLIC_SUPABASE_ANON_KEY=$clave", "EXPO_PUBLIC_VOY_EN_CAMINO_URL=https://kuna-voy.netlify.app") |
+            Set-Content -Path $envArchivo -Encoding ascii
+          $envTexto = Get-Content $envArchivo -Raw
+          Bien ".env creado desde panel-web (git lo ignora: no se sube al repositorio)"
+        }
+      }
+    }
+  }
+  if ($envTexto -notmatch "EXPO_PUBLIC_SUPABASE_URL=\S+" -or $envTexto -notmatch "EXPO_PUBLIC_SUPABASE_ANON_KEY=\S+") {
     Mal "Falta .env con EXPO_PUBLIC_SUPABASE_URL y EXPO_PUBLIC_SUPABASE_ANON_KEY (copia .env.example a .env y llénalo)."
     Mal "Sin eso el APK no se conecta a Supabase: no habría ayuda, servicios, comunidad ni emergencia en la nube."
     Terminar 1
@@ -219,7 +239,7 @@ if ($Apk) {
   Terminar 0
 }
 if ($SoloServidor) {
-  Paso "7. Servidor (la app ya está instalada). Abre 'Proyecto Barrio' en el dispositivo."
+  Paso "7. Servidor (la app ya está instalada). Abre 'Kuna' en el dispositivo."
   Write-Host "  Para detener: Ctrl + C"
   Write-Host "  Si en el teléfono aparece la pantalla de Expo, toca 'http://localhost:8081' o escríbelo."
   npx expo start --dev-client --localhost 2>&1 | Out-Host
@@ -230,7 +250,7 @@ if ($Limpiar) {
   Push-Location android; .\gradlew.bat clean 2>&1 | Out-Host; Pop-Location
 }
 Paso "7. Compilar, instalar y abrir (la primera vez: 10-30 minutos)"
-Write-Host "  Al terminar, la app 'Proyecto Barrio' se abre sola. Deja esta ventana abierta: es el servidor."
+Write-Host "  Al terminar, la app 'Kuna' se abre sola. Deja esta ventana abierta: es el servidor."
 Write-Host "  Para detener: Ctrl + C"
 # "| Out-Host" hace que la salida de Gradle quede también en el registro.
 npx expo run:android 2>&1 | Out-Host

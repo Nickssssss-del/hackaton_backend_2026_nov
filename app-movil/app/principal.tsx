@@ -13,6 +13,8 @@ import { useCallback, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { usePreferencias } from "../src/controladores/PreferenciasContexto";
 import { leerPerfil } from "../src/controladores/registroVecinos";
+import { ajustarVozPorSituaciones } from "../src/controladores/useEscuchar";
+import { leerSituaciones } from "../src/modelos/local/situaciones";
 import { cantidadLegible, estadosDelDia, horaLegible, leerPastillas, leerTomadasHoy, type Pastilla } from "../src/modelos/local/pastillas";
 import { useEscuchar } from "../src/controladores/useEscuchar";
 import { elegirAvatar, type TipoAvatar } from "../src/modelos/avatar";
@@ -45,6 +47,8 @@ export default function Principal() {
         setNombre(perfil.nombre?.trim().split(/\s+/)[0] ?? "");
         setDatosAvatar({ edad: perfil.edad, genero: perfil.genero, avatar: perfil.avatar });
       });
+      // «Oigo poco» (B4) ajusta la voz; lo elegido se ve en Mis datos, no en el Inicio.
+      void leerSituaciones().then(ajustarVozPorSituaciones);
       void Promise.all([leerPastillas(), leerTomadasHoy()]).then(([lista, hoy]) => {
         const estados = estadosDelDia(lista, hoy);
         const ordenadas = [...lista].sort((a, b) => a.hora.localeCompare(b.hora));
@@ -75,30 +79,44 @@ export default function Principal() {
         </View>
         <View style={estilos.saludo}>
           <Texto variante="titulo" accessibilityRole="header">{saludo}</Texto>
-          <Pressable accessibilityRole="button" accessibilityLabel="Mis datos" onPress={ir("/perfil")} style={estilos.enlace} hitSlop={8}>
-            <Texto variante="etiqueta" color={c.accionTexto}>Mis datos</Texto>
-            <Icono nombre="chevron-right" color={c.accionTexto} tamano={22} />
+          {/* Botón (no enlace con flecha): se ve que se puede tocar y entra rápido a Mis datos. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Mis datos"
+            onPress={ir("/perfil")}
+            style={({ pressed }) => [
+              estilos.botonDatos,
+              { backgroundColor: c.accion, opacity: pressed ? 0.85 : 1 },
+            ]}
+            hitSlop={6}
+          >
+            <Icono nombre="account-cog-outline" color={c.sobreColor} tamano={24} />
+            <Texto variante="etiqueta" color={c.sobreColor} ajustar>Mis datos</Texto>
           </Pressable>
         </View>
       </View>
+
 
       {/* Accesos rápidos: A+ (tamaño actual), Oscuro, Escuchar */}
       <View style={estilos.rapidos}>
         <BotonRapido
           icono="format-size"
-          texto={`A+ ${TAMANOS_LETRA[tamano].etiqueta}`}
+          texto={`Letra ${TAMANOS_LETRA[tamano].etiqueta}`}
+          ancho={tamano === "normal" ? "tercio" : "mitad"}
           etiqueta={`Tamaño de letra: ${TAMANOS_LETRA[tamano].etiqueta}. Toca para cambiar.`}
           onPress={siguienteTamano}
         />
         <BotonRapido
           icono={oscuro ? "white-balance-sunny" : "moon-waning-crescent"}
           texto={oscuro ? "Claro" : "Oscuro"}
+          ancho={tamano === "normal" ? "tercio" : "mitad"}
           etiqueta={oscuro ? "Modo oscuro: Sí. Toca para quitarlo." : "Modo oscuro: No. Toca para activarlo."}
           onPress={() => setOscuro(!oscuro)}
         />
         <BotonRapido
           icono="volume-high"
           texto="Escuchar"
+          ancho={tamano === "normal" ? "tercio" : "entero"}
           etiqueta="Escuchar esta pantalla"
           onPress={() => void voz.escuchar(textoEscuchar, true)}
         />
@@ -125,6 +143,7 @@ export default function Principal() {
         accion="microfono"
         onPress={ir("/preguntale")}
       />
+
 
       <View style={estilos.fila}>
         <TarjetaAcceso vertical tono="tocar" icono="heart-outline" titulo="Necesito ayuda" onPress={ir("/ayuda-vecinos")} />
@@ -154,8 +173,9 @@ export default function Principal() {
   );
 }
 
-function BotonRapido({ icono, texto, etiqueta, onPress }: {
+function BotonRapido({ icono, texto, etiqueta, onPress, ancho = "tercio" }: {
   icono: NombreIcono;
+  ancho?: "tercio" | "mitad" | "entero";
   texto: string;
   etiqueta: string;
   onPress: () => void;
@@ -168,10 +188,10 @@ function BotonRapido({ icono, texto, etiqueta, onPress }: {
       accessibilityRole="button"
       accessibilityLabel={etiqueta}
       onPress={onPress}
-      style={[estilos.rapido, { backgroundColor: c.superficie, borderColor: tema.oscuro ? c.borde : c.accion }]}
+      style={[estilos.rapido, { flexBasis: ancho === "tercio" ? 0 : ancho === "mitad" ? "40%" : "100%", flexDirection: ancho === "entero" ? "row" : "column", gap: ancho === "entero" ? 10 : 2, backgroundColor: c.superficie, borderColor: tema.oscuro ? c.borde : c.accion }]}
     >
       <Icono nombre={icono} color={color} tamano={22} />
-      <Texto variante="etiqueta" color={color} centrado>{texto}</Texto>
+      <Texto variante="etiqueta" color={color} centrado ajustar={2}>{texto}</Texto>
     </Pressable>
   );
 }
@@ -179,10 +199,19 @@ function BotonRapido({ icono, texto, etiqueta, onPress }: {
 const estilos = StyleSheet.create({
   cabecera: { flexDirection: "row", alignItems: "center", gap: 10 },
   saludo: { flex: 1 },
-  enlace: { flexDirection: "row", alignItems: "center", alignSelf: "flex-start", minHeight: 36 },
-  rapidos: { flexDirection: "row", gap: 8 },
+  botonDatos: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    gap: 8,
+    minHeight: ALTO_TACTIL,
+    paddingHorizontal: 18,
+    borderRadius: 999,
+    marginTop: 4,
+  },
+  rapidos: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   rapido: {
-    flex: 1,
+    flexGrow: 1,
     minHeight: ALTO_TACTIL + 12,
     borderRadius: RADIO.m,
     borderWidth: 2,

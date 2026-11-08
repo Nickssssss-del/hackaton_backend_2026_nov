@@ -73,6 +73,7 @@ export default function VerificarCelular() {
           onCambiar={(t) => setCodigo(t.replace(/\D/g, "").slice(0, 6))}
           maxLength={6}
           teclado="number-pad"
+          digitos={6}
           completo={completo}
         />
         {v.error ? <Mensaje tono="aviso">{v.error}</Mensaje> : null}
@@ -100,6 +101,7 @@ export default function VerificarCelular() {
         onCambiar={(t) => v.setCelular(t.replace(/[^\d ]/g, ""))}
         maxLength={11}
         teclado="phone-pad"
+        digitos={9}
         completo={/^9\d{8}$/.test(v.celular.replace(/\D/g, ""))}
       />
       {v.error ? <Mensaje tono="aviso">{v.error}</Mensaje> : null}

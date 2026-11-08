@@ -14,6 +14,7 @@ import { router, useFocusEffect, useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Pressable, StyleSheet, View } from "react-native";
 import { faltaParaEscribir } from "../../src/controladores/useAyudaVecinos";
+import { SUBIR_FOTOS } from "../../src/controladores/funciones";
 import { useFotoNueva } from "../../src/controladores/useFotoNueva";
 import { useServicios } from "../../src/controladores/useServicios";
 import { usePublicarNegocio, validarNombreNegocio } from "../../src/controladores/useServiciosV4";
@@ -111,7 +112,7 @@ export default function SubeTuNegocio() {
         horario: conHorario ? { abre, cierra } : null,
         precioDesde: precioNumero,
         descripcion,
-        subirFoto: fotoNueva.foto ? fotoNueva.subir : undefined,
+        subirFoto: SUBIR_FOTOS && fotoNueva.foto ? fotoNueva.subir : undefined,
       });
     } catch {
       // El mensaje se muestra con negocio.error.
@@ -238,7 +239,7 @@ export default function SubeTuNegocio() {
         completo={problemaNombre === null}
       />
 
-      <ElegirFoto estado={fotoNueva} rutaActual={fotoActual} descripcion={`Foto de ${nombre.trim() || "tu negocio"}`} />
+      {SUBIR_FOTOS ? <ElegirFoto estado={fotoNueva} rutaActual={fotoActual} descripcion={`Foto de ${nombre.trim() || "tu negocio"}`} /> : null}
 
       <Texto variante="subtitulo">Más datos (si quieres)</Texto>
       <InterruptorSiNo etiqueta="Tiene horario fijo" valor={conHorario} onCambiar={setConHorario} />

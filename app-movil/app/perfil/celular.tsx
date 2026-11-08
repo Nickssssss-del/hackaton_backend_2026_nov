@@ -43,6 +43,7 @@ export default function TuCelular() {
         onCambiar={(t) => setCelular(t.replace(/[^\d ]/g, ""))}
         maxLength={11}
         teclado="phone-pad"
+        digitos={9}
         completo={problema === null}
       />
       <Mensaje tono="info">Solo lo verá el vecino que te ayude o al que tú ayudes.</Mensaje>

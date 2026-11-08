@@ -39,6 +39,12 @@ export const CATEGORIAS_SERVICIO: readonly CategoriaServicio[] = [
   },
 ];
 
+/** Categorías con al menos un negocio en la lista: E1 oculta las vacías. */
+export function categoriasConNegocios(servicios: readonly Pick<ServicioPublico, "oficio">[]): CategoriaServicio[] {
+  const oficios = new Set<string>(servicios.map((s) => s.oficio));
+  return CATEGORIAS_SERVICIO.filter((c) => c.oficios.some((o) => oficios.has(o)));
+}
+
 export function categoriaServicio(valor: string | undefined): CategoriaServicio | undefined {
   return CATEGORIAS_SERVICIO.find((c) => c.valor === valor);
 }

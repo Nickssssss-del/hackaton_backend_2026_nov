@@ -1,5 +1,6 @@
+import { llamar as llamarNumero } from "./llamadas";
+import { ubicacionConocida, ubicacionGps } from "./ubicacionRapida";
 import * as Location from "expo-location";
-import * as Linking from "expo-linking";
 import * as SMS from "expo-sms";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import baseIncluida from "../../assets/emergencia/base.json";
@@ -15,7 +16,7 @@ import { leerCacheGrupos } from "../modelos/local/cacheGrupos";
 import { guardarEmergencia, leerEmergencia } from "../modelos/local/emergenciaBase";
 import { leerFicha } from "../modelos/local/ficha";
 import { leerPerfilLocal } from "../modelos/local/perfil";
-import { guardarUltimaUbicacion, leerUltimaUbicacion } from "../modelos/local/ultimaUbicacion";
+import { leerUltimaUbicacion } from "../modelos/local/ultimaUbicacion";
 import {
   armarMensajeEmergencia,
   armarMensajeEstoyBien,
@@ -31,15 +32,6 @@ type ResultadoAyuda =
   | { estado: "pedir_numero" }
   | { estado: "mensaje_listo"; mensaje: string; telefonos: string[]; smsDisponible: boolean };
 type PuntoSeguroCercano = PuntoSeguro & { minutos: number; rumbo: string };
-
-function conTiempoMaximo<T>(promesa: Promise<T>, maximo: number): Promise<T | null> {
-  return Promise.race([
-    promesa,
-    new Promise<null>((resolve) => {
-      setTimeout(() => resolve(null), maximo);
-    }),
-  ]);
-}
 
 function numeroValido(telefono: string): boolean {
   return /^9\d{8}$/.test(telefono);
@@ -135,29 +127,19 @@ export function useEmergencia() {
     [estadoConexion],
   );
 
+  // GPS de alta precisión (con tiempo máximo). Si no llega: la última del sistema, la guardada
+  // o la de la casa (ubicacionRapida.ts), para que el SMS y la base nunca salgan sin ubicación.
   const obtenerUbicacion = useCallback(async (): Promise<UltimaUbicacion | null> => {
-    const permiso = await Location.requestForegroundPermissionsAsync();
-    if (!permiso.granted) return leerUltimaUbicacion();
-    const posicion = await conTiempoMaximo(Location.getCurrentPositionAsync({}), TIEMPO_MAXIMO_UBICACION);
-    if (!posicion) return leerUltimaUbicacion();
-    const siguiente: UltimaUbicacion = {
-      lat: posicion.coords.latitude,
-      lng: posicion.coords.longitude,
-      fecha: new Date().toISOString(),
-    };
+    const gps = await ubicacionGps(TIEMPO_MAXIMO_UBICACION, true);
+    const punto = gps ?? (await ubicacionConocida());
+    if (!punto) return null;
+    const siguiente: UltimaUbicacion = { lat: punto.lat, lng: punto.lng, fecha: new Date().toISOString() };
     setUbicacion(siguiente);
-    await guardarUltimaUbicacion(siguiente);
-    void actualizarEstasEn(siguiente);
+    if (gps) void actualizarEstasEn(siguiente);
     return siguiente;
   }, [actualizarEstasEn]);
 
-  const asegurarUbicacion = useCallback(async () => {
-    const actual = await obtenerUbicacion();
-    if (actual) return actual;
-    const guardada = await leerUltimaUbicacion();
-    if (guardada) setUbicacion(guardada);
-    return guardada;
-  }, [obtenerUbicacion]);
+  const asegurarUbicacion = obtenerUbicacion;
 
   const actualizarFicha = useCallback(async (siguiente: FichaEmergencia) => {
     await guardarEmergencia(siguiente);
@@ -238,8 +220,9 @@ export function useEmergencia() {
     return { estado: "mensaje_listo", mensaje: texto, telefonos, smsDisponible };
   }, [brigada, contactos]);
 
+  // Directo si hay permiso CALL_PHONE; si no (o 105/116/106), el marcador con el número listo.
   const llamar = useCallback(async (telefono: string) => {
-    await Linking.openURL(`tel:${telefono.replace(/[^\d+]/g, "")}`);
+    await llamarNumero(telefono);
   }, []);
 
   const puntoSeguro = useCallback(async (): Promise<PuntoSeguroCercano | null> => {

@@ -1,5 +1,5 @@
 /**
- * Vista. Grupo de opciones (Mujer/Hombre/No decir, Mañana/Tarde/Noche, filtros, categorías).
+ * Vista. Grupo de opciones (Mujer/Hombre, Mañana/Tarde/Noche, filtros, categorías).
  * Selección única o múltiple. La opción elegida se marca con color y borde, no solo con color.
  */
 import { Pressable, StyleSheet, View } from "react-native";
@@ -61,7 +61,7 @@ export function Opciones<T extends string>({ opciones, seleccion, onCambiar, mul
             ) : op.icono ? (
               <Icono nombre={op.icono} color={c.accionTexto} />
             ) : null}
-            <Texto variante="etiqueta" centrado color={activa && !tarjetas ? c.accionTexto : c.texto}>
+            <Texto variante="etiqueta" centrado ajustar={2} color={activa && !tarjetas ? c.accionTexto : c.texto}>
               {op.etiqueta}
             </Texto>
             {tarjetas && multiple && activa ? (

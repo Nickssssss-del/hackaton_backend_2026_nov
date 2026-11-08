@@ -9,21 +9,16 @@ import { guardarSituaciones, leerSituaciones, alternarSituacion, type Situacion 
 import { BotonPrincipal } from "../../src/vistas/componentes/BotonPrincipal";
 import { Opciones } from "../../src/vistas/componentes/Opciones";
 import { Pantalla } from "../../src/vistas/componentes/Pantalla";
-import type { NombreIcono } from "../../src/vistas/componentes/Icono";
-import type { ColorIcono } from "../../src/vistas/tema/tokens";
+import { SITUACIONES } from "../../src/vistas/componentes/estiloSituaciones";
+import { aplicarSituaciones } from "../../src/controladores/efectosSituaciones";
+import { usePreferencias } from "../../src/controladores/PreferenciasContexto";
+import { EfectosSituaciones } from "../../src/vistas/componentes/EfectosSituaciones";
 
-const SITUACIONES: { valor: Situacion; etiqueta: string; icono: NombreIcono; color: ColorIcono }[] = [
-  { valor: "vivo_solo", etiqueta: "Vivo solo", icono: "account-outline", color: "morado" },
-  { valor: "oigo_poco", etiqueta: "Oigo poco", icono: "ear-hearing", color: "turquesa" },
-  { valor: "veo_poco", etiqueta: "Veo poco", icono: "eye-outline", color: "azul" },
-  { valor: "camino_poco", etiqueta: "Camino poco", icono: "walk", color: "naranja" },
-  { valor: "tomo_pastillas", etiqueta: "Tomo pastillas", icono: "pill", color: "verde" },
-  { valor: "ninguna", etiqueta: "Ninguna", icono: "close", color: "gris" },
-];
 
 export default function AlgoTePasa() {
   const [seleccion, setSeleccion] = useState<Situacion[]>([]);
   const [guardando, setGuardando] = useState(false);
+  const prefs = usePreferencias();
 
   useEffect(() => {
     void leerSituaciones().then(setSeleccion);
@@ -40,6 +35,7 @@ export default function AlgoTePasa() {
   const guardar = async () => {
     setGuardando(true);
     await guardarSituaciones(seleccion);
+    await aplicarSituaciones(seleccion, prefs);
     setGuardando(false);
     router.back();
   };
@@ -64,6 +60,7 @@ export default function AlgoTePasa() {
         seleccion={seleccion}
         onCambiar={cambiar}
       />
+      <EfectosSituaciones seleccion={seleccion} />
     </Pantalla>
   );
 }

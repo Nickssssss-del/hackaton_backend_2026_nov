@@ -1,7 +1,9 @@
 /**
  * Vista. Mapa de OpenStreetMap con puntos (G3 alerta vecinal, Mockup v4 p. 25).
- * - Teselas de tile.openstreetmap.org (con User-Agent propio, como pide su política) y la
- *   atribución «© OpenStreetMap». Sin librería nativa de mapas ni clave.
+ * - Teselas de Esri (sin clave); si no cargan en 8 s o fallan, OpenStreetMap y luego CARTO
+ *   (modelos/mapaOSM.ts). Siempre con su atribución. Sin librería nativa de mapas ni clave.
+ * - Con y sin internet (controladores/mapaSinInternet.tsx): cada tesela se guarda en el teléfono;
+ *   sin internet se dibuja la copia, o una de menos zoom ampliada, y se avisa «Mapa guardado».
  * - Puntos: «Tú» (azul), la persona que pide ayuda (rojo, late) y otros puntos opcionales.
  * - Línea punteada de «Tú» a la persona, y un anillo opcional con la distancia aproximada
  *   (antes de «Voy a ayudar» la base no entrega la ubicación exacta).
@@ -9,16 +11,17 @@
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Animated, Image, Platform, StyleSheet, View } from "react-native";
-import { aPixel, metrosPorPixel, teselasVisibles, zoomParaVer, type Coordenada } from "../../modelos/mapaOSM";
+import { useTeselasMapa, type DibujoTesela } from "../../controladores/mapaSinInternet";
+import { aPixel, metrosPorPixel, TAMANO_TESELA, teselasVisibles, zoomParaVer, type Coordenada } from "../../modelos/mapaOSM";
 import { RADIO } from "../tema/tokens";
 import { useTema } from "../tema/useTema";
 import { Texto } from "./Texto";
 
-const CABECERAS = { "User-Agent": "Vecinos/1.0 (app comunitaria, Hackaton UTP 2026)" };
-
 export interface PuntoMapa extends Coordenada {
   tipo: "yo" | "ayuda" | "vecino";
   etiqueta?: string;
+  /** Color del punto (p. ej. el de cada tipo de lugar en «Ayuda cerca de ti»). */
+  color?: string;
 }
 
 type Props = {
@@ -31,7 +34,6 @@ type Props = {
 export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
   const { tema } = useTema();
   const [ancho, setAncho] = useState(0);
-  const [fallos, setFallos] = useState(0);
   const pulso = useRef(new Animated.Value(0)).current;
   const alto = Math.round(ancho * 0.78);
 
@@ -43,7 +45,8 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
 
   const vista = useMemo(() => {
     if (!ancho || puntos.length === 0) return null;
-    const z = zoomParaVer(puntos, anilloM ?? 0, ancho, alto);
+    // Un solo punto sin anillo: zoom 17 (se ven calles y manzanas alrededor, no solo un techo).
+    const z = Math.min(zoomParaVer(puntos, anilloM ?? 0, ancho, alto), puntos.length === 1 && !anilloM ? 17 : 18);
     const px = puntos.map((p) => aPixel(p, z));
     const centro = {
       x: (Math.min(...px.map((p) => p.x)) + Math.max(...px.map((p) => p.x))) / 2,
@@ -57,7 +60,8 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
     };
   }, [ancho, alto, puntos, anilloM]);
 
-  const sinTeselas = vista ? fallos >= Math.max(1, Math.ceil(vista.teselas.length / 2)) : false;
+  const teselas = useMemo(() => vista?.teselas ?? [], [vista]);
+  const mapa = useTeselasMapa(teselas);
   const yo = vista?.marcas.find((m) => m.tipo === "yo");
   const ayuda = vista?.marcas.find((m) => m.tipo === "ayuda");
   const camino =
@@ -76,17 +80,24 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
       accessibilityRole="image"
       accessibilityLabel={descripcion}
     >
-      {vista && sinTeselas ? <FondoDibujado oscuro={tema.oscuro} /> : null}
-      {vista && !sinTeselas
-        ? vista.teselas.map((t) => (
-            <Image
-              key={t.clave}
-              source={{ uri: t.url, headers: CABECERAS }}
-              onError={() => setFallos((f) => f + 1)}
-              style={[estilos.tesela, { left: t.izquierda, top: t.arriba }]}
-            />
-          ))
+      {/* Siempre debajo: mientras cargan las teselas (o si no cargan) se ve un mapa sencillo, no un hueco. */}
+      <FondoDibujado oscuro={tema.oscuro} />
+      {ancho > 0 && puntos.length === 0 ? (
+        <View style={estilos.sinUbicacion} pointerEvents="none">
+          <Texto variante="etiqueta" centrado>Aún no tengo la ubicación. Activa el GPS del teléfono.</Texto>
+        </View>
+      ) : null}
+      {vista
+        ? vista.teselas.map((t) => {
+            const d = mapa.dibujos[t.clave];
+            return d ? <TeselaDibujada key={t.clave} dibujo={d} izquierda={t.izquierda} arriba={t.arriba} /> : null;
+          })
         : null}
+      {vista && mapa.sinMapaGuardado ? (
+        <View style={estilos.sinUbicacion} pointerEvents="none">
+          <Texto variante="ayuda" centrado color="#333333">Sin internet: el mapa de esta zona aún no está guardado. Tu punto sí se ve.</Texto>
+        </View>
+      ) : null}
 
       {yo && vista && vista.anilloPx > 8 ? (
         <View
@@ -126,7 +137,7 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
           </View>
         ) : (
           <View key={k} style={[estilos.marcaChica, { left: m.left - 11, top: m.top - 11 }]} pointerEvents="none">
-            <View style={[estilos.puntoChico, { backgroundColor: m.tipo === "yo" ? "#1F4E9C" : "#186B3A" }]} />
+            <View style={[estilos.puntoChico, { backgroundColor: m.color ?? (m.tipo === "yo" ? "#1F4E9C" : "#186B3A") }]} />
             {m.tipo === "yo" ? (
               <Texto variante="etiqueta" style={estilos.etiquetaTu} color="#1F4E9C">
                 {m.etiqueta ?? "Tú"}
@@ -136,11 +147,30 @@ export function MapaOSM({ puntos, anilloM, descripcion }: Props) {
         ),
       )}
 
-      {vista && !sinTeselas ? (
+      {vista && mapa.hayAlgo ? (
         <View style={estilos.atribucion} pointerEvents="none">
-          <Texto variante="ayuda" style={estilos.atribucionTexto}>© OpenStreetMap</Texto>
+          <Texto variante="ayuda" style={estilos.atribucionTexto}>
+            {mapa.sinInternet ? `Mapa guardado · ${mapa.atribucion}` : mapa.atribucion}
+          </Texto>
         </View>
       ) : null}
+    </View>
+  );
+}
+
+/** Una tesela: la copia exacta, o una de menos zoom ampliada y recortada (sin internet). */
+function TeselaDibujada({ dibujo, izquierda, arriba }: { dibujo: DibujoTesela; izquierda: number; arriba: number }) {
+  if (dibujo.tipo === "imagen") {
+    return <Image source={{ uri: dibujo.uri }} style={[estilos.tesela, { left: izquierda, top: arriba }]} />;
+  }
+  const escala = 2 ** dibujo.niveles;
+  const lado = TAMANO_TESELA * escala;
+  return (
+    <View style={[estilos.tesela, estilos.recorte, { left: izquierda, top: arriba }]} pointerEvents="none">
+      <Image
+        source={{ uri: dibujo.uri }}
+        style={{ position: "absolute", width: lado, height: lado, left: -dibujo.dx * TAMANO_TESELA, top: -dibujo.dy * TAMANO_TESELA }}
+      />
     </View>
   );
 }
@@ -164,6 +194,7 @@ function FondoDibujado({ oscuro }: { oscuro: boolean }) {
 const estilos = StyleSheet.create({
   marco: { width: "100%", borderRadius: RADIO.l, overflow: "hidden" },
   tesela: { position: "absolute", width: 256, height: 256 },
+  recorte: { overflow: "hidden" },
   anillo: { position: "absolute", borderWidth: 2, borderStyle: "dashed" },
   puntito: { position: "absolute", width: 6, height: 6, borderRadius: 3 },
   marca: { position: "absolute", width: 44, height: 44, alignItems: "center", justifyContent: "center" },
@@ -177,4 +208,5 @@ const estilos = StyleSheet.create({
   calleH: { position: "absolute", left: 0, right: 0, height: 22 },
   calleV: { position: "absolute", top: 0, bottom: 0, width: 22 },
   manzana: { position: "absolute", width: "22%", height: "16%", borderRadius: 8 },
+  sinUbicacion: { position: "absolute", left: 12, right: 12, top: "40%", backgroundColor: "rgba(255,255,255,0.9)", borderRadius: 12, padding: 10 },
 });

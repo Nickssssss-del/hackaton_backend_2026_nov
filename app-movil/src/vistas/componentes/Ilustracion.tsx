@@ -15,7 +15,7 @@ const IMAGENES: Record<Exclude<TipoIlustracion, "modoSencillo" | "modoCompleto">
   barrio: { fuente: require("../../../assets/ilustraciones/bienvenida.png"), proporcion: 780 / 436 },
   mapa: { fuente: require("../../../assets/ilustraciones/mapa.png"), proporcion: 780 / 508 },
   listo: { fuente: require("../../../assets/ilustraciones/todo-listo.png"), proporcion: 780 / 664 },
-  despertador: { fuente: require("../../../assets/ilustraciones/despertador.png"), proporcion: 380 / 320 },
+  despertador: { fuente: require("../../../assets/ilustraciones/reloj-pastilla.png"), proporcion: 560 / 529 },
 };
 
 // SVG para modo sencillo (Aa, botones azul/verde/rojo, ondas de sonido)

@@ -59,7 +59,6 @@ export default function Catalogo() {
         opciones={[
           { valor: "mujer", etiqueta: "Mujer" },
           { valor: "hombre", etiqueta: "Hombre" },
-          { valor: "no_decir", etiqueta: "No decir" },
         ]}
         seleccion={genero}
         onCambiar={setGenero}
